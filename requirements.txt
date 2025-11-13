@@ -7,3 +7,9 @@ httpx
 black
 ruff
 mypy
+
+
+pandas
+numpy
+scikit-learn
+sqlalchemy
