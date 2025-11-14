@@ -1,27 +1,30 @@
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+# app/models/fault_ticket.py
+from pydantic import BaseModel
+from typing import List, Optional
 
-from pydantic import BaseModel, Field
+class KBCitation(BaseModel):
+    source_id: str
+    title: str
+    section: Optional[str] = None
+    url: Optional[str] = None
+    snippet: Optional[str] = None
 
+class EvidenceWindow(BaseModel):
+    start_timestamp: str
+    end_timestamp: str
+    metric: str
+    description: str
 
 class FaultTicket(BaseModel):
-    ticket_id: str = Field(..., description="Unique identifier for the ticket")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    scenario_id: Optional[str] = Field(
-        None, description="ID or label of the simulated fault scenario"
-    )
-    detected_at: datetime = Field(default_factory=datetime.utcnow)
-    root_cause: str = Field(..., description="Short description of the root cause")
-    summary: str = Field(..., description="Short, human-readable summary")
-    details: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Extra context such as key SCADA or relay signals used",
-    )
-    recommendations: List[str] = Field(
-        default_factory=list,
-        description="Recommended next actions for the operator",
-    )
-    kb_citations: List[str] = Field(
-        default_factory=list,
-        description="References to SOPs or KB entries",
-    )
+    ticket_id: str
+    scenario: str
+    bus_id: str
+    fault_type: str
+    severity: str
+    status: str
+    summary: str
+    root_cause: str
+    recommended_actions: List[str]
+    evidence: List[EvidenceWindow]
+    kb_citations: List[KBCitation]
+    created_at: str

@@ -1,0 +1,43 @@
+{
+  "ticket_id": "LOCAL-overload_trip-bus_1",
+  "scenario": "overload_trip",
+  "bus_id": "bus_1",
+  "fault_type": "Overload Trip on bus_1",
+  "severity": "high",
+  "status": "diagnosed",
+  "created_at": "2025-11-14T21:58:29.193939+00:00",
+  "summary": {
+    "text": "This is a local demo ticket for scenario 'overload_trip' on bus_1. The anomaly detector analyzed 3600 points, found 329 anomaly windows, and produced a mean anomaly score of None. Based on this run, the ticket severity is classified as **high**. No external LLM was called; this ticket was generated purely from the local detector summary to exercise the end-to-end MVP pipeline (detector \u2192 ticket \u2192 Streamlit UI).",
+    "nPoints": 3600,
+    "nAnomalies": 329,
+    "meanAnomalyScore": null,
+    "raw": {
+      "nPoints": 3600,
+      "nAnomalies": 329,
+      "anomalyRate": 0.0913888888888889,
+      "meanSeverity": 0.1131459818411092,
+      "severityLevel": "moderate"
+    }
+  },
+  "root_cause": "Potential fault condition inferred from the demo scenario label and detector output. In a production deployment, this narrative would be refined by your reasoning layer (LLM or expert rules) using the underlying SCADA signals and protection context.",
+  "recommended_actions": [
+    "Review the affected feeder or asset around the indicated analysis window.",
+    "Check for recent operational or load changes that could explain the anomalies.",
+    "Cross-check detector output against SCADA waveforms and protection logs."
+  ],
+  "evidence": [
+    {
+      "metric": "current",
+      "start_timestamp": "2025-01-01 00:00:00+00:00",
+      "end_timestamp": "2025-01-01 00:59:59+00:00",
+      "description": "Signal window used by the demo detector run. These timestamps align with the values stored in artifacts/signals/demo_signals.csv for visualization in the Streamlit UI."
+    }
+  ],
+  "kb_citations": [],
+  "meta": {
+    "source": "run_detection_demo.py",
+    "build_helper": "make_ticket_from_demo.py",
+    "mode": "local_demo",
+    "pipeline": "detector\u2192ticket\u2192ui"
+  }
+}

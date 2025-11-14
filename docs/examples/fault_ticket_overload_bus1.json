@@ -1,0 +1,35 @@
+{
+  "ticket_id": "LOCAL-overload_trip-bus_1",
+  "scenario": "overload_trip",
+  "bus_id": "bus_1",
+  "fault_type": "Overload Trip on bus_1",
+  "severity": "high",
+  "status": "diagnosed",
+  "summary": "In local mode, an anomaly consistent with Overload Trip on bus_1 was detected on bus_1. This ticket was generated without calling an external LLM.",
+  "root_cause": "Potential overload condition inferred from the scenario label and configuration. Refer to the cited SOP for detailed overload and protection guidance.",
+  "recommended_actions": [
+    "Verify feeder loading and confirm whether current is above normal operating limits.",
+    "Review recent operational changes or load transfers on the affected feeder.",
+    "Consult the cited SOP and confirm that relay settings match the latest coordination study.",
+    "If overload conditions persist, coordinate with planning/protection engineering for longer-term mitigation."
+  ],
+  "evidence": [
+    {
+      "start_timestamp": "2025-11-14T17:11:57Z",
+      "end_timestamp": "2025-11-14T17:11:57Z",
+      "metric": "current",
+      "description": "Local-mode placeholder evidence window for scenario 'overload_trip' on bus_1."
+    }
+  ],
+  "kb_citations": [
+    {
+      "source_id": "SOP-OVLD-001",
+      "title": "Feeder Overload and Thermal Protection",
+      "section": "3.1 Overload Trip Criteria",
+      "url": "https://internal.example/sops/feeder_overload_thermal_protection",
+      "snippet": "This SOP describes how to identify and respond to overload conditions on distribution feeders\nwhere thermal protection has operated or is at risk of operating.\n\nConditions:\n- Feeder current trending above 80% of the continuous thermal rating.\n- Sustained current at or above 100% of the feeder rating for several seconds.\n- Historical or real-time SCADA traces showing gradual heating rather than instantaneous faults.\n\nTrip Criteria:\n- Normal operating guideline: keep continuous load at or below 80% of rated current.\n- Overload alarm: if current remains between 90% and 100% of rating for more tha"
+    }
+  ],
+  "created_at": "2025-11-14T17:11:57Z"
+}
+

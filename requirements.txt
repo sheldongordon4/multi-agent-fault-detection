@@ -1,15 +1,28 @@
+# --- Core Web Framework ---
 fastapi
 uvicorn[standard]
 pydantic
 python-dotenv
+
+# --- Testing & Development Tools ---
 pytest
 httpx
 black
 ruff
 mypy
 
-
+# --- Data & ML ---
 pandas
 numpy
 scikit-learn
 sqlalchemy
+
+# --- LangChain / LLM Integrations ---
+langchain
+langchain-community
+langchain-openai
+chromadb
+
+# --- UI / Frontend ---
+streamlit
+requests
