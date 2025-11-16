@@ -21,8 +21,13 @@ sqlalchemy
 langchain
 langchain-community
 langchain-openai
+langchain-core
 chromadb
+tiktoken
 
 # --- UI / Frontend ---
 streamlit
 requests
+
+# --- Optional Enhancements ---
+python-multipart
