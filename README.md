@@ -1,95 +1,103 @@
-# 🌐 **Multi-Agent Fault Detection (MAFD) – MVP (Goals 1–5 Complete)**  
+# 🌐 Multi-Agent Fault Detection (MAFD) – MVP
 
-This repository delivers a **demo-ready MVP** for a multi-agent SCADA fault detection system, including:
+This repository contains a **demo‑ready MVP** of a fault detection system designed for synthetic SCADA and relay data. It demonstrates a clean end‑to‑end pipeline from **signal simulation → anomaly detection → ticket generation → UI visualization → timed final demo**.
 
-- ⚡ FastAPI backend  
-- 📈 Baseline anomaly detection  
-- 🧠 Ticket generator with reasoning + SOP citations  
-- 📊 Streamlit UI with real signal plots  
-- 🚀 Final <60s end-to-end demo runner  
-
-Cumulative Project Value: **100%**
+The MVP emphasizes:
+- Fast detection  
+- Clear, explainable reasoning  
+- SOP citation inclusion  
+- Real signal visualization  
+- <60s trigger‑to‑diagnosis performance  
 
 ---
 
-# 🏗️ **High-Level Architecture**
+# 🏗️ System Overview
 
-## **System Overview (Mermaid Diagram)**
+The system includes:
 
-```mermaid
-flowchart TD
-    A[SCADA Simulator] --> B[Relay Simulator]
-    B --> C[Baseline Detector<br>(IsolationForest)]
-    C --> D[Ticket Generator<br>(Reasoning + SOP Citations)]
-    C --> F[CSV Writer<br>(Real Signal Data)]
-    D --> E[Streamlit UI<br>(Ticket Browser + Plots)]
-    G((Demo Runner<br><60s Latency)) --> C
-    G --> D
+- **SCADA & Relay Simulators**  
+  Synthetic data generation (voltage, current, frequency, and event flags).  
+
+- **Anomaly Detector**  
+  IsolationForest baseline with window extraction and CSV export for UI.
+
+- **Ticket Generator**  
+  Produces structured JSON tickets with:
+  - reasoning summary  
+  - root cause  
+  - SOP citations  
+  - evidence windows  
+
+- **Streamlit UI**  
+  Allows browsing tickets, viewing real signal plots, and reading reasoning/citations.
+
+- **Final Demo Runner**  
+  Measures full pipeline latency and prints the final ticket and timing result.
+
+---
+
+# 🔄 End‑to‑End Flow (Simplified Diagram)
+
+```
+SCADA Simulation
+        ↓
+Relay Event Injection
+        ↓
+Baseline ML Detector
+        ↓
+Evidence Window Extraction
+        ↓
+Fault Ticket Builder (reasoning + SOP citations)
+        ↓
+Streamlit UI (signals + ticket)
+        ↓
+Final Demo Runner (<60s latency)
 ```
 
 ---
 
-# 🔄 **Data Pipeline**
+# 🧩 Component Summary
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant S as SCADA
-    participant R as Relay
-    participant D as Detector
-    participant T as Ticket Generator
-    participant UI as Streamlit UI
-    participant X as Demo Runner
+### **1. Simulation Layer**
+Generates synthetic grid signals and event flags.
 
-    S->>R: Generate waveform data
-    R->>D: Disturbance-injected signal
-    D->>D: Anomaly detection + extraction
-    D->>T: JSON detection summary
-    T->>T: Build ticket (reasoning + citations)
-    T->>UI: Write ticket JSON
-    D->>UI: Write real signal CSV
-    X->>D: Trigger detection
-    X->>T: Trigger ticket generation
-    X->>X: Measure end-to-end latency (<60s)
+### **2. Detection Layer**
+- Loads synthetic/real signal data  
+- Runs IsolationForest anomaly detection  
+- Extracts anomaly windows  
+- Saves CSV for UI plotting  
+
+### **3. Ticket Layer**
+Builds a complete fault ticket containing:
+- scenario & bus  
+- fault type  
+- reasoning  
+- SOP citations  
+- evidence window timestamps  
+- structured JSON output  
+
+### **4. UI Layer**
+Streamlit dashboard that shows:
+- Ticket list  
+- Severity indicators  
+- Real signal visualization from CSV  
+- Reasoning & SOP citations  
+- Raw JSON  
+
+### **5. Demo Layer**
+Single‑command final demo:
 ```
+make demo-final
+```
+Runs:
+1. Detection  
+2. Ticket generator  
+3. Latency measurement  
+4. Final output presentation  
 
 ---
 
-# 🧩 **Component Overview**
-
-```
-+-----------------------------------------------------------+
-|                        MAFD MVP                           |
-+-----------------------------------------------------------+
-|  SCADA Simulator   |   Relay Simulator                    |
-|  (waveforms)       |   (disturbance injection)            |
-+--------------------+--------------------------------------+
-| Baseline Detector (Goal 2)                                |
-| • IsolationForest model                                   |
-| • Synthetic/real signal loader                            |
-| • Anomaly scoring                                         |
-| • Evidence window extraction                              |
-+-----------------------------------------------------------+
-| Ticket Generator (Goal 3)                                 |
-| • Fault classification                                    |
-| • SOP citations                                           |
-| • Root cause summary                                      |
-| • Structured JSON output                                  |
-+-----------------------------------------------------------+
-| Streamlit UI (Goal 4)                                     |
-| • Ticket list & review                                    |
-| • Real CSV signal plot                                    |
-| • Reasoning + raw JSON                                    |
-+-----------------------------------------------------------+
-| Final Demo Runner (Goal 5)                                |
-| • Full pipeline timing (<60s)                             |
-| • Final ticket display                                    |
-+-----------------------------------------------------------+
-```
-
----
-
-# 📝 **Ticket JSON Anatomy**
+# 🎫 Ticket JSON Structure (Example)
 
 ```json
 {
@@ -98,20 +106,15 @@ sequenceDiagram
   "busId": "bus_1",
   "faultType": "Overload Trip on bus_1",
   "severity": "high",
-
   "summary": "An anomaly consistent with Overload Trip was detected...",
   "root_cause": "Potential overload condition inferred...",
   "kb_citations": [
-    {
-      "source_id": "SOP-OVLD-001",
-      "title": "Feeder Overload – Guidance"
-    }
+    {"source_id": "SOP-OVLD-001", "title": "Feeder Overload – Guidance"}
   ],
-
   "evidence": [
     {
-      "start_timestamp": "2025-11-14T17:11:57Z",
-      "end_timestamp": "2025-11-14T17:12:27Z",
+      "start_timestamp": "...",
+      "end_timestamp": "...",
       "metric": "current"
     }
   ]
@@ -120,48 +123,32 @@ sequenceDiagram
 
 ---
 
-# 🚀 **Goal 5 – Final Demo (<60s Trigger → Diagnosis)**
+# 🚀 Final Demo (<60s Trigger → Diagnosis)
 
-Goal 5 is fully implemented.  
-You can run the entire system with one command:
-
-## ▶️ Run Final Demo
+Run the complete pipeline:
 
 ```bash
 make demo-final
 ```
 
-### What Happens
+This:
+- runs the detector  
+- generates the ticket  
+- loads reasoning + SOP citations  
+- measures latency  
+- prints the final JSON output  
 
-| Step | Component | Result |
-|------|-----------|--------|
-| 1 | Detector | Loads signals, computes anomaly windows |
-| 2 | Ticket Generator | Builds JSON ticket w/ reasoning & citations |
-| 3 | Demo Runner | Measures full latency (<60s) |
-| 4 | Streamlit UI | Displays plots, ticket info |
-
-### Example Output
-
-```
-*** Total detection→diagnosis latency: 4.83 s ***
-```
+**Typical latency:** ~4–6 seconds.
 
 ---
 
-# 📊 **Streamlit UI**
+# 📊 Streamlit UI
 
-### Launch UI
+Launch the dashboard:
 
 ```bash
 make run-ui
 ```
-
-### Interface Features
-
-- 🎫 Ticket list with severity  
-- 🧠 Reasoning + SOP citations  
-- 📉 Real CSV-based signal plot  
-- 💬 Raw JSON viewer  
 
 Visit:
 
@@ -169,49 +156,58 @@ Visit:
 http://localhost:8501
 ```
 
+UI Features:
+- Ticket list  
+- Severity indicators  
+- Real signal line plot  
+- Reasoning summary  
+- SOP citations  
+- Raw JSON  
+
 ---
 
-# 🐳 **Docker Usage**
+# 🐳 Docker Usage
 
-**Build**
-
+Build:
 ```bash
 make docker-build
 ```
 
-**Run**
-
+Run:
 ```bash
 make docker-run
 ```
 
 ---
 
-# 🧪 **Run Tests**
+# 🧪 Testing
 
+Run:
 ```bash
 make test
 ```
 
----
-
-# 🔚 **Definition of Done (Goals 1–5)**
-
-✔ Full backend + detector pipeline  
-✔ Real signal export  
-✔ Ticket generator w/ reasoning + citations  
-✔ UI with signal visualization  
-✔ Final demo runner  
-✔ <60s latency verified  
-✔ README updated  
-✔ MVP complete  
+Tests cover:
+- Detector behavior  
+- Ticket schema  
+- Basic API health  
+- Latency benchmark  
 
 ---
 
-# 🔮 **Future Work**
+# 🗂 Documentation Included
 
-- Real SCADA backend  
-- Multi-agent reasoning layer (Phase 2)  
-- Trend dashboards  
-- `/signals/window` API endpoint  
-- Operator decision-support tooling  
+This repo includes a full documentation suite:
+
+- **API_Reference.md**  
+- **Agent_Architecture.md**  
+- **Agent_Prompt_Guide.md**  
+- **Knowledge_Base_Index.md**  
+- **Testing_Report.md**  
+
+---
+
+# 📌 Project Status
+
+The MVP is **complete**, fully demonstrable, and ready for stakeholder review or Phase 2 development.
+
