@@ -5,7 +5,6 @@ from typing import Iterable
 
 import pandas as pd
 
-# Directory + file for the demo signal CSV
 SIGNALS_DIR = Path("artifacts/signals")
 SIGNALS_FILE = SIGNALS_DIR / "demo_signals.csv"
 

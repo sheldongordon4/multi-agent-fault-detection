@@ -11,7 +11,7 @@ import pandas as pd
 import sqlite3
 from sklearn.ensemble import IsolationForest
 
-# Project root is one level up from ml/
+
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT_DIR / "data" / "synthetic_signals.db"
 MODEL_DIR = ROOT_DIR / "ml" / "models"
@@ -47,24 +47,20 @@ def detection_result_to_payload(result: DetectionResult) -> dict:
         result.anomaly_flags,
     )
 
-    # 2) Compress into macro windows (what agents / UI will mostly use)
+    # 2) Compress into macro windows
     macro_windows = _compress_windows(
         detailed_windows,
-        max_gap_seconds=10,  # merge windows with small gaps
-        min_points=5,        # drop one-off blips
+        max_gap_seconds=10,  
+        min_points=5,        
     )
 
     # 3) Compute polished summary fields
-
-    # We already flipped IsolationForest decision_function earlier so that
-    # higher == more anomalous, but summary_score may still be negative.
-    # For interpretability, we treat severity as a positive magnitude.
     mean_severity = abs(result.summary_score)
 
     # Fraction of points flagged as anomalous
     anomaly_rate = result.n_anomalies / result.n_points if result.n_points > 0 else 0.0
 
-    # Simple severity buckets (you can tweak thresholds later)
+    # Simple severity buckets
     if mean_severity < 0.05:
         severity_level = "low"
     elif mean_severity < 0.15:
@@ -73,7 +69,6 @@ def detection_result_to_payload(result: DetectionResult) -> dict:
         severity_level = "high"
 
     # 4) Build the payload dict
-
     return {
         "scenario": result.scenario,
         "busId": result.bus_id,
@@ -84,7 +79,7 @@ def detection_result_to_payload(result: DetectionResult) -> dict:
             "meanSeverity": mean_severity,
             "severityLevel": severity_level,
         },
-        "anomalyWindows": macro_windows,  # the short list you saw in your last run
+        "anomalyWindows": macro_windows,
         "meta": {
             "features": FEATURE_COLUMNS,
             "modelType": "IsolationForest",
@@ -107,7 +102,7 @@ def _compute_anomaly_windows(
 
     for i, flag in enumerate(flags):
         if flag == 1 and start_idx is None:
-            start_idx = i  # start of a new window
+            start_idx = i 
         elif flag == 0 and start_idx is not None:
             # window ended at i-1
             windows.append(

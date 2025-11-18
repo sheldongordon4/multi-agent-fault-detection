@@ -1,4 +1,3 @@
-# app/api/routes/faults.py
 from fastapi import APIRouter
 from pydantic import BaseModel
 

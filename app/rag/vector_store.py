@@ -1,4 +1,3 @@
-# app/rag/vector_store.py
 from typing import Optional
 from pathlib import Path
 import os

@@ -1,5 +1,3 @@
-# scripts/load_to_sqlite.py
-
 import sqlite3
 from pathlib import Path
 

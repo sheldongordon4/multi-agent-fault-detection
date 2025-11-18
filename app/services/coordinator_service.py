@@ -1,5 +1,3 @@
-# app/services/coordinator_service.py
-
 import os
 from datetime import datetime
 from typing import Dict, Any, List
@@ -7,7 +5,7 @@ from typing import Dict, Any, List
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from app.agents.tools import detect_signal, kb_retrieve  # your tool definitions
+from app.agents.tools import detect_signal, kb_retrieve  
 from app.rag.retriever import kb_retrieve_impl           # direct KB retrieval for local mode
 
 # -------------------------------------------------------------------
@@ -121,7 +119,7 @@ def _build_local_fault_ticket(scenario: str, bus_id: str, window_sec: int) -> Di
         fault_type = f"Detected anomaly in scenario '{scenario}' on {bus_id}"
         severity = "medium"
 
-    # Basic evidence placeholder (we're not calling detect_signal here to avoid coupling)
+    # Basic evidence placeholder
     now = datetime.utcnow()
     start_ts = (now.replace(microsecond=0).isoformat() + "Z")
     end_ts = start_ts

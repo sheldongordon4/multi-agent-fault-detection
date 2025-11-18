@@ -1,6 +1,4 @@
-# app/api/__init__.py
-from .main import app  # or from ..main import app, depending on where it is
-
+from .main import app
 from fastapi import FastAPI
 
 from app.api.routes.faults import router as faults_router

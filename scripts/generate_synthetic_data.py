@@ -1,5 +1,3 @@
-# scripts/generate_synthetic_data.py
-
 from pathlib import Path
 import os
 from typing import Literal
@@ -7,7 +5,6 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
-# Project root is one level up from scripts/
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT_DIR / "data" / "synthetic"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -59,7 +56,6 @@ def _base_signal(
     fault_end = int(n * 0.6)
 
     if scenario == "normal":
-        # Nothing special, just normal noise
         pass
 
     elif scenario == "overload_trip":

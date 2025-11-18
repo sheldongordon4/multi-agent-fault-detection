@@ -1,4 +1,3 @@
-# scripts/validate_sops.py
 import sys
 from pathlib import Path
 from typing import Dict, Tuple, List

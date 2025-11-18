@@ -1,4 +1,3 @@
-# app/rag/retriever.py
 from typing import List, Dict
 from .vector_store import get_vectordb
 

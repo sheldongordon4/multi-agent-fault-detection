@@ -17,7 +17,6 @@ except Exception:  # noqa: BLE001
     requests = None  # type: ignore[assignment]
 
 
-# Default to the same directory used in the Makefile / scripts
 INCIDENTS_DIR = Path(os.getenv("INCIDENTS_DIR", "artifacts/incidents"))
 
 # Optional local signals CSV for hybrid mode
@@ -99,7 +98,6 @@ class FaultTicket:
 
 # ---------- Helpers: severity, summary stats, signals, etc. ----------
 
-
 def format_severity_tag(severity: Optional[str]) -> str:
     s = (severity or "unknown").lower()
     mapping = {
@@ -166,7 +164,6 @@ def ticket_list_dataframe(tickets: List[FaultTicket]) -> pd.DataFrame:
 
 
 # ---------- Hybrid signal fetcher: CSV → FastAPI → synthetic ----------
-
 
 def _try_signal_from_csv(
     metric: str, start_ts: Optional[str], end_ts: Optional[str]
@@ -501,7 +498,7 @@ def render_ai_reasoning(ticket: FaultTicket) -> None:
 
     reasoning.append(
         "This explanation is generated in **demo mode** using the ticket metadata "
-        "only. In the full Coherence Engine, a dedicated reasoning layer (LLM or "
+        "only. In the full MAFD, a dedicated reasoning layer (LLM or "
         "expert rules) would incorporate detailed waveforms, protection logs, and "
         "system topology to produce richer, operator-ready narratives."
     )
@@ -520,10 +517,10 @@ def main() -> None:
         layout="wide",
     )
 
-    st.title("⚡ Multi-Agent Fault Detection – Fault Browser")
+    st.title("Multi-Agent Fault Detection – Fault Browser")
     st.caption(
-        "Streamlit UI for browsing fault tickets, flagged signals, and reasoning "
-        "summaries (Goal 4 – Streamlit UI and Demo Preparation)."
+        "UI for browsing fault tickets, flagged signals, and reasoning "
+        "summaries."
     )
 
     tickets = load_tickets(INCIDENTS_DIR)

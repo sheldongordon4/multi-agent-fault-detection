@@ -1,4 +1,3 @@
-# app/rag/kb_loader.py
 import os
 from pathlib import Path
 from typing import List, Dict, Tuple

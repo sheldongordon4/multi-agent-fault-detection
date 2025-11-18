@@ -1,6 +1,6 @@
-# 🌐 Multi-Agent Fault Detection (MAFD) – MVP
+# Multi-Agent Fault Detection (MAFD) – MVP
 
-This repository contains a **demo‑ready MVP** of a fault detection system designed for synthetic SCADA and relay data. It demonstrates a clean end‑to‑end pipeline from **signal simulation → anomaly detection → ticket generation → UI visualization → timed final demo**.
+This repository contains a **demo‑ready MVP** of a fault detection system designed for simulated SCADA and relay data. It demonstrates a clean end‑to‑end pipeline from **signal simulation → anomaly detection → ticket generation → UI visualization → timed final demo**.
 
 The MVP emphasizes:
 - Fast detection  
@@ -9,9 +9,8 @@ The MVP emphasizes:
 - Real signal visualization  
 - <60s trigger‑to‑diagnosis performance  
 
----
 
-# 🏗️ System Overview
+# System Overview
 
 The system includes:
 
@@ -34,9 +33,8 @@ The system includes:
 - **Final Demo Runner**  
   Measures full pipeline latency and prints the final ticket and timing result.
 
----
 
-# 🔄 End‑to‑End Flow (Simplified Diagram)
+# End‑to‑End Flow (Simplified Diagram)
 
 ```
 SCADA Simulation
@@ -54,9 +52,8 @@ Streamlit UI (signals + ticket)
 Final Demo Runner (<60s latency)
 ```
 
----
 
-# 🧩 Component Summary
+# Component Summary
 
 ### **1. Simulation Layer**
 Generates synthetic grid signals and event flags.
@@ -95,9 +92,8 @@ Runs:
 3. Latency measurement  
 4. Final output presentation  
 
----
 
-# 🎫 Ticket JSON Structure (Example)
+# Ticket JSON Structure (Example)
 
 ```json
 {
@@ -121,9 +117,8 @@ Runs:
 }
 ```
 
----
 
-# 🚀 Final Demo (<60s Trigger → Diagnosis)
+# Final Demo (<60s Trigger → Diagnosis)
 
 Run the complete pipeline:
 
@@ -140,9 +135,8 @@ This:
 
 **Typical latency:** ~4–6 seconds.
 
----
 
-# 📊 Streamlit UI
+# Streamlit UI
 
 Launch the dashboard:
 
@@ -164,9 +158,8 @@ UI Features:
 - SOP citations  
 - Raw JSON  
 
----
 
-# 🐳 Docker Usage
+# Docker Usage
 
 Build:
 ```bash
@@ -178,9 +171,8 @@ Run:
 make docker-run
 ```
 
----
 
-# 🧪 Testing
+# Testing
 
 Run:
 ```bash
@@ -193,9 +185,8 @@ Tests cover:
 - Basic API health  
 - Latency benchmark  
 
----
 
-# 🗂 Documentation Included
+# Documentation Included
 
 This repo includes a full documentation suite:
 
@@ -205,9 +196,7 @@ This repo includes a full documentation suite:
 - **Knowledge_Base_Index.md**  
 - **Testing_Report.md**  
 
----
 
-# 📌 Project Status
+# Project Status
 
-The MVP is **complete**, fully demonstrable, and ready for stakeholder review or Phase 2 development.
-
+The MVP (demo) is **complete**, fully demonstrable, and ready for stakeholder review or Phase 2 development.

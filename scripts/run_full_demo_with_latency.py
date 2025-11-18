@@ -1,4 +1,3 @@
-# scripts/run_full_demo_with_latency.py
 import json
 import subprocess
 import time
@@ -37,7 +36,7 @@ def main():
     ticket_id = f"LOCAL-{scenario}-{bus_id}"
     ticket_path = INCIDENTS_DIR / f"{ticket_id}.json"
 
-    # Optional: clear old ticket file if it exists
+    # Clear old ticket file if it exists
     if ticket_path.exists():
         ticket_path.unlink()
 
@@ -71,7 +70,7 @@ def main():
         "ticket": ticket,
     }
 
-    print("\n=== Final Demo Output (Goal 5) ===")
+    print("\n=== Final Demo Output ===")
     print(json.dumps(wrapped, indent=2))
     print(f"\n*** Total detection→diagnosis latency: {latency_sec:.2f} s ***")
 

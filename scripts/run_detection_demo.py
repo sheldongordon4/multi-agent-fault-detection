@@ -1,5 +1,3 @@
-# scripts/run_detection_demo.py
-
 import json
 import argparse
 import sys
@@ -9,7 +7,7 @@ import pandas as pd
 import numpy as np
 from signal_writer import save_signals
 
-# Ensure project root is on sys.path so "ml" can be imported
+
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
@@ -73,7 +71,6 @@ def build_compact_view(payload: dict) -> dict:
         "summary": payload["summary"],
         "anomalyWindows": payload["anomalyWindows"],
         "meta": payload["meta"],
-        # NEW: window metadata for Goal 4
         "signalWindowStart": signal_window_start,
         "signalWindowEnd": signal_window_end,
         "signalMetric": signal_metric,
@@ -90,7 +87,6 @@ def main():
     parser.add_argument("--bus_id", type=str, default="bus_1")
     args = parser.parse_args()
 
-    # Ensure model exists: train once if missing
     try:
         payload = detect_signal_payload(args.scenario, args.bus_id)
         compact_view = build_compact_view(payload)

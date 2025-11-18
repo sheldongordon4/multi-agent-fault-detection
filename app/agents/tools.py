@@ -1,4 +1,3 @@
-# app/agents/tools.py
 from langchain_core.tools import tool
 from app.services.detection_service import detect_signal_impl
 from app.rag.retriever import kb_retrieve_impl

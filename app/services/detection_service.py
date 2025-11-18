@@ -1,4 +1,3 @@
-# app/services/detection_service.py
 def detect_signal_impl(scenario: str, bus_id: str, window_sec: int) -> dict:
     """
     Uses existing IsolationForest detector from Goal 2 to:

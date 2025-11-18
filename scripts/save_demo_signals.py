@@ -1,5 +1,3 @@
-# scripts/save_demo_signals.py (example pattern)
-
 from __future__ import annotations
 from pathlib import Path
 import pandas as pd
@@ -9,9 +7,9 @@ OUT_PATH = Path("artifacts/signals/demo_signals.csv")
 def save_signals(timestamps, values, bus_id: str, scenario: str, metric: str = "current") -> None:
     df = pd.DataFrame(
         {
-            "timestamp": timestamps,   # list/array of ISO strings or datetime
+            "timestamp": timestamps,   
             "metric": metric,
-            "value": values,          # numeric list/array
+            "value": values,
             "bus_id": bus_id,
             "scenario": scenario,
         }

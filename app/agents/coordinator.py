@@ -1,4 +1,3 @@
-# app/agents/coordinator.py
 from langgraph.graph import StateGraph, END
 from langchain_openai import ChatOpenAI
 from .tools import detect_signal, kb_retrieve
@@ -21,4 +20,3 @@ def build_coordinator_graph():
     g.set_entry_point("coordinator")
     g.add_edge("coordinator", END)
     return g.compile()
-
