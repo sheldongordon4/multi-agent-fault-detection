@@ -5,7 +5,7 @@
   "fault_type": "Overload Trip on bus_1",
   "severity": "high",
   "status": "diagnosed",
-  "created_at": "2025-11-18T20:42:53.994263+00:00",
+  "created_at": "2025-11-18T21:25:19.413597+00:00",
   "summary": {
     "text": "This is a local demo ticket for scenario 'overload_trip' on bus_1. The anomaly detector analyzed 3600 points, found 329 anomaly windows, and produced a mean anomaly score of None. Based on this run, the ticket severity is classified as **high**. No external LLM was called; this ticket was generated purely from the local detector summary to exercise the end-to-end MVP pipeline (detector \u2192 ticket \u2192 Streamlit UI).",
     "nPoints": 3600,
