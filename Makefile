@@ -1,69 +1,97 @@
-# Makefile — Multi-Agent Fault Detection
-
 SHELL := /bin/bash
+.DEFAULT_GOAL := help
+
 PY := $(shell command -v python3 || command -v python)
 VENV := .venv
-ACTIVATE := . $(VENV)/bin/activate
+BIN := $(VENV)/bin
+PYTHON := $(BIN)/python
+PIP := $(BIN)/pip
 
 ENV_FILE := .env
 ENV_EXAMPLE := .env.example
+
+ifeq ($(strip $(PY)),)
+$(error No Python interpreter found on PATH)
+endif
+
+.PHONY: install venv deps env run-ui demo-final ticket-demo quick-demo test check format lint clean clean-venv help
 
 # ----------------------
 # Setup
 # ----------------------
 
-install:
+install: deps env ## Create venv, install dependencies, scaffold env file
+
+venv: $(PYTHON) ## Create a virtual environment if missing
+
+$(PYTHON):
 	$(PY) -m venv $(VENV)
-	$(ACTIVATE) && pip install --upgrade pip
-	$(ACTIVATE) && pip install -r requirements.txt
+
+deps: venv ## Install Python dependencies into the venv
+	$(PIP) install --upgrade pip
+	$(PIP) install -r requirements.txt
+
+env: $(ENV_FILE) ## Copy .env from example if missing
+
+$(ENV_FILE):
+	@if [ ! -f "$(ENV_EXAMPLE)" ]; then \
+		echo "Missing $(ENV_EXAMPLE); cannot scaffold $(ENV_FILE)."; \
+		exit 1; \
+	fi
+	@if [ -f "$(ENV_FILE)" ]; then \
+		echo "$(ENV_FILE) already present; leaving untouched."; \
+	else \
+		cp "$(ENV_EXAMPLE)" "$(ENV_FILE)"; \
+		echo "Created $(ENV_FILE) from $(ENV_EXAMPLE). Update secrets before running."; \
+	fi
 
 # ----------------------
 # Run UI
 # ----------------------
 
-run-ui:
-	$(ACTIVATE) && streamlit run ui/streamlit_app.py
+run-ui: venv ## Launch Streamlit UI
+	$(BIN)/streamlit run ui/streamlit_app.py
 
 # ----------------------
 # Run Demos
 # ----------------------
 
-demo-final:
-	$(ACTIVATE) && python scripts/run_full_demo_with_latency.py
+demo-final: venv ## Full end-to-end demo with latency simulation
+	$(PYTHON) scripts/run_full_demo_with_latency.py
 
-ticket-demo:
-	$(ACTIVATE) && python scripts/run_detection_demo.py --scenario overload_trip --bus_id bus_1 \
-	| python scripts/make_ticket_from_demo.py
+ticket-demo: venv ## Detection demo + ticket generation
+	$(PYTHON) scripts/run_detection_demo.py --scenario overload_trip --bus_id bus_1 | $(PYTHON) scripts/make_ticket_from_demo.py
 
-quick-demo:
-	$(ACTIVATE) && python scripts/run_detection_demo.py --scenario overload_trip --bus_id bus_1
+quick-demo: venv ## Baseline detection only
+	$(PYTHON) scripts/run_detection_demo.py --scenario overload_trip --bus_id bus_1
 
 # ----------------------
 # Testing
 # ----------------------
 
-test:
-	$(ACTIVATE) && pytest -q
+test: venv ## Run pytest suite
+	$(BIN)/pytest -q
+
+check: lint test ## Run lint and tests
 
 # ----------------------
 # Utilities
 # ----------------------
 
-format:
-	$(ACTIVATE) && black .
+format: venv ## Format code with black
+	$(BIN)/black .
 
-lint:
-	$(ACTIVATE) && ruff check .
+lint: venv ## Lint with ruff
+	$(BIN)/ruff check .
 
-clean:
+clean-venv: ## Remove the virtual environment
 	rm -rf $(VENV)
-	find . -type d -name "__pycache__" -exec rm -rf {} +
 
-help:
-	@echo "make install        - Set up venv + install deps"
-	@echo "make run-ui         - Launch Streamlit UI (streamlit_app.py)"
-	@echo "make demo-final     - Full end-to-end demo with latency simulation"
-	@echo "make ticket-demo    - Detection demo + ticket generation"
-	@echo "make quick-demo     - Baseline detection only"
-	@echo "make test           - Run tests"
-	@echo "make clean          - Remove venv + caches"
+clean: clean-venv ## Remove venv and Python caches
+	find . -type d -name "__pycache__" -prune -exec rm -rf {} +; \
+	find . -type f \( -name "*.pyc" -o -name "*.pyo" \) -delete; \
+	rm -rf .pytest_cache .ruff_cache .mypy_cache
+
+help: ## Show available targets
+	@echo "Available make targets:"
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_.-]+:.*##/ {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
