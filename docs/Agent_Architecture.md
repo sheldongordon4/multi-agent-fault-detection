@@ -1,4 +1,4 @@
-# 🧠 Agent Architecture – MAFD MVP
+# Agent Architecture – MAFD MVP
 
 ## Coordinator Agent Overview
 The MVP uses a simplified Coordinator Agent powered by tool-calling.
@@ -8,7 +8,6 @@ The MVP uses a simplified Coordinator Agent powered by tool-calling.
 - Retrieve SOP guidance  
 - Merge detection + RAG output into a structured ticket  
 
----
 
 ## Architecture Diagram
 ```mermaid
@@ -21,17 +20,15 @@ flowchart LR
     E --> F
 ```
 
----
 
 ## Tools
 
-### 🔧 detect_signal
+### detect_signal
 Runs IsolationForest baseline anomaly detection.
 
-### 📚 kb_retrieve
+### kb_retrieve
 Retrieves relevant SOP markdowns via RAG.
 
----
 
 ## Output Schema
 ```json

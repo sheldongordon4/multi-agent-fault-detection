@@ -1,4 +1,4 @@
-# 📚 Knowledge Base Index – MAFD MVP
+# Knowledge Base Index – MAFD MVP
 
 ## SOP Library Structure
 ```
@@ -10,7 +10,6 @@ knowledge_base/
     SOP-FREQ-005.md
 ```
 
----
 
 ## Sample Entry
 ### **SOP-OVLD-001 – Feeder Overload Guidance**

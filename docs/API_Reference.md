@@ -1,9 +1,8 @@
-# 📘 API Reference – Multi-Agent Fault Detection (MAFD)
+# API Reference – Multi-Agent Fault Detection (MAFD)
 
 ## Overview
 This document provides a complete reference for all FastAPI endpoints used in the MVP.
 
----
 
 ## **GET /health**
 Health check endpoint.
@@ -13,7 +12,6 @@ Health check endpoint.
 {"status": "ok"}
 ```
 
----
 
 ## **POST /detect**
 Runs the baseline anomaly detector.
@@ -26,7 +24,6 @@ Runs the baseline anomaly detector.
 **Response**
 Detection summary containing anomaly metrics and evidence windows.
 
----
 
 ## **POST /ticket**
 Converts detection output into a structured Fault Ticket.
@@ -38,12 +35,10 @@ Converts detection output into a structured Fault Ticket.
 - kb_citations  
 - evidence  
 
----
 
 ## **GET /tickets**
 Returns all stored tickets.
 
----
 
 ## **GET /signals**
 Returns CSV-based signal data for Streamlit visualization.

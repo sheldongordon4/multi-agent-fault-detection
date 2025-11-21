@@ -1,13 +1,12 @@
-# 🧪 Testing Report – MAFD MVP
+# Testing Report – MAFD MVP
 
-## ✔ Unit Testing
+## Unit Testing
 - ML anomaly scoring tested  
 - Ticket schema verification  
 - API health tests  
 
----
 
-## ✔ Scenario Testing
+## Scenario Testing
 Tested scenarios:
 1. Overload Trip  
 2. Relay Miscoordination  
@@ -15,9 +14,8 @@ Tested scenarios:
 
 All triggered correct anomaly detection.
 
----
 
-## ✔ Latency Benchmark
+## Latency Benchmark
 | Run | Latency (s) |
 |-----|-------------|
 | 1 | 4.83 |
@@ -26,14 +24,12 @@ All triggered correct anomaly detection.
 
 All < 60 seconds.
 
----
 
-## ✔ RAG Retrieval Quality
+## RAG Retrieval Quality
 Every ticket included at least one valid SOP citation.
 
----
 
-## ✔ UI Verification
+## UI Verification
 Streamlit displayed:
 - Real signal plot  
 - Ticket  

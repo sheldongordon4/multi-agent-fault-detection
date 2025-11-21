@@ -1,4 +1,4 @@
-# 🗣️ Agent Prompt Guide – MAFD
+# Agent Prompt Guide – MAFD
 
 ## Coordinator Agent Role
 You generate structured fault tickets using:
@@ -7,7 +7,6 @@ You generate structured fault tickets using:
 - Reasoning trace  
 - Evidence windows  
 
----
 
 ## System Prompt Template
 ```
@@ -16,7 +15,6 @@ Use tool calls to analyze signals and retrieve SOP guidance.
 Always cite SOP sources and generate structured JSON tickets.
 ```
 
----
 
 ## Tool Calling Rules
 - Use **detect_signal** to analyze SCADA signals.  
