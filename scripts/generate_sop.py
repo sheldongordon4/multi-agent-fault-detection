@@ -27,7 +27,7 @@ Operator Actions:
 
 Notes:
 - {note1}
-- {note2}
+- {note2} 
 """
 
 def build_default_fields(args):
