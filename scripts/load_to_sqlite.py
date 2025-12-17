@@ -23,11 +23,13 @@ def load_csvs_to_sqlite():
             voltage_kv REAL,
             current_a REAL,
             frequency_hz REAL,
+            temperature_c REAL,
             scenario TEXT,
             "27_undervoltage" INTEGER,
             "59_overvoltage" INTEGER,
             "50_overcurrent" INTEGER
         );
+
         """
     )
 

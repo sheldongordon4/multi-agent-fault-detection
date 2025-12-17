@@ -17,7 +17,7 @@ BUS_IDS = ["bus_1", "bus_2", "bus_3"]
 RELAY_FLAGS = ["27_undervoltage", "59_overvoltage", "50_overcurrent"]
 
 
-def generate_time_index(duration_minutes: int = 60, freq: str = "S") -> pd.DatetimeIndex:
+def generate_time_index(duration_minutes: int = 60, freq: str = "s") -> pd.DatetimeIndex:
     """Generate a simple time index starting at t0 for a given duration."""
     periods = duration_minutes * 60
     return pd.date_range("2025-01-01 00:00:00", periods=periods, freq=freq)
@@ -41,11 +41,13 @@ def _base_signal(
     base_voltage_kv = 13.8
     base_current_a = 100.0
     base_freq_hz = 60.0
+    base_temp_c = 45.0  # typical equipment operating temperature
 
     # Start from normal with small noise
     voltage = np.random.normal(loc=base_voltage_kv, scale=0.1, size=n)
     current = np.random.normal(loc=base_current_a, scale=5.0, size=n)
     frequency = np.random.normal(loc=base_freq_hz, scale=0.02, size=n)
+    temperature_c = np.random.normal(loc=base_temp_c, scale=1.0, size=n)
 
     # Relay flags initialised to 0
     flags = {flag: np.zeros(n, dtype=int) for flag in RELAY_FLAGS}
@@ -60,13 +62,15 @@ def _base_signal(
 
     elif scenario == "overload_trip":
         # Current ramps up a lot, overcurrent flag set in the window
-        current[fault_start:fault_end] += 80.0  # strong overload
+        current[fault_start:fault_end] += 80.0
+        temperature_c[fault_start:fault_end] += 15.0  # sharp thermal rise
         flags["50_overcurrent"][fault_start:fault_end] = 1
 
     elif scenario == "miscoordination":
         # Mild overload plus some voltage sag, but relay flags behave inconsistently
         current[fault_start:fault_end] += 50.0
         voltage[fault_start:fault_end] -= 0.7
+        temperature_c[fault_start:fault_end] += 8.0  # moderate heating
         # Overcurrent sometimes delayed or missing
         flags["50_overcurrent"][fault_start + int(0.1 * (fault_end - fault_start)):fault_end] = 1
         # Maybe an undervoltage flag appears too early
@@ -76,7 +80,7 @@ def _base_signal(
         # Gradual current increase over a long interval, with subtle voltage sag
         slope = np.linspace(0, 60.0, fault_end - fault_start)
         current[fault_start:fault_end] += slope
-        voltage[fault_start:fault_end] -= 0.4
+        temperature_c[fault_start:fault_end] += np.linspace(0, 12.0, fault_end - fault_start)
         # Overcurrent trips very late or intermittently
         late_start = fault_start + int(0.6 * (fault_end - fault_start))
         flags["50_overcurrent"][late_start:fault_end] = 1
@@ -85,15 +89,17 @@ def _base_signal(
         raise ValueError(f"Unknown scenario: {scenario}")
 
     df = pd.DataFrame(
-        {
-            "timestamp": timestamps,
-            "bus_id": bus_id,
-            "voltage_kv": voltage,
-            "current_a": current,
-            "frequency_hz": frequency,
-            "scenario": scenario,
-        }
-    )
+    {
+        "timestamp": timestamps,
+        "bus_id": bus_id,
+        "voltage_kv": voltage,
+        "current_a": current,
+        "frequency_hz": frequency,
+        "temperature_c": temperature_c,
+        "scenario": scenario,
+    }
+)
+
 
     # Add relay flags
     for flag in RELAY_FLAGS:

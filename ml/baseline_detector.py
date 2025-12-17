@@ -19,7 +19,12 @@ MODEL_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_PATH = MODEL_DIR / "baseline_isolation_forest.pkl"
 
 
-FEATURE_COLUMNS = ["voltage_kv", "current_a", "frequency_hz"]
+FEATURE_COLUMNS = [
+    "voltage_kv",
+    "current_a",
+    "frequency_hz",
+    "temperature_c",
+]
 ScenarioName = Literal["normal", "overload_trip", "miscoordination", "theft_overload"]
 
 
