@@ -21,7 +21,6 @@ from typing import List, Tuple, Union
 import numpy as np
 import pandas as pd
 
-
 # Scenario-description columns
 METADATA_COLUMNS: List[str] = [
     "scenario_name",
@@ -84,7 +83,10 @@ def load_testbed(
                 f"[load_testbed] dropping {dropped} rows with inf/nan features "
                 f"({dropped / len(df):.1%} of {len(df)})"
             )
-        X, y = X[finite_mask].reset_index(drop=True), y[finite_mask].reset_index(drop=True)
+        X, y = (
+            X[finite_mask].reset_index(drop=True),
+            y[finite_mask].reset_index(drop=True),
+        )
 
     print(
         f"[load_testbed] {len(X)} rows, {len(feats)} feature columns, "
