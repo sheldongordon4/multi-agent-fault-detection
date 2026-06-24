@@ -13,7 +13,7 @@ from sklearn.ensemble import IsolationForest
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-DB_PATH = ROOT_DIR / "data" / "synthetic_signals.db"
+DB_PATH = ROOT_DIR / "data" / "synthetic" / "synthetic_signals.db"
 MODEL_DIR = ROOT_DIR / "ml" / "models"
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_PATH = MODEL_DIR / "baseline_isolation_forest.pkl"
