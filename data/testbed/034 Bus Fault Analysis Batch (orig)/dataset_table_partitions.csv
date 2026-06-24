@@ -1,0 +1,13 @@
+% ,TABLE PURPOSE:,:,Dataset partition definitions,,
+% ,REFERENCE FILE,:,dataset_table.csv,,
+% ,NOTES,:,Logical grouping of dataset schema columns,(Revision: 1.2.0)
+% ,,,,,
+START COL.,END COL.,CATEGORY,DESCRIPTION
+001,013,Fault Study Specification & Ground-Truth Labels,Defines simulated disturbance properties and supervised-learning targets
+014,019,Monitoring Bus 800 Indicators,Electrical response measurements at monitoring bus 800
+020,025,Monitoring Bus 802 Indicators,Electrical response measurements at monitoring bus 802
+026,031,Monitoring Bus 806 Indicators,Electrical response measurements at monitoring bus 806
+032,037,Monitoring Bus 808 Indicators,Electrical response measurements at monitoring bus 808
+038,043,Monitoring Bus 812 Indicators,Electrical response measurements at monitoring bus 812
+044,049,Monitoring Bus 814 Indicators,Electrical response measurements at monitoring bus 814
+050,055,Monitoring Bus 850 Indicators,Electrical response measurements at monitoring bus 850

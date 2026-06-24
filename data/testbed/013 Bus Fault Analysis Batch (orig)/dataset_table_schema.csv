@@ -1,0 +1,48 @@
+% ,TABLE PURPOSE:,:,Schema Definitions,,
+% ,REFERENCE FILE,:,dataset_table.csv,,
+% ,NOTES,:,Reference information for dataset columns,(Revision: 1.2.0)
+% ,,,,,
+Col.,HEADER ID,UNITS,CATEGORY,DESCRIPTION
+001,scenario_name,,Fault Study Specification & Ground-Truth Labels,Unique DS-FDDE scenario ID
+002,fault_category,,Fault Study Specification & Ground-Truth Labels,High-level fault category
+003,fault_subtype,,Fault Study Specification & Ground-Truth Labels,Specific fault subtype
+004,fault_phases,,Fault Study Specification & Ground-Truth Labels,Faulted phase combination
+005,fault_branch_id,,Fault Study Specification & Ground-Truth Labels,ID of faulted branch
+006,fault_pos_pu,pu,Fault Study Specification & Ground-Truth Labels,Per-unit fault position along branch
+007,fault_bus_id,,Fault Study Specification & Ground-Truth Labels,Dynamically inserted fault bus ID
+008,fault_location_km,km,Fault Study Specification & Ground-Truth Labels,Physical fault location from branch sending end
+009,Zf_real_ohm,ohm,Fault Study Specification & Ground-Truth Labels,Real component of fault impedance
+010,Zf_imag_ohm,ohm,Fault Study Specification & Ground-Truth Labels,Imaginary/reactive component of fault impedance
+011,target_fault_type,,Fault Study Specification & Ground-Truth Labels,Exact fault-type classification label
+012,target_fault_category,,Fault Study Specification & Ground-Truth Labels,Broad fault-category label
+013,target_location_km,km,Fault Study Specification & Ground-Truth Labels,Ground-truth fault-location target
+014,min_Va_fault_pu_b650,pu,Monitoring Bus 650 Indicators,Minimum phase-A voltage magnitude during fault at bus 650
+015,max_Ia_fault_b650,A or pu,Monitoring Bus 650 Indicators,Maximum phase-A current magnitude during fault at bus 650
+016,max_I0_I1_fault_b650,ratio,Monitoring Bus 650 Indicators,Maximum zero-sequence to positive-sequence current ratio at bus 650
+017,max_I2_I1_fault_b650,ratio,Monitoring Bus 650 Indicators,Maximum negative-sequence to positive-sequence current ratio at bus 650
+018,mean_Vunb_fault_b650,pu or %,Monitoring Bus 650 Indicators,Mean voltage-unbalance metric during fault at bus 650
+019,recovery_Va_post_b650,pu,Monitoring Bus 650 Indicators,Post-fault phase-A voltage recovery at bus 650
+020,min_Va_fault_pu_b632,pu,Monitoring Bus 632 Indicators,Minimum phase-A voltage magnitude during fault at bus 632
+021,max_Ia_fault_b632,A or pu,Monitoring Bus 632 Indicators,Maximum phase-A current magnitude during fault at bus 632
+022,max_I0_I1_fault_b632,ratio,Monitoring Bus 632 Indicators,Maximum zero-sequence to positive-sequence current ratio at bus 632
+023,max_I2_I1_fault_b632,ratio,Monitoring Bus 632 Indicators,Maximum negative-sequence to positive-sequence current ratio at bus 632
+024,mean_Vunb_fault_b632,pu or %,Monitoring Bus 632 Indicators,Mean voltage-unbalance metric during fault at bus 632
+025,recovery_Va_post_b632,pu,Monitoring Bus 632 Indicators,Post-fault phase-A voltage recovery at bus 632
+026,min_Va_fault_pu_b671,pu,Monitoring Bus 671 Indicators,Minimum phase-A voltage magnitude during fault at bus 671
+027,max_Ia_fault_b671,A or pu,Monitoring Bus 671 Indicators,Maximum phase-A current magnitude during fault at bus 671
+028,max_I0_I1_fault_b671,ratio,Monitoring Bus 671 Indicators,Maximum zero-sequence to positive-sequence current ratio at bus 671
+029,max_I2_I1_fault_b671,ratio,Monitoring Bus 671 Indicators,Maximum negative-sequence to positive-sequence current ratio at bus 671
+030,mean_Vunb_fault_b671,pu or %,Monitoring Bus 671 Indicators,Mean voltage-unbalance metric during fault at bus 671
+031,recovery_Va_post_b671,pu,Monitoring Bus 671 Indicators,Post-fault phase-A voltage recovery at bus 671
+032,min_Va_fault_pu_b684,pu,Monitoring Bus 684 Indicators,Minimum phase-A voltage magnitude during fault at bus 684
+033,max_Ia_fault_b684,A or pu,Monitoring Bus 684 Indicators,Maximum phase-A current magnitude during fault at bus 684
+034,max_I0_I1_fault_b684,ratio,Monitoring Bus 684 Indicators,Maximum zero-sequence to positive-sequence current ratio at bus 684
+035,max_I2_I1_fault_b684,ratio,Monitoring Bus 684 Indicators,Maximum negative-sequence to positive-sequence current ratio at bus 684
+036,mean_Vunb_fault_b684,pu or %,Monitoring Bus 684 Indicators,Mean voltage-unbalance metric during fault at bus 684
+037,recovery_Va_post_b684,pu,Monitoring Bus 684 Indicators,Post-fault phase-A voltage recovery at bus 684
+038,min_Va_fault_pu_b675,pu,Monitoring Bus 675 Indicators,Minimum phase-A voltage magnitude during fault at bus 675
+039,max_Ia_fault_b675,A or pu,Monitoring Bus 675 Indicators,Maximum phase-A current magnitude during fault at bus 675
+040,max_I0_I1_fault_b675,ratio,Monitoring Bus 675 Indicators,Maximum zero-sequence to positive-sequence current ratio at bus 675
+041,max_I2_I1_fault_b675,ratio,Monitoring Bus 675 Indicators,Maximum negative-sequence to positive-sequence current ratio at bus 675
+042,mean_Vunb_fault_b675,pu or %,Monitoring Bus 675 Indicators,Mean voltage-unbalance metric during fault at bus 675
+043,recovery_Va_post_b675,pu,Monitoring Bus 675 Indicators,Post-fault phase-A voltage recovery at bus 675
