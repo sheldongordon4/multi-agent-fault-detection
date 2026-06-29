@@ -5,7 +5,7 @@ import pandas as pd
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT_DIR / "data" / "synthetic"
-DB_PATH = ROOT_DIR / "data" / "synthetic_signals.db"
+DB_PATH = DATA_DIR / "synthetic_signals.db"
 
 
 
