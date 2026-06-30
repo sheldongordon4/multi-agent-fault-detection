@@ -1,11 +1,11 @@
+import json
 import os
 from datetime import datetime
 from typing import Dict, Any, List
 
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from app.agents.tools import detect_signal, kb_retrieve  
+from app.models.fault_ticket import FaultTicket
 from app.rag.retriever import kb_retrieve_impl           # direct KB retrieval for local mode
 
 # -------------------------------------------------------------------
@@ -13,9 +13,21 @@ from app.rag.retriever import kb_retrieve_impl           # direct KB retrieval f
 # -------------------------------------------------------------------
 
 APP_ENV = os.getenv("APP_ENV", "local").lower()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
-USE_LOCAL_FALLBACK = APP_ENV == "local" or not OPENAI_API_KEY or OPENAI_API_KEY == "changeme"
+# The agent runs against Azure OpenAI (gpt-4o-mini deployment). We fall back to the
+# offline heuristic ticket only when Azure is not configured - NOT on APP_ENV, so a
+# fully-configured Azure endpoint works even with APP_ENV=local during development.
+AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY", "")
+AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT", "")
+AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "")
+
+USE_LOCAL_FALLBACK = (
+    not AZURE_OPENAI_API_KEY
+    or AZURE_OPENAI_API_KEY == "changeme"
+    or not AZURE_OPENAI_ENDPOINT
+    or "<your-resource>" in AZURE_OPENAI_ENDPOINT
+    or not AZURE_OPENAI_DEPLOYMENT
+)
 
 
 SYSTEM_PROMPT = """
@@ -86,19 +98,44 @@ STRICT RULES
 """
 
 
-def _make_llm():
-    """Create the real LLM bound with tools, only when not in local fallback mode."""
-    if USE_LOCAL_FALLBACK:
-        # Local/offline mode: we do not create a ChatOpenAI instance at all.
-        return None
-
-    return ChatOpenAI(
-        model="gpt-4.1-mini",
-        temperature=0,
-    ).bind_tools([detect_signal, kb_retrieve])
+# Lazily-built agent graph (LLM + real tools + ReAct loop). Only constructed in
+# non-local mode, so importing this module never requires an OpenAI API key.
+_graph = None
 
 
-_llm = _make_llm()
+def _get_graph():
+    global _graph
+    if _graph is None:
+        from app.agents.coordinator import build_coordinator_graph
+        _graph = build_coordinator_graph()
+    return _graph
+
+
+def _coerce_to_ticket(raw: Any) -> Dict[str, Any]:
+    """
+    Turn the LLM's final message into a validated FaultTicket dict.
+
+    Accepts either a dict or a string (possibly wrapped in markdown / prose),
+    extracts the JSON object, and best-effort validates it against the
+    FaultTicket schema without crashing the request if a field is slightly off.
+    """
+    if isinstance(raw, dict):
+        data = raw
+    else:
+        text = str(raw)
+        start = text.find("{")
+        end = text.rfind("}")
+        if start == -1 or end == -1:
+            raise ValueError(f"LLM did not return a JSON object: {text[:200]}")
+        data = json.loads(text[start : end + 1])
+
+    try:
+        FaultTicket(**data)  # validate; raises if the schema is wrong
+    except Exception as exc:  # noqa: BLE001
+        # Keep the data so the demo still returns something, but flag the gap.
+        data.setdefault("_validation_warning", str(exc))
+
+    return data
 
 
 # -------------------------------------------------------------------
@@ -202,11 +239,11 @@ def run_fault_diagnosis(scenario: str, bus_id: str, window_sec: int = 300) -> Di
     - In non-local mode, delegates to the LLM with tool calling.
     """
 
-    if USE_LOCAL_FALLBACK or _llm is None:
+    if USE_LOCAL_FALLBACK:
         # Local/offline dev path: no OpenAI API, no LLM calls.
         return _build_local_fault_ticket(scenario, bus_id, window_sec)
 
-    # Real LLM path (for when you later set a valid OPENAI_API_KEY and APP_ENV!=local)
+    # Real LLM path: drive the agent graph (LLM + real detector/RAG tools + loop).
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(
@@ -219,10 +256,6 @@ def run_fault_diagnosis(scenario: str, bus_id: str, window_sec: int = 300) -> Di
         ),
     ]
 
-    result = _llm.invoke(messages)
-    # Assuming result.content is a parsed JSON dict in your current setup.
-    # If it's a string, you can json.loads() it here.
-    ticket_dict = result.content  # type: ignore[assignment]
-
-    # Optionally, you can validate against a Pydantic model here.
-    return ticket_dict
+    final_state = _get_graph().invoke({"messages": messages})
+    final_message = final_state["messages"][-1]
+    return _coerce_to_ticket(final_message.content)
