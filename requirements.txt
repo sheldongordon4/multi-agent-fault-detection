@@ -22,8 +22,13 @@ langchain
 langchain-community
 langchain-openai
 langchain-core
+langchain-huggingface
+langgraph
 chromadb
 tiktoken
+
+# --- Local, self-hosted embeddings (HuggingFace sentence-transformers) ---
+sentence-transformers
 
 # --- UI / Frontend ---
 streamlit
