@@ -1,26 +1,33 @@
-from datetime import datetime
-
-from app.models.fault_ticket import FaultTicket
+from app.faults.schemas import EvidenceWindow, FaultTicket, KBCitation
 
 
 def test_fault_ticket_instantiation():
     ticket = FaultTicket(
         ticket_id="T-001",
-        scenario_id="Overload Trip",
-        root_cause="Overcurrent condition on feeder",
-        summary="Feeder overloaded causing protective trip.",
-        details={
-            "bus_id": "BUS-01",
-            "max_current_a": 350,
-            "relay_flags": {"50": 1, "51": 1},
-        },
-        recommendations=["Inspect feeder load", "Verify relay settings"],
-        kb_citations=["SOP-OVERCURRENT-01"],
+        scenario="feeder:ieee13",
+        bus_id="b671",
+        fault_type="Ground fault (SLG/LLG) near b671",
+        severity="high",
+        status="diagnosed",
+        summary="A single-line-to-ground fault was diagnosed on feeder ieee13 at b671.",
+        root_cause="Elevated zero-sequence current indicates ground involvement.",
+        recommended_actions=["Inspect b671 protection zone", "Verify relay settings"],
+        evidence=[
+            EvidenceWindow(
+                start_timestamp="2026-06-30T00:00:00Z",
+                end_timestamp="2026-06-30T00:00:01Z",
+                metric="voltage",
+                description="Deep sag at b671 with high I0/I1.",
+            )
+        ],
+        kb_citations=[
+            KBCitation(source_id="SOP-OVLD-001", title="Feeder Overload", section="3.1")
+        ],
+        created_at="2026-06-30T00:00:02Z",
     )
 
     assert ticket.ticket_id == "T-001"
-    assert ticket.scenario_id == "Overload Trip"
-    assert isinstance(ticket.created_at, datetime)
-    assert isinstance(ticket.detected_at, datetime)
-    assert "max_current_a" in ticket.details
-    assert len(ticket.recommendations) == 2
+    assert ticket.severity == "high"
+    assert len(ticket.recommended_actions) == 2
+    assert ticket.evidence[0].metric == "voltage"
+    assert ticket.kb_citations[0].source_id == "SOP-OVLD-001"
