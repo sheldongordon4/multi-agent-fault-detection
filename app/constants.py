@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 
 DB_NAMING_CONVENTION = {
     "ix": "%(column_0_label)s_idx",
@@ -9,7 +9,7 @@ DB_NAMING_CONVENTION = {
 }
 
 
-class Environment(str, Enum):
+class Environment(StrEnum):
     LOCAL = "LOCAL"
     TESTING = "TESTING"
     STAGING = "STAGING"

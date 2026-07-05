@@ -1,5 +1,6 @@
 """Per-domain settings for the faults (coordinator) domain — LLM + throttling."""
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,7 +9,7 @@ class FaultsConfig(BaseSettings):
 
     # Azure OpenAI deployment (used via an OpenAI-compatible base_url).
     AZURE_OPENAI_ENDPOINT: str | None = None
-    AZURE_OPENAI_API_KEY: str | None = None
+    AZURE_OPENAI_API_KEY: SecretStr | None = None
     AZURE_OPENAI_API_VERSION: str = "2024-10-21"
     AZURE_OPENAI_DEPLOYMENT: str = "gpt-4o-mini"
 
@@ -21,7 +22,7 @@ class FaultsConfig(BaseSettings):
     @property
     def azure_configured(self) -> bool:
         """True only when the Azure deployment is fully + really configured."""
-        key = self.AZURE_OPENAI_API_KEY or ""
+        key = self.AZURE_OPENAI_API_KEY.get_secret_value() if self.AZURE_OPENAI_API_KEY else ""
         endpoint = self.AZURE_OPENAI_ENDPOINT or ""
         return bool(
             key

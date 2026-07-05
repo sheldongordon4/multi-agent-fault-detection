@@ -12,12 +12,12 @@ import asyncio
 import logging
 
 from app.kafka import producer, topics
+from app.ml.fault_classifier import classify_event, load_classifier
 from app.ml.fault_detector import (
     load_testbed_model,
     publish_event,
     train_isoforest_on_testbed,
 )
-from app.ml.fault_classifier import classify_event, load_classifier
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,8 @@ NORMAL_TRAIN_CSV = "data/generated/normal_train_013.csv"
 
 _model = None
 _feature_cols = None
-_classifier = None
+_classifier: dict | None = None
+_classifier_tried = False
 
 
 def _get_model():
@@ -41,16 +42,16 @@ def _get_model():
     return _model, _feature_cols
 
 
-def _get_classifier():
+def _get_classifier() -> dict | None:
     """Supervised classifier is OPTIONAL enrichment — return None if unavailable."""
-    global _classifier
-    if _classifier is None:
+    global _classifier, _classifier_tried
+    if not _classifier_tried:
+        _classifier_tried = True
         try:
             _classifier = load_classifier()
         except FileNotFoundError:
             logger.warning("Fault classifier not trained; publishing without classification.")
-            _classifier = False  # sentinel: tried, not available
-    return _classifier or None
+    return _classifier
 
 
 async def handle(event: dict) -> None:

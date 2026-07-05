@@ -1,7 +1,8 @@
 import asyncio
 import json
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 from confluent_kafka import Consumer, KafkaError, Message
 
@@ -9,7 +10,7 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-Handler = Callable[[dict], Awaitable[None]]
+Handler = Callable[[dict], Coroutine[Any, Any, None]]
 
 
 async def _to_dlq(msg: Message, exc: BaseException) -> None:
@@ -18,6 +19,7 @@ async def _to_dlq(msg: Message, exc: BaseException) -> None:
 
     try:
         raw = msg.value()
+        key = msg.key()
         await producer.produce(
             f"{msg.topic()}.dlq",
             {
@@ -25,7 +27,7 @@ async def _to_dlq(msg: Message, exc: BaseException) -> None:
                 "error": repr(exc),
                 "value": raw.decode(errors="replace") if raw else None,
             },
-            key=msg.key().decode(errors="replace") if msg.key() else None,
+            key=key.decode(errors="replace") if key else None,
         )
     except Exception:
         logger.exception("failed to publish to DLQ for %s", msg.topic())
@@ -78,7 +80,7 @@ async def run_consumer(group_id: str, handlers: dict[str, Handler]) -> None:
 
                     exc = processing.exception()
                     if exc is None:
-                        await asyncio.to_thread(consumer.commit, current)
+                        await asyncio.to_thread(consumer.commit, message=current)
                         logger.info("[%s] processed message from %s", group_id, current.topic())
                     else:
                         # Route the poison message to a dead-letter topic and commit
@@ -91,26 +93,33 @@ async def run_consumer(group_id: str, handlers: dict[str, Handler]) -> None:
                             exc_info=exc,
                         )
                         await _to_dlq(current, exc)
-                        await asyncio.to_thread(consumer.commit, current)
+                        await asyncio.to_thread(consumer.commit, message=current)
 
                     consumer.resume(consumer.assignment())
                     processing = None
                     current = None
                     continue
 
-                # ── Idle: find the next message to process ────────────
+                # Idle: find the next message to process
                 if msg is None:
                     continue
-                if msg.error():
-                    if msg.error().code() != KafkaError._PARTITION_EOF:
-                        logger.error("[%s] kafka error: %s", group_id, msg.error())
+                err = msg.error()
+                if err:
+                    if err.code() != KafkaError._PARTITION_EOF:
+                        logger.error("[%s] kafka error: %s", group_id, err)
                     continue
 
-                handler = handlers.get(msg.topic())
+                topic = msg.topic()
+                if topic is None:
+                    continue
+                handler = handlers.get(topic)
                 if handler is None:
                     continue
 
-                payload = json.loads(msg.value())
+                raw_value = msg.value()
+                if raw_value is None:
+                    continue
+                payload = json.loads(raw_value)
                 logger.info("[%s] consuming message from %s", group_id, msg.topic())
 
                 consumer.pause(consumer.assignment())

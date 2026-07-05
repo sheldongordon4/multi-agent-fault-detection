@@ -1,6 +1,7 @@
 import logging
 
-from confluent_kafka.admin import AdminClient, NewTopic
+from confluent_kafka.admin import AdminClient
+from confluent_kafka.cimpl import NewTopic
 
 from app.config import settings
 from app.kafka import topics

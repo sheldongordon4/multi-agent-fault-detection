@@ -20,12 +20,11 @@ class CustomBaseSettings(BaseSettings):
 
 
 class Config(CustomBaseSettings):
-    # ── App ───────────────────────────────────
+    # App
     APP_ENV: str = Field(default="local")
     ENVIRONMENT: Environment = Environment.LOCAL
     APP_VERSION: str = "0.1"
 
-    # ── Database (Postgres, async) ────────────
     # Async URL is what the app + Alembic actually use; sync is kept for tooling.
     DATABASE_ASYNC_URL: str = Field(
         default="postgresql+asyncpg://postgres:postgres@localhost:5432/mafd"
@@ -35,7 +34,6 @@ class Config(CustomBaseSettings):
     DATABASE_POOL_TTL: int = 60 * 20  # 20 minutes
     DATABASE_POOL_PRE_PING: bool = True
 
-    # ── Kafka ─────────────────────────────────
     KAFKA_ENABLED: bool = Field(
         default=True,
         description="Start the Kafka consumer workers on app startup.",
@@ -43,7 +41,6 @@ class Config(CustomBaseSettings):
     KAFKA_HOST: str = Field(default="localhost")
     KAFKA_PORT: int = Field(default=29092)
 
-    # ── CORS ──────────────────────────────────
     CORS_ORIGINS: list[str] = ["*"]
     CORS_HEADERS: list[str] = ["*"]
 
