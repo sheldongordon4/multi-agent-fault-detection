@@ -1,15 +1,13 @@
-from datetime import datetime, timedelta
-from typing import Dict, List
-
 import math
 import random
+from datetime import datetime, timedelta
 
 
 def generate_scada_stream(
     num_points: int = 10,
     start_time: datetime | None = None,
     interval_seconds: int = 1,
-) -> List[Dict]:
+) -> list[dict]:
     """
     Generate a simple synthetic SCADA stream.
 
@@ -21,7 +19,7 @@ def generate_scada_stream(
     if start_time is None:
         start_time = datetime.utcnow()
 
-    data: List[Dict] = []
+    data: list[dict] = []
     for i in range(num_points):
         ts = start_time + timedelta(seconds=i * interval_seconds)
 

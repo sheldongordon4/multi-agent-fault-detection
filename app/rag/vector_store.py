@@ -1,34 +1,36 @@
-from typing import Optional
-from pathlib import Path
-import os
 import shutil
+from pathlib import Path
 
 from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import FakeEmbeddings
-from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+
+from app.rag.config import settings
 
 from .kb_loader import load_sop_documents
 
-_vectordb: Optional[Chroma] = None
+_vectordb: Chroma | None = None
+
+# Local, open-source embedding model (self-hosted, no API). Configured in
+# app/rag/config.py. Changing it requires rebuilding the vector DB (dim change).
+EMBEDDING_MODEL = settings.EMBEDDING_MODEL
 
 
 def _make_embeddings():
     """
-    Choose between real OpenAI embeddings and local fake embeddings.
+    Local, open-source sentence-embedding model served via HuggingFace
+    sentence-transformers.
 
-    - For APP_ENV=local or OPENAI_API_KEY missing/'changeme' -> FakeEmbeddings (no API calls).
-    - Otherwise -> OpenAIEmbeddings (real OpenAI API).
+    Runs fully offline on CPU after a one-time weight download from the
+    HuggingFace Hub - no API key and no per-call cost. Replaces the previous
+    OpenAI/FakeEmbeddings split (FakeEmbeddings produced random vectors, so
+    local-mode retrieval was meaningless).
     """
-    app_env = os.getenv("APP_ENV", "local").lower()
-    api_key = os.getenv("OPENAI_API_KEY", "")
-
-    if app_env == "local" or not api_key or api_key == "changeme":
-        # Local/dev mode: no OpenAI calls, good for offline & quota issues
-        print("[vector_store] Using FakeEmbeddings (local/dev mode, no OpenAI API).")
-        return FakeEmbeddings(size=1536)
-    else:
-        print("[vector_store] Using OpenAIEmbeddings (remote API).")
-        return OpenAIEmbeddings()
+    print(f"[vector_store] Using local HuggingFaceEmbeddings ({EMBEDDING_MODEL}).")
+    return HuggingFaceEmbeddings(
+        model_name=EMBEDDING_MODEL,
+        model_kwargs={"device": "cpu"},
+        encode_kwargs={"normalize_embeddings": True},  # cosine-ready (bge recommends)
+    )
 
 
 def build_vectordb(
