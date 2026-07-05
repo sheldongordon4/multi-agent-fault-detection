@@ -8,3 +8,8 @@ __pycache__/
 project_requirements/
 *.docx
 data/generated/
+
+# Regenerable build artifacts (Chroma KB, demo signals, incidents) — rebuilt by
+# scripts/refresh_kb.py / scripts/bootstrap.py, never committed.
+artifacts/
+
