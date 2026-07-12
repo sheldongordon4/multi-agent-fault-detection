@@ -54,7 +54,9 @@ app = FastAPI(lifespan=lifespan, **app_configs)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    # No auth/cookies (operator dashboard), and `allow_origins=["*"]` + credentials
+    # is rejected by browsers anyway — so credentials stay off.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=settings.CORS_HEADERS,
 )

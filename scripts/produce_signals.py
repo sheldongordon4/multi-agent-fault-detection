@@ -2,9 +2,13 @@
 Signal producer (docs/System_Architecture.md §4.1).
 
 Replays a synthetic scenario CSV onto the raw.signals topic, one reading at a time,
-partitioned by bus_id. This is the proof-of-concept stand-in for the live SCADA tap
-and is what drives the whole pipeline: raw.signals -> detection -> coordinator ->
-faulttickets -> notification + streaming.
+partitioned by bus_id. This is the proof-of-concept stand-in for the live SCADA tap.
+
+As-built, raw.signals feeds ONLY the Streaming service (the live per-bus SSE chart
+at /stream/signals). It does NOT trigger detection: the raw.signals -> feeder.events
+feature-extraction worker isn't wired to Kafka yet (docs/System_Architecture.md §16),
+so detection is driven separately by scripts/produce_events.py over feeder.events.
+Run this to make the live chart move; run produce_events.py to produce fault tickets.
 
 Usage:
     .venv/Scripts/python.exe scripts/produce_signals.py --scenario overload_trip --bus_id bus_1

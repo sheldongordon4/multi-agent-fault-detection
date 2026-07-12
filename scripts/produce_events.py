@@ -3,9 +3,11 @@ Event producer (docs/System_Architecture.md §4.1, event path).
 
 Replays pre-reduced per-bus event rows (the testbed feature schema) onto the
 feeder.events topic, one feeder snapshot at a time. This is the proof-of-concept
-stand-in for the live feature-extraction bridge (ml/feature_extractor, whose DSP
-is still stubbed): instead of reducing raw 3-phase samples, we replay rows that
-are already in the event schema. It drives the event-detector pipeline:
+stand-in for the live feature-extraction bridge (app/ml/feature_extractor): its DSP
+is implemented, but the streaming worker that would consume raw.signals and publish
+reduced rows to feeder.events isn't wired to Kafka yet (docs/System_Architecture.md
+§16). So instead of reducing raw 3-phase samples live, we replay rows that are
+already in the event schema. It drives the event-detector pipeline:
 feeder.events -> detection -> anomalies.detected -> coordinator -> faulttickets.
 
 Usage:

@@ -529,7 +529,7 @@ def main() -> None:
     st.sidebar.markdown(f"**Incidents dir**: `{INCIDENTS_DIR}`")
     refresh_clicked = st.sidebar.button("🔄 Refresh tickets")
     if refresh_clicked:
-        st.experimental_rerun()
+        st.rerun()
 
     if not tickets:
         st.info(
