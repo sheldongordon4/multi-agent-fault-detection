@@ -107,6 +107,9 @@ def classify_event(features, bundle: dict | None = None) -> dict:
         )
 
     x = pd.to_numeric(row[fcols], errors="coerce").to_numpy(dtype=float).reshape(1, -1)
+    # Guard inf/nan (de-energized buses, docs §11) so sklearn scores instead of
+    # raising — matches fault_detector.detect_event.
+    x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
     out = {"fault_type": str(bundle["type_clf"].predict(x)[0])}
     if bundle.get("cat_clf") is not None:
         out["fault_category"] = str(bundle["cat_clf"].predict(x)[0])

@@ -29,6 +29,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 
@@ -143,6 +144,10 @@ def detect_event(features, model=None, feature_cols=None) -> dict:
         )
 
     x = pd.to_numeric(row[feature_cols], errors="coerce").to_numpy(dtype=float).reshape(1, -1)
+    # De-energized/islanded buses arrive as inf/nan (docs/System_Architecture.md §11);
+    # sklearn rejects non-finite input, so guard to 0.0 (mirrors the feature
+    # extractor's _reduce_bus) instead of letting the severe faults error out.
+    x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
     raw = float(model.decision_function(x)[0])  # higher = more normal
     pred = int(model.predict(x)[0])  # -1 = anomaly, 1 = normal
     return {

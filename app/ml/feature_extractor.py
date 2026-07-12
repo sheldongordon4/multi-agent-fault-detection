@@ -10,19 +10,18 @@ this class produces it.
 Pipeline (see the project notes / docs):
     ingest+buffer   raw per-bus samples into a rolling buffer
      cut_window      decide [t_start, t_end]      -> windowStart / windowEnd
-     _phasors        per-cycle phasor estimation  (DSP — NOT IMPLEMENTED)
+     _phasors        per-cycle phasor estimation  (single-bin DFT)
      _sequence       Fortescue I0/I1/I2           (implemented)
      _reduce_bus     collapse window to 6 features/bus + low-current guard
     metadata        feeder (config) + window times (sample clock) + event id
      emit_event      hand the row + metadata to publish_event()
 
-WHAT IS REAL vs STUBBED
-    Real here:   sequence components, pu reduction, low-current guard, row
-                 assembly, metadata wiring, publish hand-off.
-    Stubbed:     _phasors() (turn raw samples into per-cycle phasors — needs a
-                 DFT/Goertzel and a sampling-rate contract) and the triggered
-                 windowing detector _detect_disturbance(). Implement those two and
-                 the pipeline runs end to end.
+IMPLEMENTATION STATUS
+    All stages are implemented end to end: sequence components, pu reduction,
+    low-current guard, per-cycle DFT phasors (_phasors), voltage-sag trigger
+    (_detect_disturbance), row assembly, metadata wiring, and publish hand-off.
+    What remains is the streaming Kafka WORKER that would drive this class off
+    raw.signals and publish to feeder.events (docs/System_Architecture.md §16).
 
 CRITICAL: the reductions here MUST match how the testbed produced its features
 (window length, per-cycle method, pu base) or the live rows drift out of the
@@ -314,7 +313,7 @@ class FeatureExtractor:
         """Build the {feature_col: value} row for one event across all buses."""
         row: dict[str, float] = {}
         for bus in self.buses:
-            cycles = self._phasors(window.get(bus, []))  # stubbed
+            cycles = self._phasors(window.get(bus, []))
             feats = self._reduce_bus(cycles)
             for fam, val in feats.items():
                 row[f"{fam}_{bus}"] = val
@@ -361,4 +360,4 @@ if __name__ == "__main__":
     print(f"  buses        : {fx.buses}")
     print(f"  features     : {len(fx.feature_cols)} ({fx.feature_cols[:2]} ...)")
     print(f"  window_seconds: {fx.window_seconds}  mode: {fx.mode}")
-    print("  TODO: implement _phasors() (and _detect_disturbance() for triggered mode).")
+    print("  pipeline     : rolling + triggered modes operational")
