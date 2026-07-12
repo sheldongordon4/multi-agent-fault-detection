@@ -67,10 +67,19 @@ async def run_consumer(group_id: str, handlers: dict[str, Handler]) -> None:
     processing: asyncio.Task[None] | None = None
     current: Message | None = None
 
+    # Poll timeout: long when idle (don't busy-spin waiting for new messages),
+    # short while a handler is in flight so we notice its (usually millisecond-fast)
+    # completion promptly instead of stalling a full second per message. The long
+    # in-flight poll was the ~1 msg/s cap; partitions are paused during a handler,
+    # so a short poll here still serves only as the librdkafka keep-alive.
+    IDLE_POLL_S = 1.0
+    BUSY_POLL_S = 0.05
+
     try:
         while True:
             try:
-                msg = await asyncio.to_thread(consumer.poll, 1.0)
+                poll_timeout = BUSY_POLL_S if processing is not None else IDLE_POLL_S
+                msg = await asyncio.to_thread(consumer.poll, poll_timeout)
 
                 # ── A handler is in flight ────────────────────────────
                 if processing is not None and current is not None:
@@ -119,7 +128,21 @@ async def run_consumer(group_id: str, handlers: dict[str, Handler]) -> None:
                 raw_value = msg.value()
                 if raw_value is None:
                     continue
-                payload = json.loads(raw_value)
+                try:
+                    payload = json.loads(raw_value)
+                except (ValueError, TypeError) as exc:
+                    # Poison-on-decode: route to the DLQ and commit so it can't be
+                    # silently skipped or endlessly redelivered (the handler-level
+                    # DLQ below never sees it — decode happens before dispatch).
+                    logger.error(
+                        "[%s] undecodable message from %s; routing to DLQ",
+                        group_id,
+                        topic,
+                        exc_info=exc,
+                    )
+                    await _to_dlq(msg, exc)
+                    await asyncio.to_thread(consumer.commit, message=msg)
+                    continue
                 logger.info("[%s] consuming message from %s", group_id, msg.topic())
 
                 consumer.pause(consumer.assignment())
