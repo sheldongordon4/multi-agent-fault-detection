@@ -1,17 +1,31 @@
 import json
-from datetime import datetime
+import logging
+from datetime import UTC, datetime
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
+from app.faults import budget
+from app.faults.budget import LLMBudgetExceeded
 from app.faults.config import settings as faults_settings
 from app.faults.constants import SYSTEM_PROMPT
 from app.faults.schemas import FaultTicket
 from app.rag.retriever import kb_retrieve_impl  # direct KB retrieval for local mode
 
+logger = logging.getLogger(__name__)
+
 # Fall back to the offline heuristic ticket only when Azure is not configured
 # (not on APP_ENV), so a configured endpoint works even with APP_ENV=local in dev.
 USE_LOCAL_FALLBACK = not faults_settings.azure_configured
+
+
+def _should_use_local() -> bool:
+    """
+    Use the local (no-LLM) fallback when Azure isn't configured OR the process
+    endpoint-call budget is spent. The budget check makes the switch permanent
+    once we hit the cap, so no further Azure calls are attempted.
+    """
+    return USE_LOCAL_FALLBACK or budget.exhausted()
 
 
 # -------------------------------------------------------------------
@@ -143,7 +157,7 @@ def _build_local_fault_ticket(detection: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
-    now = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+    now = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     return {
         "ticket_id": f"LOCAL-{incident_id}",
         "scenario": f"feeder:{feeder}",
@@ -197,7 +211,7 @@ def run_fault_diagnosis(detection: dict[str, Any]) -> dict[str, Any]:
     - With Azure configured, drives the agent graph (kb_retrieve + LLM) to produce
       a validated FaultTicket from the detection signature.
     """
-    if USE_LOCAL_FALLBACK:
+    if _should_use_local():
         return _build_local_fault_ticket(detection)
 
     feeder, severity, score, top_buses, incident_id = _read_detection(detection)
@@ -224,8 +238,25 @@ def run_fault_diagnosis(detection: dict[str, Any]) -> dict[str, Any]:
         ),
     ]
 
-    final_state = _get_graph().invoke({"messages": messages})
+    try:
+        final_state = _get_graph().invoke({"messages": messages})
+    except LLMBudgetExceeded:
+        # Budget ran out partway through the ReAct loop: stop spending and return
+        # a locally built ticket instead of a partial/failed one.
+        return _build_local_fault_ticket(detection)
+
     final_message = final_state["messages"][-1]
-    ticket = _coerce_to_ticket(final_message.content)
+    try:
+        ticket = _coerce_to_ticket(final_message.content)
+    except (ValueError, json.JSONDecodeError):
+        # The LLM returned a non-JSON or truncated/malformed object (e.g. the
+        # ticket was cut off by LLM_MAX_OUTPUT_TOKENS). Don't crash the handler
+        # into the DLQ and lose the incident — fall back to the local ticket.
+        logger.warning(
+            "Coordinator returned unparseable ticket for %s; using local fallback. "
+            "If this is truncation, raise LLM_MAX_OUTPUT_TOKENS.",
+            incident_id,
+        )
+        return _build_local_fault_ticket(detection)
     ticket.setdefault("ticket_id", incident_id)
     return ticket

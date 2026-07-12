@@ -19,6 +19,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
+from app.faults import budget
 from app.faults.config import settings
 
 from .tools import kb_retrieve
@@ -49,6 +50,7 @@ def _make_llm() -> ChatOpenAI:
         rate_limiter=_RATE_LIMITER,
         max_retries=settings.LLM_MAX_RETRIES,
         timeout=settings.LLM_TIMEOUT_SECONDS,
+        max_tokens=settings.LLM_MAX_OUTPUT_TOKENS,
     )
 
 
@@ -63,6 +65,11 @@ def build_coordinator_graph():
     llm_with_tools = _make_llm().bind_tools(TOOLS)
 
     def coordinator_node(state: MessagesState) -> dict:
+        # Spend one unit of the process endpoint-call budget before every real
+        # LLM call. Raises LLMBudgetExceeded (caught by the service, which then
+        # uses the local fallback) once the budget is exhausted — so a long
+        # ReAct loop can't run past the cap.
+        budget.spend()
         # MessagesState's reducer appends, so we return only the new message.
         return {"messages": [llm_with_tools.invoke(state["messages"])]}
 
