@@ -1,202 +1,125 @@
-# Multi-Agent Fault Detection (MAFD) – MVP
+# Multi-Agent Fault Detection (MAFD)
 
-This repository contains a **demo‑ready MVP** of a fault detection system designed for simulated SCADA and relay data. It demonstrates a clean end‑to‑end pipeline from **signal simulation → anomaly detection → ticket generation → UI visualization → timed final demo**.
+MAFD is a **fault detection, classification, and diagnosis** system for electrical
+power **distribution feeders**. It ingests grid signals, detects disturbances,
+classifies the fault, retrieves the relevant **Standard Operating Procedure (SOP)**,
+and produces an explainable **FaultTicket** for operators. It is an **event-driven
+pipeline** of decoupled services connected by **Kafka**.
 
-The MVP emphasizes:
-- Fast detection  
-- Clear, explainable reasoning  
-- SOP citation inclusion  
-- Real signal visualization  
-- <60s trigger‑to‑diagnosis performance  
+> **Docs.** `docs/System_Architecture.md` is authoritative (target design + as-built
+> status §16 + open decisions §14). `AGENTS.md` is the working summary for
+> contributors. This README is the orientation / quick-start.
 
-
-# System Overview
-
-The system includes:
-
-- **SCADA & Relay Simulators**  
-  Synthetic data generation (voltage, current, frequency, and event flags).  
-
-- **Anomaly Detector**  
-  IsolationForest baseline with window extraction and CSV export for UI.
-
-- **Ticket Generator**  
-  Produces structured JSON tickets with:
-  - reasoning summary  
-  - root cause  
-  - SOP citations  
-  - evidence windows  
-
-- **Streamlit UI**  
-  Allows browsing tickets, viewing real signal plots, and reading reasoning/citations.
-
-- **Final Demo Runner**  
-  Measures full pipeline latency and prints the final ticket and timing result.
-
-
-# End‑to‑End Flow (Simplified Diagram)
+## Architecture (as-built)
 
 ```
-SCADA Simulation
-        ↓
-Relay Event Injection
-        ↓
-Baseline ML Detector
-        ↓
-Evidence Window Extraction
-        ↓
-Fault Ticket Builder (reasoning + SOP citations)
-        ↓
-Streamlit UI (signals + ticket)
-        ↓
-Final Demo Runner (<60s latency)
+scripts/produce_events.py ─▶ feeder.events ─▶ [detection]  app/ml/fault_detector (IsolationForest)
+                                                   │   + app/ml/fault_classifier (RandomForest: type/category/location)
+                                                   │  publishes verdict + most-disturbed buses + classification
+                                                   ▼
+                                             anomalies.detected ─▶ [coordinator]  app/faults
+                                                   │   Azure gpt-4o-mini + kb_retrieve (RAG)  ·  offline heuristic fallback
+                                                   ▼
+                                             faulttickets ─┬─▶ [notification]  SSE broadcast + Postgres
+                                                           └─▶ [persistence]   Postgres (upsert) → GET /tickets
+
+scripts/produce_signals.py ─▶ raw.signals ─▶ [streaming]  per-bus rolling buffer ─▶ SSE chart
 ```
 
+**Detection-as-trigger:** detection runs *upstream*; the Coordinator does not run
+detection — it diagnoses the `anomalies.detected` payload and its only LLM tool is
+`kb_retrieve`. Five Kafka consumer groups (detection, streaming, coordinator,
+notification, persistence) give the fan-out; any handler that keeps failing routes
+the message to a `<topic>.dlq` dead-letter topic.
 
-# Component Summary
+**The one stubbed link:** the live `raw.signals → feeder.events` feature-extraction
+worker isn't wired to Kafka yet — today `produce_events.py` replays pre-reduced event
+rows onto `feeder.events` directly. The DSP that would feed it
+(`app/ml/feature_extractor.py`) is implemented and unit-tested. See §16 of the
+architecture doc.
 
-### **1. Simulation Layer**
-Generates synthetic grid signals and event flags.
+## Tech stack
 
-### **2. Detection Layer**
-- Loads synthetic/real signal data  
-- Runs IsolationForest anomaly detection  
-- Extracts anomaly windows  
-- Saves CSV for UI plotting  
+Python 3.11+ · FastAPI · Pydantic v2 · SQLAlchemy 2.0 async + asyncpg + Alembic →
+Postgres · confluent-kafka (+ Kafdrop) · LangChain / LangGraph ReAct agent · Azure
+OpenAI `gpt-4o-mini` (coordinator LLM) · local `bge-small` embeddings + Chroma
+(RAG) · scikit-learn (detection/classification) · Streamlit (legacy ticket browser).
 
-### **3. Ticket Layer**
-Builds a complete fault ticket containing:
-- scenario & bus  
-- fault type  
-- reasoning  
-- SOP citations  
-- evidence window timestamps  
-- structured JSON output  
+## Repo layout
 
-### **4. UI Layer**
-Streamlit dashboard that shows:
-- Ticket list  
-- Severity indicators  
-- Real signal visualization from CSV  
-- Reasoning & SOP citations  
-- Raw JSON  
-
-### **5. Demo Layer**
-Single‑command final demo:
 ```
-make demo-final
-```
-Runs:
-1. Detection  
-2. Ticket generator  
-3. Latency measurement  
-4. Final output presentation  
-
-
-# Ticket JSON Structure (Example)
-
-```json
-{
-  "ticket_id": "LOCAL-overload_trip-bus_1",
-  "scenario": "overload_trip",
-  "busId": "bus_1",
-  "faultType": "Overload Trip on bus_1",
-  "severity": "high",
-  "summary": "An anomaly consistent with Overload Trip was detected...",
-  "root_cause": "Potential overload condition inferred...",
-  "kb_citations": [
-    {"source_id": "SOP-OVLD-001", "title": "Feeder Overload – Guidance"}
-  ],
-  "evidence": [
-    {
-      "start_timestamp": "...",
-      "end_timestamp": "...",
-      "metric": "current"
-    }
-  ]
-}
+app/
+  api/main.py        FastAPI app + lifespan (starts Kafka workers), /health, /ready
+  faults/            COORDINATOR domain (agent, service, tools, schemas, config)
+  ml/                fault_detector · fault_classifier · feature_extractor · baseline_detector (deprecated)
+  rag/               SOP knowledge base (kb_loader, vector_store, retriever)
+  kafka/             topics, producer, consumer, admin, workers, handlers/
+  notification/ streaming/ persistence/   the three fan-out services (+ SSE)
+  alembic/           migrations (Alembic owns the schema)
+docs/                System_Architecture.md (authoritative), Agent_Architecture.md, API_Reference.md, ...
+data/sop/            SOP .md knowledge base       data/testbed/ + data/generated/  ML data
+scripts/             produce_events / produce_signals / bootstrap / refresh_kb / generate_* / validate_*
+ui/streamlit_app.py  legacy ticket browser (reads ticket JSON; not SSE-wired yet)
+tests/               pytest suite (AsyncClient + ASGITransport)
 ```
 
+## Running
 
-# Final Demo (<60s Trigger → Diagnosis)
-
-Run the complete pipeline:
+Full stack (Postgres + Kafka + Kafdrop + app) in Docker — see **`README.docker.md`**
+for details and the app-on-host variant:
 
 ```bash
-make demo-final
+docker compose -f docker-compose.dev.yaml up -d --build   # app :8000 · kafdrop :9000
+.venv/Scripts/python.exe scripts/produce_events.py        # drive detection → coordinator → tickets
+curl -fsS http://localhost:8000/ready
 ```
 
-This:
-- runs the detector  
-- generates the ticket  
-- loads reasoning + SOP citations  
-- measures latency  
-- prints the final JSON output  
+Without `AZURE_OPENAI_*` configured, the Coordinator returns a **local heuristic
+ticket** (no LLM call) — intentional, so the pipeline runs end-to-end offline.
 
-**Typical latency:** ~4–6 seconds.
+## HTTP API
 
+Small surface — most work flows through Kafka. Full details in `docs/API_Reference.md`.
 
-# Streamlit UI
+| Method & path | Purpose |
+| ------------- | ------- |
+| `GET /health` · `GET /ready` | liveness · readiness (checks Postgres + Kafka) |
+| `POST /faults/diagnose` | run the Coordinator on a detection result → `FaultTicket` |
+| `GET /tickets` · `GET /tickets/{incident_id}` | fault-ticket history (Postgres) |
+| `GET /notifications` · `POST /notifications/read-all` | operator notifications |
+| `GET /notifications/stream` | SSE incident alerts (broadcast) |
+| `GET /stream/signals?bus_id=<bus>` | SSE per-bus live signal feed (snapshot + live) |
 
-Launch the dashboard:
+Interactive docs at `/docs`.
+
+## Testing
 
 ```bash
-make run-ui
+.venv/Scripts/python.exe -m pytest -q
 ```
 
-Visit:
+`httpx.AsyncClient` + `ASGITransport` (no broker/DB needed), dependency overrides,
+and the feature-extraction DSP unit tests. Coverage summary + gaps:
+`docs/Testing_Report.md`.
 
-```
-http://localhost:8501
-```
+## Streamlit UI
 
-UI Features:
-- Ticket list  
-- Severity indicators  
-- Real signal line plot  
-- Reasoning summary  
-- SOP citations  
-- Raw JSON  
-
-
-# Docker Usage
-
-Build:
 ```bash
-make docker-build
+.venv/Scripts/python.exe -m streamlit run ui/streamlit_app.py   #  →  http://localhost:8501
 ```
 
-Run:
-```bash
-make docker-run
-```
+Note: the current UI is a **legacy ticket browser** that reads ticket JSON files and
+is **not yet wired to the SSE streams**. Connecting it to `/notifications/stream` and
+`/stream/signals` is a near-term TODO (architecture doc §16).
 
+## Status & next
 
-# Testing
+The event-driven backend runs end-to-end on real infra (Docker Postgres + Kafka).
+Near-term work (see `docs/System_Architecture.md` §16 and `AGENTS.md`):
 
-Run:
-```bash
-make test
-```
-
-Tests cover:
-- Detector behavior  
-- Ticket schema  
-- Basic API health  
-- Latency benchmark  
-
-
-# Documentation Included
-
-This repo includes a full documentation suite:
-
-- **API_Reference.md**  
-- **Agent_Architecture.md**  
-- **Agent_Prompt_Guide.md**  
-- **Knowledge_Base_Index.md**  
-- **Testing_Report.md**  
-
-
-# Project Status
-
-The MVP (demo) is **complete**, fully demonstrable, and ready for stakeholder review or Phase 2 development.
+1. **Feature-extraction worker** — the 6th consumer group on `raw.signals` (blocked
+   on the `raw.signals` → 3-phase-waveform schema decision).
+2. Deprecate the legacy time-series path (`baseline_detector.py` + old synthetic data).
+3. Fast-path streaming consumer for the `raw.signals` firehose.
+4. Feeder-agnostic classifier (transfers across feeders).
+5. Wire the Streamlit UI to SSE; add external notification channels.
