@@ -68,7 +68,7 @@ services:
     # live outside app/, so the context cannot be ./app.
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: app/docker/Dockerfile
     depends_on:
       db:
         condition: service_healthy
