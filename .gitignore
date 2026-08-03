@@ -13,3 +13,5 @@ data/generated/
 # scripts/refresh_kb.py / scripts/bootstrap.py, never committed.
 artifacts/
 
+srccopy
+

@@ -1,0 +1,30 @@
+# Keep the build context small and Linux-clean.
+#
+# node_modules is the important one: the host tree contains Windows-native
+# binaries (lightningcss-win32-x64-msvc, @rolldown/binding-win32-x64-msvc) that
+# are useless — and misleading — inside the Alpine image. The Dockerfile runs
+# its own `pnpm install`, and compose masks the path with a named volume.
+node_modules/
+dist/
+dist-ssr/
+
+.git/
+.gitignore
+
+# Local env files never belong in the image.
+.env
+.env.*
+!.env.example
+
+# Build/tool caches and logs.
+.vite/
+coverage/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor / OS noise.
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
