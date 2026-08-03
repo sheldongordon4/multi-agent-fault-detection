@@ -52,7 +52,10 @@ RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTr
 
 COPY . .
 
-RUN chmod +x docker/entrypoint.sh \
+# NOTE: the build context is the repo ROOT and WORKDIR is /app, so `COPY . .`
+# puts the repo's own app/ package at /app/app — hence the app/docker/ prefix
+# here (same reason entrypoint.sh refers to app/alembic.ini).
+RUN chmod +x app/docker/entrypoint.sh \
     && adduser --disabled-password --gecos "" app \
     && chown -R app:app ${APP_HOME} /opt/hf
 USER app
@@ -60,5 +63,5 @@ USER app
 EXPOSE 8000
 
 # entrypoint waits for DB+Kafka, migrates, builds the KB, then runs the CMD.
-ENTRYPOINT ["/app/docker/entrypoint.sh"]
+ENTRYPOINT ["/app/app/docker/entrypoint.sh"]
 CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
