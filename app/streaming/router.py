@@ -1,11 +1,27 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 
 from app.streaming.manager import signal_stream_manager
+from app.streaming.schemas import BusListResponse
 
 router = APIRouter(prefix="/stream", tags=["streaming"])
+
+
+@router.get(
+    "/buses",
+    response_model=BusListResponse,
+    summary="List buses with a live signal buffer",
+)
+async def list_buses() -> dict[str, Any]:
+    """
+    Buses the streaming service currently holds readings for. A bus only appears
+    once it has received at least one reading off `raw.signals`, so this is empty
+    until a signal producer runs. Drives the UI's bus selector.
+    """
+    items = signal_stream_manager.buses()
+    return {"items": items, "count": len(items)}
 
 
 @router.get("/signals")

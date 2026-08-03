@@ -46,6 +46,10 @@ class SignalStreamManager:
     def snapshot(self, bus_id: str) -> list[dict]:
         return list(self._buffers.get(bus_id, ()))
 
+    def buses(self) -> list[str]:
+        """Buses that have received at least one reading (i.e. have a live buffer)."""
+        return sorted(self._buffers.keys())
+
     async def stream(self, bus_id: str) -> AsyncGenerator[str, None]:
         """Yield a snapshot of the bus buffer, then live readings; heartbeat on silence."""
         q = self._subscribe(bus_id)
