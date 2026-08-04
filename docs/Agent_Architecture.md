@@ -1,43 +1,50 @@
-# Agent Architecture – MAFD MVP
+# Agent Architecture — MAFD
 
-## Coordinator Agent Overview
-The MVP uses a simplified Coordinator Agent powered by tool-calling.
+Authoritative design: `docs/System_Architecture.md`. This file describes the
+**Coordinator agent** specifically.
 
-### Responsibilities
-- Run ML-based anomaly detection  
-- Retrieve SOP guidance  
-- Merge detection + RAG output into a structured ticket  
+## Detection-as-trigger
 
+Detection is **not** an LLM tool. The event IsolationForest (`app/ml/fault_detector.py`)
+scores each `feeder.events` row upstream and, on a fault, publishes an
+`anomalies.detected` event carrying the verdict, the most-disturbed buses, and —
+when the supervised classifier (`ml/fault_classifier.py`) is trained — the predicted
+`fault_type` / `fault_category` / `location_km`. The coordinator is *woken* by that
+event; it runs no detection of its own.
 
-## Architecture Diagram
 ```mermaid
 flowchart LR
-    A[Coordinator Agent] --> B[detect_signal Tool]
-    A --> C[kb_retrieve Tool]
-    B --> D[Detection Summary]
-    C --> E[SOP Citations]
-    D --> F[Fault Ticket Builder]
-    E --> F
+    E[anomalies.detected] --> C[Coordinator agent]
+    C -->|kb_retrieve| V[(Vector DB · SOPs)]
+    C --> T[FaultTicket JSON]
 ```
 
+## The agent (`app/faults/`)
 
-## Tools
+- **`agent.py`** — a LangGraph ReAct loop over an Azure OpenAI chat model
+  (`gpt-4o-mini`-class deployment), bound to a **single tool: `kb_retrieve`**
+  (SOP RAG over local `bge-small` embeddings). Client-side rate limiting
+  (`InMemoryRateLimiter`), bounded `max_retries`, and a request `timeout` are set
+  from `app/faults/config.py`.
+- **`service.py`** — `run_fault_diagnosis(detection)`. Interprets the detection
+  signature (I0/I1 → ground, I2/I1 → unbalance, deep sag → 3-phase), prefers the
+  supervised classifier's label when present, retrieves SOPs, and assembles a
+  **Pydantic-validated `FaultTicket`**. If Azure is not configured it returns a
+  **local heuristic ticket** with no LLM call.
+- **`tools.py`** — `kb_retrieve`.
+- **`constants.py`** — the coordinator `SYSTEM_PROMPT`.
+- **`schemas.py`** — `FaultTicket` (severity/status are `StrEnum` with tolerant
+  coercion of LLM output), `DiagnoseRequest`, `TopBus`.
 
-### detect_signal
-Runs IsolationForest baseline anomaly detection.
+## Output schema
 
-### kb_retrieve
-Retrieves relevant SOP markdowns via RAG.
+See `FaultTicket` in `app/faults/schemas.py`: `ticket_id`, `scenario`, `bus_id`,
+`fault_type`, `severity`, `status`, `summary`, `root_cause`, `recommended_actions[]`,
+`evidence[]`, `kb_citations[]`, `created_at`.
 
+## Reliability
 
-## Output Schema
-```json
-{
-  "faultType": "",
-  "summary": "",
-  "root_cause": "",
-  "recommended_actions": [],
-  "kb_citations": [],
-  "evidence": []
-}
-```
+- Rate limit + retries + timeout on the LLM (see `app/faults/config.py`).
+- The coordinator Kafka handler runs the (synchronous) diagnosis in a worker thread
+  so the consumer loop stays responsive; failures are logged and the message is not
+  committed (at-least-once redelivery).

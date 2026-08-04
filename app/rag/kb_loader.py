@@ -1,11 +1,10 @@
-import os
 from pathlib import Path
-from typing import List, Dict, Tuple
 
 SOP_DIR = Path("data/sop")
 REQUIRED_KEYS = {"ID", "TITLE"}
 
-def _parse_header_and_body(text: str) -> Tuple[Dict[str, str], str]:
+
+def _parse_header_and_body(text: str) -> tuple[dict[str, str], str]:
     """
     Very simple header parser.
     Reads lines until it hits a blank line, interprets 'KEY: value'.
@@ -29,7 +28,8 @@ def _parse_header_and_body(text: str) -> Tuple[Dict[str, str], str]:
     body = "\n".join(lines[body_start_idx:])
     return meta, body
 
-def load_sop_documents() -> List[Dict]:
+
+def load_sop_documents() -> list[dict]:
     """
     Walks data/sop and returns a list of dicts:
     {
@@ -45,15 +45,14 @@ def load_sop_documents() -> List[Dict]:
 
     Files missing required headers (ID, TITLE) are skipped with a warning.
     """
-    docs: List[Dict] = []
+    docs: list[dict] = []
 
     if not SOP_DIR.exists():
         print("[kb_loader] data/sop does not exist. No SOP documents loaded.")
         return docs
 
     sop_files = [
-        p for p in SOP_DIR.glob("**/*")
-        if p.is_file() and p.suffix.lower() in {".md", ".txt"}
+        p for p in SOP_DIR.glob("**/*") if p.is_file() and p.suffix.lower() in {".md", ".txt"}
     ]
 
     if not sop_files:

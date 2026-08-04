@@ -1,12 +1,12 @@
 import sys
 from pathlib import Path
-from typing import Dict, Tuple, List
 
 SOP_DIR = Path("data/sop")
 REQUIRED_KEYS = {"ID", "TITLE"}
 OPTIONAL_KEYS = {"SECTION", "URL"}
 
-def parse_header_and_body(text: str) -> Tuple[Dict[str, str], str]:
+
+def parse_header_and_body(text: str) -> tuple[dict[str, str], str]:
     lines = text.splitlines()
     meta = {}
     body_start_idx = 0
@@ -25,7 +25,8 @@ def parse_header_and_body(text: str) -> Tuple[Dict[str, str], str]:
     body = "\n".join(lines[body_start_idx:])
     return meta, body
 
-def validate_file(path: Path) -> List[str]:
+
+def validate_file(path: Path) -> list[str]:
     errors = []
     text = path.read_text(encoding="utf-8")
     meta, body = parse_header_and_body(text)
@@ -41,15 +42,15 @@ def validate_file(path: Path) -> List[str]:
 
     return errors
 
+
 def main() -> int:
     if not SOP_DIR.exists():
         print("No data/sop directory found. Nothing to validate.")
         return 0
 
-    all_errors: List[str] = []
+    all_errors: list[str] = []
     sop_files = [
-        p for p in SOP_DIR.glob("**/*")
-        if p.is_file() and p.suffix.lower() in {".md", ".txt"}
+        p for p in SOP_DIR.glob("**/*") if p.is_file() and p.suffix.lower() in {".md", ".txt"}
     ]
 
     if not sop_files:
@@ -71,6 +72,6 @@ def main() -> int:
     print("All SOP files passed validation.")
     return 0
 
+
 if __name__ == "__main__":
     sys.exit(main())
-

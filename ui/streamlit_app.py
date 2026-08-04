@@ -4,7 +4,7 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -26,22 +26,22 @@ SIGNALS_CSV_PATH = Path("artifacts/signals/demo_signals.csv")
 @dataclass
 class FaultTicket:
     ticket_id: str
-    scenario: Optional[str]
-    bus_id: Optional[str]
-    fault_type: Optional[str]
-    severity: Optional[str]
-    status: Optional[str]
-    summary: Optional[str]
-    root_cause: Optional[str]
-    recommended_actions: List[str]
-    evidence: List[Dict[str, Any]]
-    kb_citations: List[Dict[str, Any]]
-    raw: Dict[str, Any]
+    scenario: str | None
+    bus_id: str | None
+    fault_type: str | None
+    severity: str | None
+    status: str | None
+    summary: str | None
+    root_cause: str | None
+    recommended_actions: list[str]
+    evidence: list[dict[str, Any]]
+    kb_citations: list[dict[str, Any]]
+    raw: dict[str, Any]
     source_file: Path
     mtime: float
 
     @classmethod
-    def from_json(cls, path: Path) -> "FaultTicket":
+    def from_json(cls, path: Path) -> FaultTicket:
         with path.open("r", encoding="utf-8") as f:
             data = json.load(f)
 
@@ -61,9 +61,7 @@ class FaultTicket:
         root_cause = data.get("root_cause") or data.get("rootCause")
 
         recommended_actions = (
-            data.get("recommended_actions")
-            or data.get("recommendedActions")
-            or []
+            data.get("recommended_actions") or data.get("recommendedActions") or []
         )
         if not isinstance(recommended_actions, list):
             recommended_actions = [str(recommended_actions)]
@@ -98,7 +96,8 @@ class FaultTicket:
 
 # ---------- Helpers: severity, summary stats, signals, etc. ----------
 
-def format_severity_tag(severity: Optional[str]) -> str:
+
+def format_severity_tag(severity: str | None) -> str:
     s = (severity or "unknown").lower()
     mapping = {
         "info": "🔵 info",
@@ -110,7 +109,7 @@ def format_severity_tag(severity: Optional[str]) -> str:
     return mapping.get(s, mapping["unknown"])
 
 
-def get_summary_stats(ticket: FaultTicket) -> Dict[str, Any]:
+def get_summary_stats(ticket: FaultTicket) -> dict[str, Any]:
     """
     Extract structured summary stats from the raw ticket JSON, if present.
     """
@@ -126,8 +125,8 @@ def get_summary_stats(ticket: FaultTicket) -> Dict[str, Any]:
     return stats
 
 
-def load_tickets(incidents_dir: Path) -> List[FaultTicket]:
-    tickets: List[FaultTicket] = []
+def load_tickets(incidents_dir: Path) -> list[FaultTicket]:
+    tickets: list[FaultTicket] = []
 
     if not incidents_dir.exists():
         return tickets
@@ -143,7 +142,7 @@ def load_tickets(incidents_dir: Path) -> List[FaultTicket]:
     return tickets
 
 
-def ticket_list_dataframe(tickets: List[FaultTicket]) -> pd.DataFrame:
+def ticket_list_dataframe(tickets: list[FaultTicket]) -> pd.DataFrame:
     rows = []
     for idx, t in enumerate(tickets):
         rows.append(
@@ -165,9 +164,10 @@ def ticket_list_dataframe(tickets: List[FaultTicket]) -> pd.DataFrame:
 
 # ---------- Hybrid signal fetcher: CSV → FastAPI → synthetic ----------
 
+
 def _try_signal_from_csv(
-    metric: str, start_ts: Optional[str], end_ts: Optional[str]
-) -> Optional[pd.DataFrame]:
+    metric: str, start_ts: str | None, end_ts: str | None
+) -> pd.DataFrame | None:
     if not SIGNALS_CSV_PATH.exists():
         return None
 
@@ -212,17 +212,17 @@ def _try_signal_from_csv(
 
 def _try_signal_from_api(
     metric: str,
-    start_ts: Optional[str],
-    end_ts: Optional[str],
-    bus_id: Optional[str],
-    scenario: Optional[str],
-) -> Optional[pd.DataFrame]:
+    start_ts: str | None,
+    end_ts: str | None,
+    bus_id: str | None,
+    scenario: str | None,
+) -> pd.DataFrame | None:
     if requests is None:
         return None
 
     base_url = os.getenv("SIGNALS_API_URL", "http://localhost:8000/signals/window")
 
-    params: Dict[str, Any] = {"metric": metric}
+    params: dict[str, Any] = {"metric": metric}
     if start_ts:
         params["start"] = start_ts
     if end_ts:
@@ -262,8 +262,8 @@ def _try_signal_from_api(
 
 def _synthetic_signal_window(
     metric: str,
-    start_ts: Optional[str],
-    end_ts: Optional[str],
+    start_ts: str | None,
+    end_ts: str | None,
 ) -> pd.DataFrame:
     """
     Fallback: generate a synthetic signal window so the dean sees a plot
@@ -293,10 +293,10 @@ def _synthetic_signal_window(
 
 def get_signal_window(
     metric: str,
-    start_ts: Optional[str],
-    end_ts: Optional[str],
-    bus_id: Optional[str],
-    scenario: Optional[str],
+    start_ts: str | None,
+    end_ts: str | None,
+    bus_id: str | None,
+    scenario: str | None,
 ) -> pd.DataFrame:
     """
     Hybrid strategy:
@@ -518,24 +518,18 @@ def main() -> None:
     )
 
     st.title("Multi-Agent Fault Detection – Fault Browser")
-    st.caption(
-        "UI for browsing fault tickets, flagged signals, and reasoning "
-        "summaries."
-    )
+    st.caption("UI for browsing fault tickets, flagged signals, and reasoning summaries.")
 
     tickets = load_tickets(INCIDENTS_DIR)
 
     # Light debug / context info
-    st.caption(
-        f"Incidents directory: `{INCIDENTS_DIR}` · "
-        f"Tickets loaded: **{len(tickets)}**"
-    )
+    st.caption(f"Incidents directory: `{INCIDENTS_DIR}` · Tickets loaded: **{len(tickets)}**")
 
     st.sidebar.header("Controls")
     st.sidebar.markdown(f"**Incidents dir**: `{INCIDENTS_DIR}`")
     refresh_clicked = st.sidebar.button("🔄 Refresh tickets")
     if refresh_clicked:
-        st.experimental_rerun()
+        st.rerun()
 
     if not tickets:
         st.info(
@@ -577,8 +571,9 @@ def main() -> None:
         selected_index = st.selectbox(
             "Select ticket",
             options=list(df_list.index),
-            format_func=lambda idx: f"{df_list.loc[idx, 'Ticket ID']} "
-            f"({df_list.loc[idx, 'Scenario'] or 'no-scenario'})",
+            format_func=lambda idx: (
+                f"{df_list.loc[idx, 'Ticket ID']} ({df_list.loc[idx, 'Scenario'] or 'no-scenario'})"
+            ),
         )
 
         selected_ticket = filtered[selected_index]

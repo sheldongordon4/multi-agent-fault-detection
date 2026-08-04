@@ -1,0 +1,22 @@
+# Keep the build context small and Linux-clean.
+.venv/
+.git/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Secrets never go in the image (injected via env_file at runtime).
+.env
+.env.*
+!.env.example
+
+# Large / regenerable artifacts not needed to run the API.
+data/testbed/
+artifacts/
+scratchpad/
+
+# Docs / UI / tests aren't needed in the runtime image.
+docs/
+ui/
+tests/
+*.md

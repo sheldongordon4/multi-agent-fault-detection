@@ -1,14 +1,12 @@
-from datetime import datetime, timedelta
-from typing import Dict, List
-
 import random
+from datetime import datetime, timedelta
 
 
 def generate_relay_events(
     num_events: int = 5,
     start_time: datetime | None = None,
     interval_seconds: int = 5,
-) -> List[Dict]:
+) -> list[dict]:
     """
     Generate a simple set of relay protection events.
 
@@ -20,7 +18,7 @@ def generate_relay_events(
     if start_time is None:
         start_time = datetime.utcnow()
 
-    events: List[Dict] = []
+    events: list[dict] = []
     for i in range(num_events):
         ts = start_time + timedelta(seconds=i * interval_seconds)
 

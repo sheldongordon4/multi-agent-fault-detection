@@ -3,7 +3,14 @@ SHELL := /bin/bash
 
 PY := $(shell command -v python3 || command -v python)
 VENV := .venv
+
+# venv layout differs by OS: Scripts/ on Windows, bin/ elsewhere.
+ifeq ($(OS),Windows_NT)
+BIN := $(VENV)/Scripts
+else
 BIN := $(VENV)/bin
+endif
+
 PYTHON := $(BIN)/python
 PIP := $(BIN)/pip
 
@@ -78,8 +85,8 @@ check: lint test ## Run lint and tests
 # Utilities
 # ----------------------
 
-format: venv ## Format code with black
-	$(BIN)/black .
+format: venv ## Format code with ruff
+	$(BIN)/ruff format .
 
 lint: venv ## Lint with ruff
 	$(BIN)/ruff check .

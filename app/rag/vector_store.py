@@ -1,18 +1,20 @@
-from typing import Optional
-from pathlib import Path
-import os
 import shutil
+from pathlib import Path
 
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
+from app.rag.config import settings
+
 from .kb_loader import load_sop_documents
 
-_vectordb: Optional[Chroma] = None
+_vectordb: Chroma | None = None
 
-# Local, open-source embedding model (self-hosted, no API). Overridable via env.
-# bge-small-en-v1.5 is 384-dim; changing this requires rebuilding the vector DB.
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
+# Local, open-source embedding model (self-hosted, no API). Configured in
+# app/rag/config.py. Changing it requires rebuilding the vector DB (dim change).
+EMBEDDING_MODEL = settings.EMBEDDING_MODEL
+
+COLLECTION_NAME = "mafd_sop_kb"
 
 
 def _make_embeddings():
@@ -62,7 +64,7 @@ def build_vectordb(
     if not docs:
         print("[vector_store] No SOP documents found. Creating empty KB.")
         return Chroma(
-            collection_name="mafd_sop_kb",
+            collection_name=COLLECTION_NAME,
             embedding_function=embeddings,
             persist_directory=str(persist_path),
         )
@@ -76,12 +78,40 @@ def build_vectordb(
         texts=texts,
         metadatas=metadatas,
         embedding=embeddings,
-        collection_name="mafd_sop_kb",
+        collection_name=COLLECTION_NAME,
         persist_directory=str(persist_path),
     )
 
     print("[vector_store] KB build complete.")
     return vectordb
+
+
+def _load_existing_vectordb(persist_dir: str) -> Chroma | None:
+    """
+    Load an already-persisted KB if one exists and is non-empty; else None.
+
+    The Docker entrypoint builds the KB in a separate process, so at runtime we
+    must LOAD that store — not rebuild it. Rebuilding via Chroma.from_texts against
+    a populated persist dir re-adds every SOP, duplicating the collection on every
+    boot. This is the load path that avoids that.
+    """
+    persist_path = Path(persist_dir)
+    if not persist_path.exists():
+        return None
+    try:
+        vectordb = Chroma(
+            collection_name=COLLECTION_NAME,
+            embedding_function=_make_embeddings(),
+            persist_directory=str(persist_path),
+        )
+        count = vectordb._collection.count()
+        if count == 0:
+            return None
+        print(f"[vector_store] Loaded existing KB ({count} chunks) from {persist_path}.")
+        return vectordb
+    except Exception:
+        # Corrupt / incompatible store — fall back to a clean rebuild.
+        return None
 
 
 def get_vectordb(
@@ -107,6 +137,8 @@ def get_vectordb(
 
     if _vectordb is None:
         print("[vector_store] Initializing KB...")
-        _vectordb = build_vectordb(persist_dir=persist_dir)
+        # Prefer loading the persisted store (built by the entrypoint); only build
+        # from scratch if there isn't one yet.
+        _vectordb = _load_existing_vectordb(persist_dir) or build_vectordb(persist_dir=persist_dir)
 
     return _vectordb

@@ -1,0 +1,160 @@
+# MAFD local infrastructure: Postgres (persistence) + Kafka (event bus) + Kafdrop (UI).
+# Run the API + producer on the host against these:
+#   docker compose -f docker-compose.dev.yaml up -d
+#   uvicorn app.api.main:app --reload
+#   python scripts/produce_signals.py --scenario overload_trip
+
+services:
+  db:
+    image: postgres:18.1-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mafd
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mafd"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mafd-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.7.1
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      # Dual listeners: INTERNAL for in-network clients (kafdrop), EXTERNAL for the
+      # host (the API + producer under uvicorn connect to localhost:29092).
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 6
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qg
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - mafd-network
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: kafka:9092
+    depends_on:
+      - kafka
+    networks:
+      - mafd-network
+
+  app:
+    # Build from the repo ROOT — the app imports scripts/ and reads data/, which
+    # live outside app/, so the context cannot be ./app.
+    build:
+      context: .
+      dockerfile: app/docker/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    # .env supplies secrets (e.g. AZURE_OPENAI_*); optional so the stack still
+    # boots (local heuristic fallback) without one.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # In-container networking: reach the compose services by name, not localhost.
+      KAFKA_HOST: kafka
+      KAFKA_PORT: 9092
+      DATABASE_ASYNC_URL: postgresql+asyncpg://postgres:postgres@db:5432/mafd
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/mafd
+    networks:
+      - mafd-network
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .venv/
+            - .git/
+            - data/testbed/
+        - action: rebuild
+          path: requirements.txt
+
+
+  client:
+    build:
+      context: ./frontend
+      dockerfile: docker/Dockerfile
+      target: development
+    container_name: mafd-client
+    networks:
+          - mafd-network
+    restart: unless-stopped
+    command: ["pnpm","dev"]
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - ./frontend:/app
+      - client_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      # The browser (not the container) calls the API, so this is the HOST port
+      # mapping for the app service. FastAPI has no /api prefix.
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+    # No env_file here on purpose: the root .env holds backend secrets (Azure
+    # keys, DB credentials) that the frontend container has no reason to hold.
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1g
+        reservations:
+          cpus: "0.25"
+          memory: 256m
+
+volumes:
+  db_data:
+  kafka_data:
+  client_node_modules:
+
+
+networks:
+  mafd-network:
+    driver: bridge

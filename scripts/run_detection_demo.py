@@ -1,18 +1,17 @@
-import json
 import argparse
+import json
 import sys
 from pathlib import Path
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from signal_writer import save_signals
-
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from ml.baseline_detector import (  # noqa: E402
+from app.ml.baseline_detector import (  # noqa: E402
     detect_signal_payload,
     train_baseline_detector,
 )
@@ -44,7 +43,7 @@ def build_compact_view(payload: dict) -> dict:
         timestamps = pd.date_range(
             start="2025-01-01T00:00:00Z",
             periods=n_points,
-            freq="1S",
+            freq="1s",
         ).astype(str)
 
         # For now, generate a pseudo-real current waveform.
@@ -80,9 +79,7 @@ def build_compact_view(payload: dict) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Run baseline anomaly detector on synthetic data."
-    )
+    parser = argparse.ArgumentParser(description="Run baseline anomaly detector on synthetic data.")
     parser.add_argument("--scenario", type=str, default="overload_trip")
     parser.add_argument("--bus_id", type=str, default="bus_1")
     args = parser.parse_args()
