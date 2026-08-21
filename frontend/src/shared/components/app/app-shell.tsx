@@ -11,10 +11,11 @@ export function AppShell({ children, variant = 'header' }: AppShellProps) {
 	}
 
 	return (
-		<SidebarProvider
-			defaultOpen={true}
-			className="fixed inset-0 overflow-hidden"
-		>
+		// `open` (controlled) rather than `defaultOpen`: the sidebar stays collapsed
+		// to its icon rail permanently. This also neutralises the persisted
+		// `sidebar_state` cookie and the Ctrl/Cmd+B shortcut, so there's no way to
+		// end up expanded — matching the removed toggle in AppSidebarHeader.
+		<SidebarProvider open={false} className="fixed inset-0 overflow-hidden">
 			{children}
 		</SidebarProvider>
 	);
