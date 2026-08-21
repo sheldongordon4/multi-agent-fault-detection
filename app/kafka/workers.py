@@ -12,7 +12,7 @@ import asyncio
 import logging
 
 from app.kafka import topics
-from app.kafka.consumer import run_consumer
+from app.kafka.consumer import run_consumer, run_fast_consumer
 from app.kafka.handlers import detect, diagnose, notify, persist, stream
 
 logger = logging.getLogger(__name__)
@@ -26,10 +26,22 @@ WORKERS: dict[str, dict] = {
     "persistence": {topics.FAULT_TICKETS: persist.handle},
 }
 
+# Groups on the batched, auto-committing consumer instead of the default
+# pause-and-commit-per-message one. Only `streaming` qualifies: its handler is
+# trivial and its topic is a 20 Hz firehose, so per-message commits were the
+# bottleneck that froze the live chart. Everything else carries durable work and
+# keeps at-least-once delivery with explicit commits.
+FAST_GROUPS: frozenset[str] = frozenset({"streaming"})
+
 
 def start_workers() -> list[asyncio.Task]:
     tasks = [
-        asyncio.create_task(run_consumer(group_id, handlers), name=f"kafka-{group_id}")
+        asyncio.create_task(
+            (run_fast_consumer if group_id in FAST_GROUPS else run_consumer)(
+                group_id, handlers
+            ),
+            name=f"kafka-{group_id}",
+        )
         for group_id, handlers in WORKERS.items()
     ]
     logger.info("Started %d Kafka consumer groups: %s", len(tasks), list(WORKERS))

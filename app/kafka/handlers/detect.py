@@ -8,66 +8,30 @@ buses. Detection is the TRIGGER — the coordinator runs no detection of its own
 (detection-as-trigger), so everything it needs to diagnose travels in the event.
 """
 
-import asyncio
 import logging
 
 from app.kafka import producer, topics
-from app.ml.fault_classifier import classify_event, load_classifier
-from app.ml.fault_detector import (
-    load_testbed_model,
-    publish_event,
-    train_isoforest_on_testbed,
-)
+from app.kafka.executors import run_ml
+from app.ml.scoring import classify_event_task, score_event_task
 
 logger = logging.getLogger(__name__)
-
-# NORMAL-only training set for the 13-bus feeder (unsupervised; labels ignored).
-NORMAL_TRAIN_CSV = "data/generated/normal_train_013.csv"
-
-_model = None
-_feature_cols = None
-_classifier: dict | None = None
-_classifier_tried = False
-
-
-def _get_model():
-    global _model, _feature_cols
-    if _model is None:
-        try:
-            _model, _feature_cols = load_testbed_model()
-        except FileNotFoundError:
-            logger.info("Testbed model missing; training on %s ...", NORMAL_TRAIN_CSV)
-            train_isoforest_on_testbed(NORMAL_TRAIN_CSV)
-            _model, _feature_cols = load_testbed_model()
-    return _model, _feature_cols
-
-
-def _get_classifier() -> dict | None:
-    """Supervised classifier is OPTIONAL enrichment — return None if unavailable."""
-    global _classifier, _classifier_tried
-    if not _classifier_tried:
-        _classifier_tried = True
-        try:
-            _classifier = load_classifier()
-        except FileNotFoundError:
-            logger.warning("Fault classifier not trained; publishing without classification.")
-    return _classifier
 
 
 async def handle(event: dict) -> None:
     # The event carries the per-bus feature row (under "features"); plain rows are
     # accepted too. publish_event ignores any non-feature columns.
     features = event.get("features", event)
-    model, feature_cols = _get_model()
 
-    payload = await asyncio.to_thread(
-        publish_event,
+    # Runs in a separate PROCESS: sklearn scoring is CPU-bound Python, so on a
+    # thread it holds the GIL and stalls the event loop — which is what froze the
+    # live signal SSE whenever events came through. The model itself is loaded and
+    # cached inside the worker, so only plain dicts cross the boundary.
+    payload = await run_ml(
+        score_event_task,
         features,
         feeder=event.get("feeder"),
         timestamp=event.get("timestamp"),
         event_id=event.get("event_id"),
-        model=model,
-        feature_cols=feature_cols,
     )
 
     if not payload["verdict"]["isFault"]:
@@ -78,12 +42,12 @@ async def handle(event: dict) -> None:
 
     # Supervised classification (Family 1): attach fault_type/category/location if
     # the classifier is available. Optional — never blocks the anomaly event.
-    clf = _get_classifier()
-    if clf is not None:
-        try:
-            payload["classification"] = await asyncio.to_thread(classify_event, features, clf)
-        except Exception:
-            logger.exception("Classification failed; publishing anomaly without it")
+    try:
+        classification = await run_ml(classify_event_task, features)
+        if classification is not None:
+            payload["classification"] = classification
+    except Exception:
+        logger.exception("Classification failed; publishing anomaly without it")
 
     # Ground truth (if the replay carried it) is for offline eval only — kept out
     # of the coordinator prompt to avoid label leakage.

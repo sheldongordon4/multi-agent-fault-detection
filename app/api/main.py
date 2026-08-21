@@ -34,9 +34,27 @@ async def lifespan(app: FastAPI):
         try:
             from app.kafka.admin import ensure_topics
             from app.kafka.workers import start_workers
+            from app.ml.scoring import warm_models
 
             await asyncio.to_thread(ensure_topics)
+
+            # Load (and if needed train) the models here, in the parent, before any
+            # events arrive. Detection scores in a process pool; without warming,
+            # several workers could discover a missing model file at once and race
+            # to train and write the same artefact.
+            try:
+                await asyncio.to_thread(warm_models)
+            except Exception:
+                logger.exception("Model warm-up failed; workers will load on demand")
+
             worker_tasks = start_workers()
+
+            # Spawn the ML worker processes in the background so the ~4s cold
+            # start doesn't land on the first fault event. Not awaited: startup
+            # shouldn't block on it, and run_ml works either way.
+            from app.kafka.executors import prewarm_ml
+
+            worker_tasks.append(asyncio.create_task(prewarm_ml(), name="ml-prewarm"))
         except Exception:
             logger.exception("Could not start Kafka workers (is Kafka up?); continuing")
 
@@ -47,6 +65,12 @@ async def lifespan(app: FastAPI):
             from app.kafka.workers import stop_workers
 
             await stop_workers(worker_tasks)
+
+        # Executors own OS threads and child processes — they must not outlive the
+        # app or reload/shutdown hangs.
+        from app.kafka.executors import shutdown_executors
+
+        shutdown_executors()
 
 
 app = FastAPI(lifespan=lifespan, **app_configs)
