@@ -220,3 +220,69 @@ body {
 #root {
 	height: 100%;
 }
+
+/*
+ * MapLibre's built-in controls (zoom, scale, attribution) ship with a hardcoded
+ * light theme — white buttons on a dark operator display. Repaint them with the
+ * app's own tokens so they belong to the UI instead of sitting on top of it.
+ *
+ * The control icons are dark SVG data-URIs baked into MapLibre's stylesheet, so
+ * they can't be recoloured directly; inverting them under `.dark` is the standard
+ * workaround.
+ */
+.maplibregl-map .maplibregl-ctrl-group {
+	background: var(--card);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md, 0.375rem);
+	box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.15);
+	overflow: hidden;
+}
+
+.maplibregl-map .maplibregl-ctrl-group button {
+	background: transparent;
+	width: 29px;
+	height: 29px;
+}
+
+.maplibregl-map .maplibregl-ctrl-group button:hover:not(:disabled) {
+	background: var(--accent);
+}
+
+.maplibregl-map .maplibregl-ctrl-group button + button {
+	border-top: 1px solid var(--border);
+}
+
+.maplibregl-map .maplibregl-ctrl-group button:focus-visible {
+	outline: 2px solid var(--ring);
+	outline-offset: -2px;
+	box-shadow: none;
+}
+
+.dark .maplibregl-map .maplibregl-ctrl-icon {
+	filter: invert(1);
+}
+
+.maplibregl-map .maplibregl-ctrl-scale {
+	background: color-mix(in oklab, var(--card) 85%, transparent);
+	color: var(--muted-foreground);
+	border: 1px solid var(--border);
+	border-top: none;
+	border-radius: 0 0 var(--radius-md, 0.375rem) var(--radius-md, 0.375rem);
+	font-size: 10px;
+	backdrop-filter: blur(4px);
+}
+
+.maplibregl-map .maplibregl-ctrl-attrib {
+	background: color-mix(in oklab, var(--card) 80%, transparent) !important;
+	color: var(--muted-foreground);
+	backdrop-filter: blur(4px);
+	border-radius: var(--radius-md, 0.375rem) 0 0 0;
+}
+
+.maplibregl-map .maplibregl-ctrl-attrib a {
+	color: var(--muted-foreground);
+}
+
+.maplibregl-map .maplibregl-ctrl-attrib-button {
+	background-color: transparent;
+}
