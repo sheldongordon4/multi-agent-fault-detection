@@ -18,14 +18,20 @@ import { SeverityBadge } from './severity-badge';
 function IncidentRow({
 	incident,
 	isActive,
+	onHover,
 }: {
 	incident: TicketSummary;
 	isActive: boolean;
+	onHover?: (incident: TicketSummary | null) => void;
 }) {
 	return (
 		<Link
 			to={`/incidents/${encodeURIComponent(incident.incident_id)}`}
 			aria-current={isActive ? 'true' : undefined}
+			onMouseEnter={() => onHover?.(incident)}
+			onMouseLeave={() => onHover?.(null)}
+			onFocus={() => onHover?.(incident)}
+			onBlur={() => onHover?.(null)}
 			className={cn(
 				'border-border/50 hover:bg-accent/50 focus-visible:ring-ring block border-b px-3 py-2.5 transition-colors focus-visible:ring-2 focus-visible:outline-none',
 				isActive && 'bg-accent'
@@ -84,6 +90,8 @@ interface IncidentListProps {
 	isError: boolean;
 	onRetry: () => void;
 	hasFilters: boolean;
+	/** Reports the row under the cursor so the map can highlight its substation. */
+	onHoverIncident?: (incident: TicketSummary | null) => void;
 }
 
 export function IncidentList({
@@ -93,6 +101,7 @@ export function IncidentList({
 	isError,
 	onRetry,
 	hasFilters,
+	onHoverIncident,
 }: IncidentListProps) {
 	if (isPending) {
 		return (
@@ -148,12 +157,16 @@ export function IncidentList({
 	}
 
 	return (
-		<ScrollArea className="min-h-0 flex-1">
+		<ScrollArea
+			className="min-h-0 flex-1"
+			onMouseLeave={() => onHoverIncident?.(null)}
+		>
 			{incidents.map((incident) => (
 				<IncidentRow
 					key={incident.incident_id}
 					incident={incident}
 					isActive={incident.incident_id === selectedIncidentId}
+					onHover={onHoverIncident}
 				/>
 			))}
 		</ScrollArea>
