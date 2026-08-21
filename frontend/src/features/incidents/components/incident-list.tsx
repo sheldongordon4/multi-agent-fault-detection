@@ -1,17 +1,17 @@
 import { AlertCircle, Inbox, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router';
-import { cn } from '../../../shared/lib/utils';
-import { Button } from '../../../shared/components/ui/button';
+import { cn } from '@shared/lib/utils';
+import { Button } from '@shared/components/ui/button';
 import {
 	Empty,
 	EmptyDescription,
 	EmptyHeader,
 	EmptyMedia,
 	EmptyTitle,
-} from '../../../shared/components/ui/empty';
-import { ScrollArea } from '../../../shared/components/ui/scroll-area';
-import { Skeleton } from '../../../shared/components/ui/skeleton';
-import type { TicketSummary } from '../../../shared/types';
+} from '@shared/components/ui/empty';
+import { ScrollArea } from '@shared/components/ui/scroll-area';
+import { Skeleton } from '@shared/components/ui/skeleton';
+import type { TicketSummary } from '@shared/types';
 import { formatFaultCode, formatTimestamp } from '../utils/helpers';
 import { SeverityBadge } from './severity-badge';
 

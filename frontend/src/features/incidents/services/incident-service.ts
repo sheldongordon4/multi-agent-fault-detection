@@ -1,6 +1,6 @@
 import type { QueryFunctionContext } from '@tanstack/react-query';
-import api from '../../../shared/lib/api';
-import type { TicketDetail, TicketListResponse } from '../../../shared/types';
+import api from '@shared/lib/api';
+import type { TicketDetail, TicketListResponse } from '@shared/types';
 import type { incidentQueryKeys } from '../utils/query-keys';
 
 /**

@@ -1,9 +1,9 @@
-import type { Severity, TicketSummary } from '../../../shared/types';
+import type { Severity, TicketSummary } from '@shared/types';
 import {
 	normalizeSeverity,
 	normalizeStatus,
 	SEVERITY_RANK,
-} from '../../incidents/utils/helpers';
+} from '@features/incidents/utils/helpers';
 import { BUS_LOCATIONS, type BusLocation } from './bus-locations';
 
 /** A mapped bus plus whatever the incident feed currently says about it. */

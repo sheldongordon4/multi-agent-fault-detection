@@ -9,15 +9,15 @@ import {
 	YAxis,
 } from 'recharts';
 import { Activity, PlugZap, WifiOff } from 'lucide-react';
-import { cn } from '../../../shared/lib/utils';
+import { cn } from '@shared/lib/utils';
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from '../../../shared/components/ui/select';
-import type { SignalMetric, SignalReading } from '../../../shared/types';
+} from '@shared/components/ui/select';
+import type { SignalMetric, SignalReading } from '@shared/types';
 import type { SignalConnectionStatus } from '../hooks/use-signal-stream';
 
 export const SIGNAL_METRICS: {

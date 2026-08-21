@@ -1,12 +1,12 @@
 import { MapPin } from 'lucide-react';
-import { Button } from '../../../shared/components/ui/button';
+import { Button } from '@shared/components/ui/button';
 import {
 	DraggableSheet,
 	type Detent,
-} from '../../../shared/components/ui/draggable-sheet';
-import { useElementHeight } from '../../../shared/hooks/use-element-height';
-import { getBusLocation } from '../../map/utils/bus-locations';
-import type { TicketSummary } from '../../../shared/types';
+} from '@shared/components/ui/draggable-sheet';
+import { useElementHeight } from '@shared/hooks/use-element-height';
+import { getBusLocation } from '@features/map/utils/bus-locations';
+import type { TicketSummary } from '@shared/types';
 import { IncidentFilters } from './incident-filters';
 import { IncidentList } from './incident-list';
 

@@ -1,17 +1,17 @@
 import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router';
 import { ArrowRight } from 'lucide-react';
-import { useStore } from '../../../app/store';
-import { Button } from '../../../shared/components/ui/button';
+import { useStore } from '@app/store';
+import { Button } from '@shared/components/ui/button';
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from '../../../shared/components/ui/select';
-import { useFetchIncidents } from '../../incidents/hooks/use-fetch-incidents';
-import { normalizeSeverity } from '../../incidents/utils/helpers';
+} from '@shared/components/ui/select';
+import { useFetchIncidents } from '@features/incidents/hooks/use-fetch-incidents';
+import { normalizeSeverity } from '@features/incidents/utils/helpers';
 import { FaultTypeChart } from '../components/fault-type-chart';
 import { LiveSignalChart } from '../components/live-signal-chart';
 import { StatTiles } from '../components/stat-tiles';

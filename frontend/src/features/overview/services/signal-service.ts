@@ -1,5 +1,5 @@
-import api from '../../../shared/lib/api';
-import type { BusListResponse } from '../../../shared/types';
+import api from '@shared/lib/api';
+import type { BusListResponse } from '@shared/types';
 
 /**
  * GET /stream/buses — buses with a live rolling buffer.

@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
-import type { StoreState } from '../../../app/store/index';
-import type { SignalMetric } from '../../../shared/types';
+import type { StoreState } from '@app/store/index';
+import type { SignalMetric } from '@shared/types';
 
 export type OverviewSliceState = {
 	/**

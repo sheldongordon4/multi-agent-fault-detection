@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
-import type { StoreState } from '../../../app/store/index';
-import type { Severity, TicketStatus } from '../../../shared/types';
+import type { StoreState } from '@app/store/index';
+import type { Severity, TicketStatus } from '@shared/types';
 
 export type SeverityFilter = Severity | 'all';
 export type StatusFilter = TicketStatus | 'all';

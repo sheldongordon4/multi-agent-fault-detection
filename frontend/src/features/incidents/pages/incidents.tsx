@@ -2,10 +2,10 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { X } from 'lucide-react';
-import { useStore } from '../../../app/store';
-import { useIsMobile } from '../../../shared/hooks/use-mobile';
-import { Button } from '../../../shared/components/ui/button';
-import { GridMapCanvas } from '../../map/components/grid-map-canvas';
+import { useStore } from '@app/store';
+import { useIsMobile } from '@shared/hooks/use-mobile';
+import { Button } from '@shared/components/ui/button';
+import { GridMapCanvas } from '@features/map/components/grid-map-canvas';
 import {
 	IncidentDetail,
 	IncidentDetailError,

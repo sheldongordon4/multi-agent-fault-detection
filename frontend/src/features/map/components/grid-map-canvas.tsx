@@ -11,9 +11,9 @@ import {
 import { useReducedMotion } from 'motion/react';
 import { AlertTriangle, Maximize2, Waypoints } from 'lucide-react';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { Severity, TicketSummary } from '../../../shared/types';
-import { useResolvedTheme } from '../../../shared/hooks/use-resolved-theme';
-import { cn } from '../../../shared/lib/utils';
+import type { Severity, TicketSummary } from '@shared/types';
+import { useResolvedTheme } from '@shared/hooks/use-resolved-theme';
+import { cn } from '@shared/lib/utils';
 import { getBasemapStyle } from '../utils/basemap';
 import { FEEDER_EDGES, getBusLocation } from '../utils/bus-locations';
 import {

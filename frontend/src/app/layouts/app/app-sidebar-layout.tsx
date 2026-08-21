@@ -1,9 +1,9 @@
 import { type PropsWithChildren } from 'react';
-import { AppContent } from '../../../shared/components/app/app-content';
-import { AppShell } from '../../../shared/components/app/app-shell';
-import { AppSidebar } from '../../../shared/components/app/app-sidebar';
-import { AppSidebarHeader } from '../../../shared/components/app/app-sidebar-header';
-import { useIncidentStream } from '../../../features/incidents/hooks/use-incident-stream';
+import { AppContent } from '@shared/components/app/app-content';
+import { AppShell } from '@shared/components/app/app-shell';
+import { AppSidebar } from '@shared/components/app/app-sidebar';
+import { AppSidebarHeader } from '@shared/components/app/app-sidebar-header';
+import { useIncidentStream } from '@features/incidents/hooks/use-incident-stream';
 
 interface AppSidebarLayoutProps extends PropsWithChildren {
 	/**

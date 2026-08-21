@@ -5,7 +5,7 @@ import AppRoutes from './routes/app-routes';
 import { Suspense } from 'react';
 import LoadingPage from './pages/loading';
 import QueryProvider from './providers/query-provider';
-import { Toaster } from '../shared/components/ui/sonner';
+import { Toaster } from '@shared/components/ui/sonner';
 
 export default function App() {
 	return (

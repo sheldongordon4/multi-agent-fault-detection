@@ -7,22 +7,22 @@ import {
 	RefreshCw,
 	Waves,
 } from 'lucide-react';
-import { Button } from '../../../shared/components/ui/button';
+import { Button } from '@shared/components/ui/button';
 import {
 	Empty,
 	EmptyDescription,
 	EmptyHeader,
 	EmptyMedia,
 	EmptyTitle,
-} from '../../../shared/components/ui/empty';
-import { ScrollArea } from '../../../shared/components/ui/scroll-area';
-import { Separator } from '../../../shared/components/ui/separator';
-import { Skeleton } from '../../../shared/components/ui/skeleton';
+} from '@shared/components/ui/empty';
+import { ScrollArea } from '@shared/components/ui/scroll-area';
+import { Separator } from '@shared/components/ui/separator';
+import { Skeleton } from '@shared/components/ui/skeleton';
 import type {
 	EvidenceWindow,
 	KBCitation,
 	TicketDetail,
-} from '../../../shared/types';
+} from '@shared/types';
 import { formatFaultType, formatTimestamp } from '../utils/helpers';
 import { SeverityBadge, StatusBadge } from './severity-badge';
 

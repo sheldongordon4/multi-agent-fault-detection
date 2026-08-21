@@ -1,15 +1,15 @@
 import { Search, X } from 'lucide-react';
-import { useStore } from '../../../app/store';
-import { Button } from '../../../shared/components/ui/button';
-import { Input } from '../../../shared/components/ui/input';
+import { useStore } from '@app/store';
+import { Button } from '@shared/components/ui/button';
+import { Input } from '@shared/components/ui/input';
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from '../../../shared/components/ui/select';
-import { SEVERITIES, TICKET_STATUSES } from '../../../shared/types';
+} from '@shared/components/ui/select';
+import { SEVERITIES, TICKET_STATUSES } from '@shared/types';
 import type { SeverityFilter, StatusFilter } from '../store/incident-slice';
 
 export function IncidentFilters({ resultCount }: { resultCount: number }) {

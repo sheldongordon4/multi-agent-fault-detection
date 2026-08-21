@@ -1,4 +1,4 @@
-import type { Severity, TicketStatus, TicketSummary } from '../../../shared/types';
+import type { Severity, TicketStatus, TicketSummary } from '@shared/types';
 import type { SeverityFilter, StatusFilter } from '../store/incident-slice';
 
 /**

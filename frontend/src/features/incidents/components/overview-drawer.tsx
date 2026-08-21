@@ -1,24 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Activity } from 'lucide-react';
-import { useStore } from '../../../app/store';
+import { useStore } from '@app/store';
 import {
 	DraggableSheet,
 	type Detent,
-} from '../../../shared/components/ui/draggable-sheet';
-import { useElementHeight } from '../../../shared/hooks/use-element-height';
-import type { TicketSummary } from '../../../shared/types';
-import { FaultTypeChart } from '../../overview/components/fault-type-chart';
-import { LiveSignalChart } from '../../overview/components/live-signal-chart';
-import { StatTiles } from '../../overview/components/stat-tiles';
-import { useFetchSignalBuses } from '../../overview/hooks/use-fetch-signal-buses';
-import { useSignalStream } from '../../overview/hooks/use-signal-stream';
+} from '@shared/components/ui/draggable-sheet';
+import { useElementHeight } from '@shared/hooks/use-element-height';
+import type { TicketSummary } from '@shared/types';
+import { FaultTypeChart } from '@features/overview/components/fault-type-chart';
+import { LiveSignalChart } from '@features/overview/components/live-signal-chart';
+import { StatTiles } from '@features/overview/components/stat-tiles';
+import { useFetchSignalBuses } from '@features/overview/hooks/use-fetch-signal-buses';
+import { useSignalStream } from '@features/overview/hooks/use-signal-stream';
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from '../../../shared/components/ui/select';
+} from '@shared/components/ui/select';
 import { normalizeSeverity } from '../utils/helpers';
 
 /** peek → tiles → everything */

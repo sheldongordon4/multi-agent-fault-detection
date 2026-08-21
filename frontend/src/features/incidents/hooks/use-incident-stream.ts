@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { API_BASE_URL } from '../../../shared/lib/api';
-import type { NotificationStreamEvent } from '../../../shared/types';
+import { API_BASE_URL } from '@shared/lib/api';
+import type { NotificationStreamEvent } from '@shared/types';
 import { incidentQueryKeys } from '../utils/query-keys';
 
 const RECONNECT_DELAY_MS = 3000;
