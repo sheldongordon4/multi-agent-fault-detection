@@ -43,7 +43,8 @@ architecture doc.
 Python 3.11+ · FastAPI · Pydantic v2 · SQLAlchemy 2.0 async + asyncpg + Alembic →
 Postgres · confluent-kafka (+ Kafdrop) · LangChain / LangGraph ReAct agent · Azure
 OpenAI `gpt-4o-mini` (coordinator LLM) · local `bge-small` embeddings + Chroma
-(RAG) · scikit-learn (detection/classification) · Streamlit (legacy ticket browser).
+(RAG) · scikit-learn (detection/classification) · **React 19 + Vite + Tailwind v4 +
+MapLibre GL** (operator console) · Streamlit (legacy ticket browser).
 
 ## Repo layout
 
@@ -59,6 +60,7 @@ app/
 docs/                System_Architecture.md (authoritative), Agent_Architecture.md, API_Reference.md, ...
 data/sop/            SOP .md knowledge base       data/testbed/ + data/generated/  ML data
 scripts/             produce_events / produce_signals / bootstrap / refresh_kb / generate_* / validate_*
+frontend/            React operator console — map-first incidents screen (see frontend/README.md)
 ui/streamlit_app.py  legacy ticket browser (reads ticket JSON; not SSE-wired yet)
 tests/               pytest suite (AsyncClient + ASGITransport)
 ```
@@ -102,15 +104,26 @@ Interactive docs at `/docs`.
 and the feature-extraction DSP unit tests. Coverage summary + gaps:
 `docs/Testing_Report.md`.
 
-## Streamlit UI
+## UI
+
+**Operator console (`frontend/`)** — the real UI. Runs as the `client` service in
+`docker-compose.dev.yaml` (→ http://localhost:5173) or `pnpm dev` in `frontend/`.
+
+One map-first screen: a full-bleed **offline** Jamaica basemap with substation
+markers, IEEE13 feeder topology and parish fault shading; a collapsible incident
+list; a detail panel; and the overview (stat tiles, live signal, fault types) as a
+three-detent bottom drawer. The basemap is self-hosted with no API keys and no
+runtime third-party calls — see **`frontend/README.md`** for the assets, how to
+regenerate them, and the licensing.
+
+**Streamlit (legacy)**
 
 ```bash
 .venv/Scripts/python.exe -m streamlit run ui/streamlit_app.py   #  →  http://localhost:8501
 ```
 
-Note: the current UI is a **legacy ticket browser** that reads ticket JSON files and
-is **not yet wired to the SSE streams**. Connecting it to `/notifications/stream` and
-`/stream/signals` is a near-term TODO (architecture doc §16).
+A **legacy ticket browser** that reads ticket JSON files and is **not** wired to the
+SSE streams. Superseded by the React console for day-to-day use.
 
 ## Status & next
 
@@ -120,6 +133,11 @@ Near-term work (see `docs/System_Architecture.md` §16 and `AGENTS.md`):
 1. **Feature-extraction worker** — the 6th consumer group on `raw.signals` (blocked
    on the `raw.signals` → 3-phase-waveform schema decision).
 2. Deprecate the legacy time-series path (`baseline_detector.py` + old synthetic data).
-3. Fast-path streaming consumer for the `raw.signals` firehose.
-4. Feeder-agnostic classifier (transfers across feeders).
-5. Wire the Streamlit UI to SSE; add external notification channels.
+3. Feeder-agnostic classifier (transfers across feeders).
+4. External notification channels (email/webhook) beyond in-process SSE.
+5. **Reconcile the bus namespaces** — streaming uses `bus_1/2/3`, tickets carry
+   IEEE13 ids (`b6xx`), so nothing joins them. A symptom of (1), not a rename.
+
+Recently landed: **concurrency isolation** (dedicated Kafka thread pool + ML process
+pool — the live signal chart no longer freezes while events process), the
+**fast-path `raw.signals` consumer**, and the **React operator console**.
