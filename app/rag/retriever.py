@@ -1,7 +1,5 @@
 import logging
 
-from .vector_store import get_vectordb
-
 logger = logging.getLogger(__name__)
 
 
@@ -15,6 +13,8 @@ def kb_retrieve_impl(query: str, k: int = 3) -> list[dict]:
     diagnosis — the coordinator still produces a ticket, just without citations.
     """
     try:
+        from .vector_store import get_vectordb
+
         vectordb = get_vectordb()
         docs = vectordb.similarity_search(query, k=k)
     except Exception:

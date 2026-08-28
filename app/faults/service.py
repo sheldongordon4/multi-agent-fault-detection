@@ -87,8 +87,7 @@ def _coerce_to_ticket(raw: Any) -> dict[str, Any]:
     Turn the LLM's final message into a validated FaultTicket dict.
 
     Accepts a dict or a string (possibly wrapped in prose), extracts the JSON
-    object, and best-effort validates it against the FaultTicket schema without
-    crashing the request if a field is slightly off.
+    object, and validates it against the FaultTicket schema.
     """
     if isinstance(raw, dict):
         data = raw
@@ -101,11 +100,9 @@ def _coerce_to_ticket(raw: Any) -> dict[str, Any]:
         data = json.loads(text[start : end + 1])
 
     try:
-        FaultTicket(**data)  # validate; raises if the schema is wrong
+        return FaultTicket.model_validate(data).model_dump(mode="json")
     except Exception as exc:  # noqa: BLE001
-        data.setdefault("_validation_warning", str(exc))
-
-    return data
+        raise ValueError(f"LLM returned an invalid FaultTicket: {exc}") from exc
 
 
 # -------------------------------------------------------------------

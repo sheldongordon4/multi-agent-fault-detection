@@ -1,4 +1,7 @@
+import pytest
+
 from app.faults.schemas import EvidenceWindow, FaultTicket, KBCitation
+from app.faults.service import _coerce_to_ticket
 
 
 def test_fault_ticket_instantiation():
@@ -31,3 +34,8 @@ def test_fault_ticket_instantiation():
     assert len(ticket.recommended_actions) == 2
     assert ticket.evidence[0].metric == "voltage"
     assert ticket.kb_citations[0].source_id == "SOP-OVLD-001"
+
+
+def test_coerce_to_ticket_rejects_invalid_llm_output():
+    with pytest.raises(ValueError, match="invalid FaultTicket"):
+        _coerce_to_ticket({"ticket_id": "missing-fields"})

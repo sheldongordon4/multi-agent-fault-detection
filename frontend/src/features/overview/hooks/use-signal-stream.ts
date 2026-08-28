@@ -61,7 +61,9 @@ export function useSignalStream(busId: string | null) {
 				}
 
 				if (payload.type === 'reading') {
-					const { type: _type, ...reading } = payload;
+					const reading = Object.fromEntries(
+						Object.entries(payload).filter(([key]) => key !== 'type'),
+					) as SignalReading;
 					setReadings((current) => {
 						const next = [...current, reading as SignalReading];
 						return next.length > MAX_POINTS

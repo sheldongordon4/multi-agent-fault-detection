@@ -6,7 +6,6 @@ ASGITransport does not run the app's lifespan, so the Kafka workers never start 
 these tests hit the routes directly without any broker/DB running.
 """
 
-import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.api.main import app
@@ -43,6 +42,23 @@ async def test_health():
         r = await client.get("/health")
     assert r.status_code == 200
     assert r.json() == {"status": "ok"}
+
+
+async def test_readiness_reports_unavailable_dependencies(monkeypatch):
+    import app.api.main as main_mod
+
+    class _UnavailableKafka:
+        def __init__(self, _config):
+            raise RuntimeError("kafka unavailable")
+
+    monkeypatch.setattr(main_mod, "engine", None, raising=False)
+    monkeypatch.setattr(main_mod, "AdminClient", _UnavailableKafka, raising=False)
+
+    async with await _client() as client:
+        r = await client.get("/ready")
+
+    assert r.status_code == 503
+    assert r.json()["ready"] is False
 
 
 async def test_diagnose_returns_fault_ticket(monkeypatch):

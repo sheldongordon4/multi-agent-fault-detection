@@ -3,7 +3,7 @@
 What the automated suite covers today. Run it with:
 
 ```bash
-.venv/Scripts/python.exe -m pytest -q     # 8 tests
+.venv/bin/python -m pytest -q
 ```
 
 `pyproject.toml` sets `asyncio_mode = "auto"`, so `async def` tests run without a

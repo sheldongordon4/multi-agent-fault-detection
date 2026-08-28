@@ -67,17 +67,19 @@ tests/               pytest suite (AsyncClient + ASGITransport)
 
 ## Running
 
-Full stack (Postgres + Kafka + Kafdrop + app) in Docker — see **`README.docker.md`**
+Full stack (Postgres + Kafka + Kafdrop + app + React client) in Docker — see **`README.docker.md`**
 for details and the app-on-host variant:
 
 ```bash
 docker compose -f docker-compose.dev.yaml up -d --build   # app :8000 · kafdrop :9000
-.venv/Scripts/python.exe scripts/produce_events.py        # drive detection → coordinator → tickets
+.venv/bin/python scripts/produce_events.py                # drive detection → coordinator → tickets
 curl -fsS http://localhost:8000/ready
 ```
 
 Without `AZURE_OPENAI_*` configured, the Coordinator returns a **local heuristic
-ticket** (no LLM call) — intentional, so the pipeline runs end-to-end offline.
+ticket** (no LLM call) — intentional, so the backend pipeline runs offline.
+
+The Docker stack also starts the React operator client at `http://localhost:5173`.
 
 ## HTTP API
 
@@ -97,7 +99,7 @@ Interactive docs at `/docs`.
 ## Testing
 
 ```bash
-.venv/Scripts/python.exe -m pytest -q
+.venv/bin/python -m pytest -q
 ```
 
 `httpx.AsyncClient` + `ASGITransport` (no broker/DB needed), dependency overrides,
@@ -119,7 +121,7 @@ regenerate them, and the licensing.
 **Streamlit (legacy)**
 
 ```bash
-.venv/Scripts/python.exe -m streamlit run ui/streamlit_app.py   #  →  http://localhost:8501
+.venv/bin/python -m streamlit run ui/streamlit_app.py            #  →  http://localhost:8501
 ```
 
 A **legacy ticket browser** that reads ticket JSON files and is **not** wired to the

@@ -2,8 +2,11 @@
 Launches the MAFD consumer groups (docs/System_Architecture.md §3-§5).
 
 Each entry is its own Kafka consumer group so the fan-out works:
-  - raw.signals is consumed independently by detection AND streaming
+    - raw.signals is consumed by streaming
   - faulttickets is consumed independently by notification AND persistence
+
+The feature-extraction consumer is not implemented yet; detection currently
+consumes pre-reduced feeder.events messages.
 
 Run as background asyncio tasks from the FastAPI lifespan.
 """

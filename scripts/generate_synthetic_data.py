@@ -1,5 +1,4 @@
 from pathlib import Path
-import os
 from typing import Literal
 
 import numpy as np

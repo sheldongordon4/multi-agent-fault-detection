@@ -1,16 +1,33 @@
 export type FormErrors = Partial<Record<string, string[]>>;
 
 // Map Axios error responses into field-based errors for forms
-export function mapAxiosErrorToFieldErrors(error: any): FormErrors {
+type AxiosLikeError = {
+    response?: {
+        status: number;
+        data?: Record<string, unknown>;
+    };
+    code?: string;
+    message?: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null;
+}
+
+export function mapAxiosErrorToFieldErrors(error: unknown): FormErrors {
+    const axiosError: AxiosLikeError = isRecord(error)
+        ? (error as AxiosLikeError)
+        : {};
+
     const toField = (key: string, msg: string): FormErrors => ({
         [key]: [msg],
     });
 
     // Network or request-level errors
-    if (!error?.response) {
+    if (!axiosError.response) {
         if (
-            error?.code === "NETWORK_ERROR" ||
-            error?.message?.includes("Network Error")
+            axiosError.code === "NETWORK_ERROR" ||
+            axiosError.message?.includes("Network Error")
         ) {
             return toField(
                 "general",
@@ -18,21 +35,23 @@ export function mapAxiosErrorToFieldErrors(error: any): FormErrors {
             );
         }
         if (
-            error?.code === "ECONNABORTED" ||
-            error?.message?.includes("timeout")
+            axiosError.code === "ECONNABORTED" ||
+            axiosError.message?.includes("timeout")
         ) {
             return toField("general", "Request timeout. Please try again.");
         }
         return toField("general", "Connection error. Please try again.");
     }
 
-    const { status, data } = error.response as { status: number; data?: any };
+    const { status, data } = axiosError.response;
+    const responseText = (key: string): string | undefined =>
+        typeof data?.[key] === "string" ? data[key] : undefined;
 
     // Common  validation structure: { errors: { field: [messages] } }
     const normalizedFieldErrors = (): FormErrors | null => {
         if (!data?.errors) return null;
         const fe: FormErrors = {};
-        for (const [field, messages] of Object.entries<any>(data.errors)) {
+        for (const [field, messages] of Object.entries(data.errors)) {
             if (!messages) continue;
             fe[field] = Array.isArray(messages) ? messages : [String(messages)];
         }
@@ -44,8 +63,8 @@ export function mapAxiosErrorToFieldErrors(error: any): FormErrors {
         case 422: {
             const fe = normalizedFieldErrors();
             if (fe && Object.keys(fe).length > 0) return fe;
-            if (data?.message) return toField("general", data.message);
-            if (data?.detail) return toField("general", data.detail);
+            if (responseText("message")) return toField("general", responseText("message")!);
+            if (responseText("detail")) return toField("general", responseText("detail")!);
             return toField(
                 "general",
                 "Invalid request. Please check your input.",
@@ -55,17 +74,17 @@ export function mapAxiosErrorToFieldErrors(error: any): FormErrors {
             // Auth-specific: surface under password to show near the form
             return toField(
                 "password",
-                data?.message || "Invalid credentials. Please try again.",
+                responseText("message") || "Invalid credentials. Please try again.",
             );
         case 403:
-            return toField("general", data?.message || "Access forbidden.");
+            return toField("general", responseText("message") || "Access forbidden.");
         case 404:
             return toField("general", "Resource not found. Please try again.");
         case 409:
             // If backend sends a conflict without field details, attach to email by default for auth flows
             return toField(
                 "email",
-                data?.message ||
+                responseText("message") ||
                     "Conflict error. This resource may already exist.",
             );
         case 429:
@@ -83,8 +102,8 @@ export function mapAxiosErrorToFieldErrors(error: any): FormErrors {
                 "Service temporarily unavailable. Please try again later.",
             );
         default:
-            if (data?.message) return toField("general", data.message);
-            if (data?.detail) return toField("general", data.detail);
+            if (responseText("message")) return toField("general", responseText("message")!);
+            if (responseText("detail")) return toField("general", responseText("detail")!);
             return toField(
                 "general",
                 `An error occurred (${status}). Please try again.`,

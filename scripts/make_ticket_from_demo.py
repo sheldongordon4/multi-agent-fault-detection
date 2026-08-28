@@ -20,10 +20,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict
-
+from typing import Any
 
 DEFAULT_INCIDENTS_DIR = Path("artifacts/incidents")
 
@@ -46,9 +45,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_summary(args: argparse.Namespace) -> Dict[str, Any]:
+def load_summary(args: argparse.Namespace) -> dict[str, Any]:
     if args.input:
-        with open(args.input, "r", encoding="utf-8") as f:
+        with open(args.input, encoding="utf-8") as f:
             return json.load(f)
     else:
         data = sys.stdin.read()
@@ -59,7 +58,7 @@ def load_summary(args: argparse.Namespace) -> Dict[str, Any]:
         return json.loads(data)
 
 
-def infer_severity(summary: Dict[str, Any]) -> str:
+def infer_severity(summary: dict[str, Any]) -> str:
     """
     Simple, explainable severity heuristic for demo tickets.
 
@@ -98,7 +97,7 @@ def infer_severity(summary: Dict[str, Any]) -> str:
     return "high"
 
 
-def build_ticket(payload: Dict[str, Any]) -> Dict[str, Any]:
+def build_ticket(payload: dict[str, Any]) -> dict[str, Any]:
     scenario = payload.get("scenario") or "unknown_scenario"
     bus_id = payload.get("bus_id") or payload.get("busId") or "unknown_bus"
     summary = payload.get("summary") or {}
@@ -119,7 +118,7 @@ def build_ticket(payload: Dict[str, Any]) -> Dict[str, Any]:
     status = "diagnosed"
 
     # Timestamp for traceability
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     # Human-facing summary text, explicitly framed as a local demo ticket
     summary_text = (

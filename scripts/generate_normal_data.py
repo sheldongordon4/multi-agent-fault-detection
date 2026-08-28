@@ -43,7 +43,6 @@ import math
 import random
 import statistics
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 try:  # numpy is an optional accelerator for the correlated sampler
     import numpy as np
@@ -53,7 +52,7 @@ except ImportError:  # pragma: no cover - exercised only on a bare interpreter
     _HAVE_NUMPY = False
 
 # ── column conventions (kept in sync with scripts/load_testbed.py) ──────────
-FEATURE_FAMILIES: List[str] = [
+FEATURE_FAMILIES: list[str] = [
     "min_Va_fault_pu",
     "max_Ia_fault",
     "max_I0_I1_fault",
@@ -61,12 +60,12 @@ FEATURE_FAMILIES: List[str] = [
     "mean_Vunb_fault",
     "recovery_Va_post",
 ]
-METADATA_COLUMNS: List[str] = [
+METADATA_COLUMNS: list[str] = [
     "scenario_name", "fault_category", "fault_subtype", "fault_phases",
     "fault_branch_id", "fault_pos_pu", "fault_bus_id", "fault_location_km",
     "Zf_real_ohm", "Zf_imag_ohm",
 ]
-TARGET_COLUMNS: List[str] = [
+TARGET_COLUMNS: list[str] = [
     "target_fault_type", "target_fault_category", "target_location_km",
 ]
 
@@ -92,7 +91,7 @@ def _num(v) -> float:
         return float("nan")
 
 
-def _pct(sorted_vals: List[float], p: float) -> float:
+def _pct(sorted_vals: list[float], p: float) -> float:
     if not sorted_vals:
         return 0.0
     k = (len(sorted_vals) - 1) * p / 100.0
@@ -101,8 +100,8 @@ def _pct(sorted_vals: List[float], p: float) -> float:
     return sorted_vals[lo] + (sorted_vals[hi] - sorted_vals[lo]) * (k - lo)
 
 
-def detect_bus_ids(header: List[str]) -> List[str]:
-    buses: List[str] = []
+def detect_bus_ids(header: list[str]) -> list[str]:
+    buses: list[str] = []
     for col in header:
         for fam in FEATURE_FAMILIES:
             pref = fam + "_"
@@ -113,7 +112,7 @@ def detect_bus_ids(header: List[str]) -> List[str]:
     return buses
 
 
-def feature_cols_for(bus_ids: List[str]) -> List[str]:
+def feature_cols_for(bus_ids: list[str]) -> list[str]:
     """Canonical feature-column order (bus-major, family-minor).
 
     This SAME order is used by the envelope, the covariance, and the row writer,
@@ -122,23 +121,23 @@ def feature_cols_for(bus_ids: List[str]) -> List[str]:
     return [f"{fam}_{bus}" for bus in bus_ids for fam in FEATURE_FAMILIES]
 
 
-def read_rows(path: str) -> Tuple[List[str], List[Dict[str, str]]]:
-    with open(path, "r", encoding="utf-8", newline="") as f:
+def read_rows(path: str) -> tuple[list[str], list[dict[str, str]]]:
+    with open(path, encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
         return reader.fieldnames or [], list(reader) # type: ignore
 
 
 def estimate_envelope(
-    rows: List[Dict[str, str]],
-    bus_ids: List[str],
+    rows: list[dict[str, str]],
+    bus_ids: list[str],
     calm_pct: float = 30.0,
-) -> Dict[str, Dict[str, Tuple[float, float]]]:
+) -> dict[str, dict[str, tuple[float, float]]]:
     """
     For each (bus, family) return (mean, std) of the CALM tail:
       - voltage families: values >= the (100-calm_pct) percentile  (high tail)
       - spike families:   values <= the calm_pct percentile        (low tail)
     """
-    env: Dict[str, Dict[str, Tuple[float, float]]] = {}
+    env: dict[str, dict[str, tuple[float, float]]] = {}
     for bus in bus_ids:
         env[bus] = {}
         for fam in FEATURE_FAMILIES:
@@ -172,7 +171,7 @@ def _clip(fam: str, value: float) -> float:
     return value
 
 
-def apply_lowcurrent_guard(env, bus_ids, min_current_frac: float) -> List[str]:
+def apply_lowcurrent_guard(env, bus_ids, min_current_frac: float) -> list[str]:
     """
     Sequence ratios (I0/I1, I2/I1) are ratios of currents; at a bus that normally
     carries almost no current the denominator ~ 0, so the ratio blows up to
@@ -193,7 +192,7 @@ def apply_lowcurrent_guard(env, bus_ids, min_current_frac: float) -> List[str]:
 
 # ── correlated (multivariate) sampling 
 
-def _family_of(col: str) -> Optional[str]:
+def _family_of(col: str) -> str | None:
     for fam in FEATURE_FAMILIES:
         if col.startswith(fam + "_"):
             return fam
@@ -201,9 +200,9 @@ def _family_of(col: str) -> Optional[str]:
 
 
 def estimate_correlation(
-    rows: List[Dict[str, str]],
-    feat_cols: List[str],
-    bus_ids: List[str],
+    rows: list[dict[str, str]],
+    feat_cols: list[str],
+    bus_ids: list[str],
     calm_rows_frac: float,
     shrinkage: float,
 ):
@@ -279,7 +278,7 @@ def _build_cholesky(env, feat_cols, R, spread):
 
 def generate_normal_rows_correlated(
     env, bus_ids, feat_cols, R, n: int, spread: float, seed: int
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     rng = np.random.default_rng(seed)
     mean, L = _build_cholesky(env, feat_cols, R, spread)
     z = rng.standard_normal(size=(n, len(feat_cols)))
@@ -295,7 +294,7 @@ def generate_normal_rows_correlated(
 
 
 def generate_normal_rows(env, bus_ids, n: int, rng: random.Random,
-                         spread: float = 1.0) -> List[Dict[str, str]]:
+                         spread: float = 1.0) -> list[dict[str, str]]:
     """v1 independent per-feature gauss sampler (numpy-free fallback)."""
     out = []
     for i in range(n):
@@ -308,7 +307,7 @@ def generate_normal_rows(env, bus_ids, n: int, rng: random.Random,
     return out
 
 
-def _meta_row(i: int) -> Dict[str, str]:
+def _meta_row(i: int) -> dict[str, str]:
     return {
         "scenario_name": f"NORMAL_{i:05d}",
         "fault_category": "NONE",
@@ -326,7 +325,7 @@ def _meta_row(i: int) -> Dict[str, str]:
     }
 
 
-def pick_fault_rows(rows, bus_ids, k: int, rng: random.Random) -> List[Dict[str, str]]:
+def pick_fault_rows(rows, bus_ids, k: int, rng: random.Random) -> list[dict[str, str]]:
     """Sample k real, finite fault rows from the source for injection."""
     feature_cols = feature_cols_for(bus_ids)
 

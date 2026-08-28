@@ -1,6 +1,5 @@
 import argparse
 from pathlib import Path
-from datetime import datetime
 
 TEMPLATE = """ID: {id}
 TITLE: {title}

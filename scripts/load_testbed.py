@@ -16,13 +16,12 @@ This is "Path A": one model per feeder, so we load one file at a time.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
 # Scenario-description columns
-METADATA_COLUMNS: List[str] = [
+METADATA_COLUMNS: list[str] = [
     "scenario_name",
     "fault_category",
     "fault_subtype",
@@ -36,24 +35,24 @@ METADATA_COLUMNS: List[str] = [
 ]
 
 # Columns we could predict
-TARGET_COLUMNS: List[str] = [
+TARGET_COLUMNS: list[str] = [
     "target_fault_type",
     "target_fault_category",
     "target_location_km",
 ]
 
 
-def feature_columns(df: pd.DataFrame) -> List[str]:
+def feature_columns(df: pd.DataFrame) -> list[str]:
     """Feature columns = every column that is not metadata and not a target."""
     non_features = set(METADATA_COLUMNS) | set(TARGET_COLUMNS)
     return [c for c in df.columns if c not in non_features]
 
 
 def load_testbed(
-    csv_path: Union[str, Path],
+    csv_path: str | Path,
     target_col: str = "target_fault_type",
     drop_nonfinite: bool = True,
-) -> Tuple[pd.DataFrame, pd.Series, List[str]]:
+) -> tuple[pd.DataFrame, pd.Series, list[str]]:
     """
     Load a testbed CSV into (X, y, feature_cols).
 

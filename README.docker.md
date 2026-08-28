@@ -22,7 +22,7 @@ starts uvicorn.
 ```bash
 docker compose -f docker-compose.dev.yaml up -d --build
 # drive the pipeline from the host (replays pre-reduced event rows onto feeder.events):
-.venv/Scripts/python.exe scripts/produce_events.py
+.venv/bin/python scripts/produce_events.py
 ```
 
 Check readiness and watch the pipeline:
@@ -38,11 +38,11 @@ Useful for iterating on the app with `--reload`:
 
 ```bash
 docker compose -f docker-compose.dev.yaml up -d db kafka kafdrop
-.venv/Scripts/python.exe -m pip install -r requirements.txt
+.venv/bin/python -m pip install -r requirements.txt
 alembic -c app/alembic.ini upgrade head          # Alembic owns the schema
-.venv/Scripts/python.exe scripts/bootstrap.py    # topics + models + Chroma KB
+.venv/bin/python scripts/bootstrap.py            # topics + models + Chroma KB
 uvicorn app.api.main:app --reload                # host talks to kafka on localhost:29092
-.venv/Scripts/python.exe scripts/produce_events.py
+.venv/bin/python scripts/produce_events.py
 ```
 
 > Don't run the host `uvicorn` **and** the container `app` at once — they share Kafka

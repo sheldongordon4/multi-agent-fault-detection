@@ -8,6 +8,7 @@ from confluent_kafka import Consumer, KafkaError, Message
 
 from app.config import settings
 from app.kafka.executors import run_kafka
+from app.kafka.schemas import validate_payload
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +144,23 @@ async def run_consumer(group_id: str, handlers: dict[str, Handler]) -> None:
                     )
                     await _to_dlq(msg, exc)
                     await run_kafka(consumer.commit, message=msg)
+                    continue
+                if not isinstance(payload, dict):
+                    exc = ValueError("Kafka payload must be a JSON object")
+                    await _to_dlq(msg, exc)
+                    await asyncio.to_thread(consumer.commit, message=msg)
+                    continue
+                try:
+                    payload = validate_payload(topic, payload)
+                except Exception as exc:  # noqa: BLE001
+                    logger.error(
+                        "[%s] invalid message from %s; routing to DLQ",
+                        group_id,
+                        topic,
+                        exc_info=exc,
+                    )
+                    await _to_dlq(msg, exc)
+                    await asyncio.to_thread(consumer.commit, message=msg)
                     continue
                 logger.info("[%s] consuming message from %s", group_id, msg.topic())
 
