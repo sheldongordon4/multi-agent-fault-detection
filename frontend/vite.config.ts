@@ -1,7 +1,9 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
-import { defineConfig } from 'vite';
+// `vitest/config` re-exports Vite's defineConfig with the `test` key typed,
+// so tests inherit resolve.alias instead of redeclaring it.
+import { defineConfig } from 'vitest/config';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -38,6 +40,12 @@ export default defineConfig({
 	},
 	preview: {
 		port: 3000,
+	},
+	test: {
+		// Node, not jsdom: these cover pure domain logic (severity folding,
+		// filtering, recency). Component tests would need jsdom + Testing Library.
+		environment: 'node',
+		include: ['src/**/*.test.ts'],
 	},
 	build: {
 		rollupOptions: {
