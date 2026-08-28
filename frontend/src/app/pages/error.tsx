@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import type { FallbackProps } from 'react-error-boundary';
-import { Button } from '../../shared/components/ui/button';
+import { Button } from '@shared/components/ui/button';
 import {
 	Card,
 	CardContent,
@@ -16,13 +16,13 @@ import {
 	CardFooter,
 	CardHeader,
 	CardTitle,
-} from '../../shared/components/ui/card';
+} from '@shared/components/ui/card';
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
-} from '../../shared/components/ui/collapsible';
-import { cn } from '../../shared/lib/utils';
+} from '@shared/components/ui/collapsible';
+import { cn } from '@shared/lib/utils';
 
 function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 	const [copied, setCopied] = useState(false);

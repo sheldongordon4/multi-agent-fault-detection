@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { API_BASE_URL } from '../../../shared/lib/api';
+import { API_BASE_URL } from '@shared/lib/api';
 import type {
 	SignalReading,
 	SignalStreamEvent,
-} from '../../../shared/types';
+} from '@shared/types';
 
 const RECONNECT_DELAY_MS = 3000;
 /** Matches BUFFER_MAXLEN in app/streaming/manager.py (~5 min at 1 Hz). */

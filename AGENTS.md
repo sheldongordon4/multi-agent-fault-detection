@@ -103,6 +103,12 @@ docker/    Dockerfile + entrypoint.sh (waits for infra → migrate → build KB 
 scripts/   bootstrap.py (topics+models+KB), produce_events.py, produce_events_live.py, produce_signals.py, refresh_kb.py, generate_*, validate_*
 data/      sop/ (SOP .md)  synthetic/ (LEGACY, deprecating)  generated/ (normal_train, validation)  testbed/ (LARGE — see rules)
 docs/      System_Architecture.md (authoritative), API_Reference.md, Agent_Architecture.md
+frontend/  React operator console (Vite + React 19 + Tailwind v4 + shadcn/Radix, TanStack Query, Zustand).
+           features/{incidents,map,overview}/ · shared/ · app/{routes,layouts,store}
+           Map stack: MapLibre GL + react-map-gl + pmtiles, with a SELF-HOSTED offline
+           Jamaica basemap in public/map/ (see frontend/README.md — do not delete those
+           assets, they are the basemap). Incidents is the index route; the old
+           /overview page is gone (it's a bottom drawer on Incidents now).
 ui/        streamlit_app.py (reads ticket JSON; not SSE-wired yet)
 tests/     test_api.py (AsyncClient+ASGITransport), test_feature_extractor.py, test_fault_ticket_schema.py, test_health.py
 ```
@@ -171,8 +177,8 @@ Gotcha: a native host Postgres on `:5432` can shadow the container's — the app
 
 **Other gaps:**
 - [ ] **Streamlit UI is not SSE-wired** — it reads ticket JSON files; connect it to `/notifications/stream` and `/stream/signals`.
-- [ ] **Fast-path streaming consumer** — the generic consumer's pause+`poll(1s)` pattern caps throughput at ~1 msg/s (fine for the low-volume coordinator; too slow for the `raw.signals` firehose).
+- [ ] **Reconcile the bus namespaces.** Streaming uses `bus_1/2/3` (legacy synthetic), the event path stamps IEEE13 ids (`b632/b650/b671/b675/b684`) on every ticket, so nothing joins the two. It's a symptom of the missing feature-extraction worker above — don't "fix" it by renaming `BUS_IDS`, which hides the gap and invests in data we're retiring. Now visible in the console, which shows both on one screen.
 - [ ] **Notification email/external channels** — only in-process SSE broadcast exists; no email/SMS/webhook delivery.
 - [ ] **Feeder-agnostic classifier** — `fault_classifier` is feeder-specific (13-bus columns); §6.1 wants topology-independent aggregate features so it transfers to new feeders.
 
-**Done (for reference):** event/`fault_detector` detection · supervised `fault_classifier` (type/category/location, attached to `anomalies.detected`) · coordinator (Azure `gpt-4o-mini` + `kb_retrieve`, rate-limited + bounded retries, heuristic fallback) · per-domain configs · `StrEnum` `FaultTicket` · `feature_extractor` DSP (1-cycle DFT) · DLQ on all topics · `GET /tickets` + `/tickets/{id}` history API · `/ready` (DB+Kafka) · Alembic migration · Kafka topic bootstrap · Dockerfile + self-bootstrapping entrypoint · integration tests.
+**Done (for reference):** **concurrency isolation** (`app/kafka/executors.py` — dedicated Kafka thread pool + ML `ProcessPoolExecutor`; fixed the live chart freezing while events processed) · **fast-path streaming consumer** (batched auto-commit for `raw.signals`; at-most-once for that topic only) · **React operator console** (`frontend/` — map-first incidents screen) · event/`fault_detector` detection · supervised `fault_classifier` (type/category/location, attached to `anomalies.detected`) · coordinator (Azure `gpt-4o-mini` + `kb_retrieve`, rate-limited + bounded retries, heuristic fallback) · per-domain configs · `StrEnum` `FaultTicket` · `feature_extractor` DSP (1-cycle DFT) · DLQ on all topics · `GET /tickets` + `/tickets/{id}` history API · `/ready` (DB+Kafka) · Alembic migration · Kafka topic bootstrap · Dockerfile + self-bootstrapping entrypoint · integration tests.

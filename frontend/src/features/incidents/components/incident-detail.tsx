@@ -7,22 +7,22 @@ import {
 	RefreshCw,
 	Waves,
 } from 'lucide-react';
-import { Button } from '../../../shared/components/ui/button';
+import { Button } from '@shared/components/ui/button';
 import {
 	Empty,
 	EmptyDescription,
 	EmptyHeader,
 	EmptyMedia,
 	EmptyTitle,
-} from '../../../shared/components/ui/empty';
-import { ScrollArea } from '../../../shared/components/ui/scroll-area';
-import { Separator } from '../../../shared/components/ui/separator';
-import { Skeleton } from '../../../shared/components/ui/skeleton';
+} from '@shared/components/ui/empty';
+import { ScrollArea } from '@shared/components/ui/scroll-area';
+import { Separator } from '@shared/components/ui/separator';
+import { Skeleton } from '@shared/components/ui/skeleton';
 import type {
 	EvidenceWindow,
 	KBCitation,
 	TicketDetail,
-} from '../../../shared/types';
+} from '@shared/types';
 import { formatFaultType, formatTimestamp } from '../utils/helpers';
 import { SeverityBadge, StatusBadge } from './severity-badge';
 
@@ -64,7 +64,7 @@ export function IncidentDetailSkeleton() {
 		<div className="p-5" aria-busy="true" aria-label="Loading incident">
 			<Skeleton className="h-7 w-56" />
 			<Skeleton className="mt-2 h-4 w-40" />
-			<div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+			<div className="mt-6 grid grid-cols-2 gap-4 @xl:grid-cols-4">
 				{Array.from({ length: 4 }).map((_, i) => (
 					<Skeleton key={i} className="h-10" />
 				))}
@@ -146,7 +146,7 @@ export function IncidentDetail({ incident }: { incident: TicketDetail }) {
 					{incident.incident_id}
 				</p>
 
-				<div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+				<div className="mt-4 grid grid-cols-2 gap-4 @xl:grid-cols-4">
 					<Field label="Fault type" value={formatFaultType(incident.fault_type)} />
 					<Field label="Scenario" value={incident.scenario ?? '—'} />
 					<Field label="Ticket" value={incident.ticket_id} />

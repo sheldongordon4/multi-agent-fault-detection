@@ -1,4 +1,4 @@
-import type { Severity, TicketStatus, TicketSummary } from '../../../shared/types';
+import type { Severity, TicketStatus, TicketSummary } from '@shared/types';
 import type { SeverityFilter, StatusFilter } from '../store/incident-slice';
 
 /**
@@ -53,11 +53,20 @@ export function filterIncidents(
 		search,
 		severity,
 		status,
-	}: { search: string; severity: SeverityFilter; status: StatusFilter }
+		bus = null,
+	}: {
+		search: string;
+		severity: SeverityFilter;
+		status: StatusFilter;
+		/** Spatial filter set by clicking a substation on the grid map. */
+		bus?: string | null;
+	}
 ): TicketSummary[] {
 	const needle = search.trim().toLowerCase();
 
 	return incidents.filter((incident) => {
+		if (bus && incident.bus_id !== bus) return false;
+
 		if (severity !== 'all' && normalizeSeverity(incident.severity) !== severity) {
 			return false;
 		}

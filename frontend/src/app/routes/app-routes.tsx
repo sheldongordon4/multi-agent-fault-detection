@@ -8,7 +8,6 @@ import AppLayout from '../layouts/app-layout';
 import LoadingPage from '../pages/loading';
 
 const NotFound = lazy(() => import('../pages/not-found'));
-const Overview = lazy(() => import('../../features/overview/pages/overview'));
 const Incidents = lazy(() => import('../../features/incidents/pages/incidents'));
 
 // MAFD is an operator dashboard with no auth: a single app shell wraps all routes.
@@ -18,7 +17,10 @@ const routes: RouteObject[] = [
 		Component: AppLayout,
 		HydrateFallback: () => <LoadingPage message="Loading MAFD…" />,
 		children: [
-			{ index: true, Component: Overview },
+			// Incidents IS the console now: the map, the list and the overview
+			// drawer all live on it, so there's nothing left for a separate
+			// landing page to show.
+			{ index: true, Component: Incidents },
 			{ path: 'incidents', Component: Incidents },
 			{ path: 'incidents/:incidentId', Component: Incidents },
 			{ path: '*', Component: NotFound },

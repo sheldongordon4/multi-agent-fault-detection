@@ -1,5 +1,5 @@
-import { cn } from '../../../shared/lib/utils';
-import type { Severity, TicketStatus } from '../../../shared/types';
+import { cn } from '@shared/lib/utils';
+import type { Severity, TicketStatus } from '@shared/types';
 import { normalizeSeverity, normalizeStatus } from '../utils/helpers';
 
 const severityStyles: Record<Severity, string> = {

@@ -9,11 +9,11 @@ import { immer } from 'zustand/middleware/immer';
 import {
 	createIncidentsSlice,
 	type IncidentsSlice,
-} from '../../features/incidents/store/incident-slice';
+} from '@features/incidents/store/incident-slice';
 import {
 	createOverviewSlice,
 	type OverviewSlice,
-} from '../../features/overview/store/overview-slice';
+} from '@features/overview/store/overview-slice';
 import {
 	applyTheme,
 	createThemeSlice,

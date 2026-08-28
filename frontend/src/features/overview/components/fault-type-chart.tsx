@@ -10,11 +10,11 @@ import {
 	YAxis,
 } from 'recharts';
 import { BarChart3 } from 'lucide-react';
-import type { TicketSummary } from '../../../shared/types';
+import type { TicketSummary } from '@shared/types';
 import {
 	formatFaultCode,
 	normalizeSeverity,
-} from '../../incidents/utils/helpers';
+} from '@features/incidents/utils/helpers';
 
 const severityColor: Record<string, string> = {
 	high: 'var(--destructive)',

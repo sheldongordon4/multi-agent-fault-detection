@@ -1,7 +1,7 @@
 import { ArrowLeft, Home, LayoutDashboard, TriangleAlert } from 'lucide-react';
 import { Link } from 'react-router';
-import AppLogoIcon from '../../shared/components/app/app-logo-icon';
-import { Button } from '../../shared/components/ui/button';
+import AppLogoIcon from '@shared/components/app/app-logo-icon';
+import { Button } from '@shared/components/ui/button';
 
 export default function NotFound() {
 	const handleGoBack = () => {

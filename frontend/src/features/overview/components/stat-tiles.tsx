@@ -1,6 +1,6 @@
 import { Activity, ShieldAlert, TriangleAlert, Waves } from 'lucide-react';
-import { cn } from '../../../shared/lib/utils';
-import { Skeleton } from '../../../shared/components/ui/skeleton';
+import { cn } from '@shared/lib/utils';
+import { Skeleton } from '@shared/components/ui/skeleton';
 
 interface StatTileProps {
 	label: string;
