@@ -28,10 +28,9 @@ which gives a lower bound on citation accuracy without LLM calls.
 Prerequisites:
     pip install openai
     .env file with Azure credentials (see .env.example):
-        AZURE_OPENAI_ENDPOINT=https://<your-resource>.openai.azure.com/
+        AZURE_OPENAI_ENDPOINT=https://<resource>.services.ai.azure.com/api/projects/<project>
         AZURE_OPENAI_API_KEY=<your-key>
-        AZURE_OPENAI_API_VERSION=2024-10-21
-        AZURE_OPENAI_DEPLOYMENT=gpt-4o-mini
+        AZURE_OPENAI_DEPLOYMENT=<your-deployment-name>
     data/sop/ directory with the four SOP markdown files.
 
 Usage:
@@ -67,8 +66,11 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 # ── Azure config (loaded from .env) ──────────────────────────────────────────
 AZURE_ENDPOINT   = os.getenv("AZURE_OPENAI_ENDPOINT", "")
 AZURE_API_KEY    = os.getenv("AZURE_OPENAI_API_KEY", "")
-AZURE_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21")
-AZURE_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
+AZURE_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "")
+
+# Same knobs the coordinator uses (app/faults/agent.py), minus the rate limiter.
+LLM_MAX_RETRIES     = int(os.getenv("LLM_MAX_RETRIES", "2"))
+LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "60"))
 
 TOP_K = 2  # SOPs retrieved per query (matches deployed system)
 
@@ -327,29 +329,37 @@ def _retrieve(query: str, sops: dict, sop_ids: list, sop_tokens: list,
 def _azure_configured() -> bool:
     return bool(
         AZURE_ENDPOINT
-        and "<your-resource>" not in AZURE_ENDPOINT
+        and "<" not in AZURE_ENDPOINT
         and AZURE_API_KEY
         and AZURE_API_KEY not in ("changeme", "")
         and AZURE_DEPLOYMENT
     )
 
 
+def _v1_base_url(endpoint: str) -> str:
+    """
+    Normalise the configured endpoint to the OpenAI-compatible /openai/v1/ route.
+    """
+    root = re.sub(r"/api/projects/[^/]+/?$", "", endpoint.rstrip("/"))
+    return f"{root}/openai/v1/"
+
+
 def _call_azure(messages: list[dict], max_tokens: int = 1000,
                 temperature: float = 0.1) -> str:
-    """Call Azure OpenAI chat completions. Raises on failure."""
-    from openai import AzureOpenAI
-    client = AzureOpenAI(
-        azure_endpoint=AZURE_ENDPOINT,
+    """
+    Call the deployment. Raises on failure.
+    """
+    from langchain_openai import ChatOpenAI
+    llm = ChatOpenAI(
+        base_url=_v1_base_url(AZURE_ENDPOINT),
         api_key=AZURE_API_KEY,
-        api_version=AZURE_API_VERSION,
-    )
-    resp = client.chat.completions.create(
         model=AZURE_DEPLOYMENT,
-        messages=messages,
+        max_retries=LLM_MAX_RETRIES,
+        timeout=LLM_TIMEOUT_SECONDS,
         max_tokens=max_tokens,
         temperature=temperature,
     )
-    return resp.choices[0].message.content or ""
+    return llm.invoke(messages).content or ""
 
 
 # ── Generation ────────────────────────────────────────────────────────────────
@@ -514,7 +524,6 @@ def main() -> None:
         print(f"\n[step7] Azure endpoint configured. Running LLM path.")
         print(f"        Endpoint  : {AZURE_ENDPOINT}")
         print(f"        Deployment: {AZURE_DEPLOYMENT}")
-        print(f"        API version: {AZURE_API_VERSION}")
     else:
         if args.local_only:
             print("\n[step7] --local-only flag set. Running heuristic path.")
@@ -524,8 +533,7 @@ def main() -> None:
             print("        Required keys:")
             print("          AZURE_OPENAI_ENDPOINT")
             print("          AZURE_OPENAI_API_KEY")
-            print("          AZURE_OPENAI_API_VERSION  (default: 2024-10-21)")
-            print("          AZURE_OPENAI_DEPLOYMENT   (default: gpt-4o-mini)")
+            print("          AZURE_OPENAI_DEPLOYMENT")
 
     # Load SOPs and build TF-IDF index
     sops = _load_sops()

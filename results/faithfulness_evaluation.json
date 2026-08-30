@@ -1,0 +1,1858 @@
+{
+  "run_timestamp": "2026-08-30T19:54:32.360182+00:00",
+  "azure_endpoint": "https://amar-campbell-agents-resource.services.ai.azure.com/api/projects/amar-campbell-agents",
+  "azure_deployment": "gpt-5.4-mini",
+  "generation_mode": "llm",
+  "faithfulness_mode": "llm_judge",
+  "n_scenarios": 24,
+  "aggregate": {
+    "mean_context_precision": 0.7083,
+    "mean_context_recall": 0.8125,
+    "mean_faithfulness_score": 0.2032,
+    "hallucination_rate": 0.7968
+  },
+  "scenarios": [
+    {
+      "scenario_id": "T01",
+      "fault_type": "SLG",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-MISC-002",
+        "SOP-OVLD-001"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002",
+        "SOP-TRF-004"
+      ],
+      "context_precision": 0.5,
+      "context_recall": 0.5,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.25,
+      "total_claims": 8,
+      "grounded_claims": 2,
+      "ungrounded_examples": [
+        "The disturbance at bus b650 is consistent with a severe ground-involved fault.",
+        "The signature shows an extremely deep voltage sag (minVa=0.021 pu) together with very high zero-sequence current ratio (maxI0I1=0.994), indicating strong ground involvement; the negative-sequence component is present but much smaller.",
+        "Most likely a single line-to-ground fault at or near bus b650, based on the combination of very low phase voltage and near-unity zero-sequence current ratio, which is characteristic of ground-involved faults.",
+        "This aligns with the SOP interpretation that protection events should be reviewed for correct relay operation and coordination; if any upstream/downstream device operated unexpectedly, apply SOP-MISC-002 Section 4.2 to check for nuisance or miscoordinated tripping.",
+        "The current level is elevated, but the dominant signature is fault-like rather than overload-like, so SOP-OVLD-001 is not the primary explanation."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-001",
+        "scenario": "ieee13",
+        "bus_id": "b650",
+        "fault_type": "single line-to-ground fault",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "The disturbance at bus b650 is consistent with a severe ground-involved fault. The signature shows an extremely deep voltage sag (minVa=0.021 pu) together with very high zero-sequence current ratio (maxI0I1=0.994), indicating strong ground involvement; the negative-sequence component is present but much smaller.",
+        "root_cause": "Most likely a single line-to-ground fault at or near bus b650, based on the combination of very low phase voltage and near-unity zero-sequence current ratio, which is characteristic of ground-involved faults. This aligns with the SOP interpretation that protection events should be reviewed for correct relay operation and coordination; if any upstream/downstream device operated unexpectedly, apply SOP-MISC-002 Section 4.2 to check for nuisance or miscoordinated tripping. The current level is elevated, but the dominant signature is fault-like rather than overload-like, so SOP-OVLD-001 is not the primary explanation.",
+        "recommended_actions": [
+          "Isolate and de-energize the affected section around bus b650 following standard switching and safety procedures.",
+          "Inspect the feeder, lateral, and connected equipment near b650 for insulation damage, conductor contact with ground, tree contact, wildlife, or failed hardware.",
+          "Review relay and breaker event records to confirm that the fault was cleared by the intended protective device and to check for any miscoordination.",
+          "Verify SCADA, fault indicators, and line crew observations before re-energizing the feeder.",
+          "If multiple devices operated unexpectedly, initiate a miscoordination review per SOP-MISC-002 Section 4.2.",
+          "After repair, perform insulation and continuity checks and confirm normal voltage restoration before returning the feeder to service."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:10Z",
+            "metric": "voltage",
+            "description": "b650 shows extreme voltage depression with minVa=0.021 pu, consistent with a solid fault condition rather than a mild disturbance."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:10Z",
+            "metric": "current",
+            "description": "b650 shows high current with maxIa=6.12 and near-unity zero-sequence ratio maxI0I1=0.994, indicating strong ground-fault involvement."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "Investigate and respond to suspected protection relay miscoordination on distribution feeders and associated buses."
+          },
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Overload Trip Criteria",
+            "snippet": "Feeder current trending above 80% of the continuous thermal rating; sustained current at or above 100% of the feeder rating for several seconds."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T02",
+      "fault_type": "SLG",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-THFT-003",
+        "SOP-TRF-004"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002",
+        "SOP-TRF-004"
+      ],
+      "context_precision": 0.5,
+      "context_recall": 0.5,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.4,
+      "total_claims": 10,
+      "grounded_claims": 4,
+      "ungrounded_examples": [
+        "Bus b632 shows a severe voltage collapse (minVa=0.045 pu).",
+        "with strong zero-sequence content (maxI0I1=0.88) and elevated negative-sequence current (maxI2I1=0.09).",
+        "which is most consistent with a ground-involved unbalanced fault, likely SLG.",
+        "The current magnitude is high, supporting an active fault rather than a pure loading condition.",
+        "The electrical signature points to ground involvement because the zero-sequence ratio is very high, and the system is also unbalanced due to elevated negative-sequence current.",
+        "This aligns with the SOP guidance that overload investigations should be considered when sustained high loading is present without a deep voltage sag.",
+        "but here the extremely low voltage indicates a fault condition instead of a mere overload.",
+        "The dominant evidence here is a ground-involved fault at bus b632 rather than a simple thermal overload."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b632",
+        "fault_type": "single-line-to-ground fault (SLG) / ground-involved unbalance",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "Bus b632 shows a severe voltage collapse (minVa=0.045 pu) with strong zero-sequence content (maxI0I1=0.88) and elevated negative-sequence current (maxI2I1=0.09), which is most consistent with a ground-involved unbalanced fault, likely SLG. The current magnitude is high, supporting an active fault rather than a pure loading condition.",
+        "root_cause": "The electrical signature points to ground involvement because the zero-sequence ratio is very high, and the system is also unbalanced due to elevated negative-sequence current. This aligns with the SOP guidance that overload investigations should be considered when sustained high loading is present without a deep voltage sag, but here the extremely low voltage indicates a fault condition instead of a mere overload. Per SOP-TRF-004, transformer overcurrent is relevant when load approaches rating and protection may operate during heavy load or fault events; however, the dominant evidence here is a ground-involved fault at bus b632 rather than a simple thermal overload. Refer to SOP-TRF-004 Section 6.1 for overcurrent/thermal protection context and SOP-THFT-003 Section 5.4 only as a secondary overload investigation path if post-event load history suggests non-technical loss or persistent high loading.",
+        "recommended_actions": [
+          "Inspect bus b632 and downstream lateral for visible conductor-to-ground contact, \u10d3\u10d0\u10d6 damage, broken insulators, tree contact, or failed arresters.",
+          "Review relay and recloser event logs for ground fault pickup, trip, and reclose attempts associated with the disturbance window.",
+          "Check transformer and feeder protection indications for overcurrent/thermal operations per SOP-TRF-004.",
+          "Verify whether the fault cleared or is still present before re-energizing; hold switching until field confirmation.",
+          "If no physical fault is found, review loading history and customer demand patterns for possible non-technical loss or abnormal overload conditions per SOP-THFT-003."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:00Z",
+            "metric": "voltage",
+            "description": "At bus b632, minimum phase voltage collapsed to minVa=0.045 pu, indicating a severe fault-level voltage sag."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:00Z",
+            "metric": "current",
+            "description": "At bus b632, maxIa=5.8 with maxI0I1=0.88 and maxI2I1=0.09, showing strong ground involvement and unbalanced fault current."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-TRF-004",
+            "title": "Transformer Overcurrent and Thermal Protection",
+            "section": "6.1 Transformer Protection Guidelines",
+            "snippet": "Transformer load approaching or exceeding nameplate MVA rating."
+          },
+          {
+            "source_id": "SOP-TRF-004",
+            "title": "Transformer Overcurrent and Thermal Protection",
+            "section": "6.1 Transformer Protection Guidelines",
+            "snippet": "Overcurrent relay elements operating during heavy load or fault events."
+          },
+          {
+            "source_id": "SOP-THFT-003",
+            "title": "Suspected Theft-Related Overload on Distribution Feeders",
+            "section": "5.4 Non-Technical Loss and Overload Investigation",
+            "snippet": "Persistent high loading on a feeder without corresponding increases in billed demand."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T03",
+      "fault_type": "SLG",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-TRF-004",
+        "SOP-MISC-002"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002",
+        "SOP-TRF-004"
+      ],
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.125,
+      "total_claims": 8,
+      "grounded_claims": 1,
+      "ungrounded_examples": [
+        "Bus b671 shows a severe voltage collapse with strong zero-sequence current and relatively low negative-sequence content.",
+        "This is most consistent with a ground-involved fault.",
+        "The disturbance is high severity due to the deep sag (minVa=0.032) and elevated current (maxIa=5.5).",
+        "The signature at b671 indicates ground involvement: maxI0I1=0.91 is very high, while maxI2I1=0.11 is comparatively low.",
+        "This matches the SOP interpretation for a ground fault rather than a balanced three-phase event.",
+        "The extreme voltage sag further supports an actual fault condition.",
+        "Based on SOP-MISC-002, protection coordination should be checked if upstream and downstream devices operated unexpectedly.",
+        "the electrical pattern most strongly indicates an SLG fault as the primary root cause."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-001",
+        "scenario": "ieee13",
+        "bus_id": "b671",
+        "fault_type": "single-line-to-ground fault",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "Bus b671 shows a severe voltage collapse with strong zero-sequence current and relatively low negative-sequence content, which is most consistent with a ground-involved fault. The disturbance is high severity due to the deep sag (minVa=0.032) and elevated current (maxIa=5.5).",
+        "root_cause": "The signature at b671 indicates ground involvement: maxI0I1=0.91 is very high, while maxI2I1=0.11 is comparatively low, matching the SOP interpretation for a ground fault rather than a balanced three-phase event. The extreme voltage sag further supports an actual fault condition. Based on SOP-MISC-002, protection coordination should be checked if upstream and downstream devices operated unexpectedly; however, the electrical pattern most strongly indicates an SLG fault as the primary root cause.",
+        "recommended_actions": [
+          "Inspect bus b671 and the associated feeder section for conductor contact to ground, damaged insulation, fallen vegetation, or debris causing an SLG fault.",
+          "Review relay and recloser event records to confirm correct fault clearing and check for any miscoordination per SOP-MISC-002 Section 4.2.",
+          "Verify that upstream devices remained coordinated and that downstream protection cleared the fault as intended.",
+          "If any transformer on the affected section experienced prolonged overcurrent, check thermal and overload indicators per SOP-TRF-004 Section 6.1.",
+          "Perform patrol and infrared inspection before re-energization; repair damaged equipment and test insulation integrity."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:00Z",
+            "metric": "voltage",
+            "description": "b671 minVa=0.032 indicates a deep voltage sag consistent with a fault rather than a mild overload."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:00Z",
+            "metric": "current",
+            "description": "b671 maxIa=5.5 with maxI0I1=0.91 and maxI2I1=0.11 indicates strong zero-sequence current and ground involvement consistent with a single-line-to-ground fault."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "Upstream devices trip for faults that should have been cleared by downstream devices."
+          },
+          {
+            "source_id": "SOP-TRF-004",
+            "title": "Transformer Overcurrent and Thermal Protection",
+            "section": "6.1 Transformer Protection Guidelines",
+            "snippet": "Overcurrent relay elements operating during heavy load or fault events."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T04",
+      "fault_type": "LL",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-TRF-004",
+        "SOP-MISC-002"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002",
+        "SOP-TRF-004"
+      ],
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.4,
+      "total_claims": 10,
+      "grounded_claims": 4,
+      "ungrounded_examples": [
+        "Bus b650 shows a deep voltage sag (minVa=0.18 pu) combined with elevated negative-sequence current ratio (maxI2I1=0.51).",
+        "This indicates a strongly unbalanced fault condition.",
+        "The near-zero zero-sequence ratio (maxI0I1=0.007) suggests limited ground-sequence contribution in the measured window.",
+        "So the event is best treated as a severe unbalanced feeder fault pending field confirmation.",
+        "The electrical signature is consistent with a faulted phase producing a major voltage depression and pronounced negative-sequence component.",
+        "Which aligns with an unbalanced fault on the feeder.",
+        "While the low zero-sequence ratio argues against a strong ground-return component.",
+        "The combination of deep sag and high I2/I1 supports a fault condition rather than overload.",
+        "SOP-MISC-002 applies if relay operations did not match the intended coordination, so protection logs should be reviewed for possible miscoordination or nuisance tripping.",
+        "SOP-TRF-004 is relevant only if downstream evidence shows sustained overcurrent thermal loading on a transformer rather than a transient fault."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-B650-20260830-01",
+        "scenario": "ieee13",
+        "bus_id": "b650",
+        "fault_type": "single-line-to-ground fault with strong negative-sequence unbalance",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "Bus b650 shows a deep voltage sag (minVa=0.18 pu) combined with elevated negative-sequence current ratio (maxI2I1=0.51), indicating a strongly unbalanced fault condition. The near-zero zero-sequence ratio (maxI0I1=0.007) suggests limited ground-sequence contribution in the measured window, so the event is best treated as a severe unbalanced feeder fault pending field confirmation.",
+        "root_cause": "The electrical signature is consistent with a faulted phase producing a major voltage depression and pronounced negative-sequence component, which aligns with an unbalanced fault on the feeder. While the low zero-sequence ratio argues against a strong ground-return component, the combination of deep sag and high I2/I1 supports a fault condition rather than overload. SOP-MISC-002 applies if relay operations did not match the intended coordination, so protection logs should be reviewed for possible miscoordination or nuisance tripping; SOP-TRF-004 is relevant only if downstream evidence shows sustained overcurrent thermal loading on a transformer rather than a transient fault.",
+        "recommended_actions": [
+          "Inspect relay and SCADA event records for b650 to confirm which phase(s) faulted and whether any upstream/downstream protective device operated out of sequence.",
+          "Dispatch field crew to visually inspect the b650 section for conductor damage, loose connections, insulation failure, or contact with vegetation/foreign objects.",
+          "Review fault recorder and oscillography for sequence components, fault duration, and clearing time to verify whether the event was transient or persistent.",
+          "Check transformer and feeder loading at the affected segment for any signs of sustained overcurrent or thermal stress per SOP-TRF-004.",
+          "If protection miscoordination is observed, initiate relay coordination review and adjust settings only through the approved protection engineering process."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:05:00Z",
+            "metric": "voltage",
+            "description": "b650 voltage collapsed to minVa=0.18 pu, indicating a severe fault-related sag rather than normal load variation."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:05:00Z",
+            "metric": "current",
+            "description": "b650 current shows elevated maxIa=4.2 with high negative-sequence ratio maxI2I1=0.51, consistent with a strongly unbalanced fault signature."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:05:00Z",
+            "metric": "current",
+            "description": "b650 zero-sequence ratio maxI0I1=0.007 is near zero, indicating limited ground-sequence contribution in the observed interval."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "Multiple protective devices operate for the same event in a way that does not match the intended coordination study."
+          },
+          {
+            "source_id": "SOP-TRF-004",
+            "title": "Transformer Overcurrent and Thermal Protection",
+            "section": "6.1 Transformer Protection Guidelines",
+            "snippet": "Transformer load approaching or exceeding nameplate MVA rating."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T05",
+      "fault_type": "LL",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-TRF-004",
+        "SOP-MISC-002"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002",
+        "SOP-TRF-004"
+      ],
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.25,
+      "total_claims": 8,
+      "grounded_claims": 2,
+      "ungrounded_examples": [
+        "Bus b632 shows a deep voltage sag (minVa=0.21) with pronounced negative-sequence content (maxI2I1=0.48) and negligible zero-sequence content (maxI0I1=0.006).",
+        "This signature indicates a severe unbalanced fault condition, most consistent with a single-line-to-ground event or closely related unbalanced fault on the feeder section near b632.",
+        "The electrical signature is dominated by negative-sequence current with a very low zero-sequence ratio, which per the detection guidance indicates an unbalanced fault rather than a balanced three-phase event.",
+        "The deep sag at b632 supports a faulted conductor condition rather than overload.",
+        "the transformer overcurrent SOP (SOP-TRF-004, Section 6.1) is relevant only as a protective-response reference because overcurrent elements may operate during fault events",
+        "but the measured pattern is not consistent with sustained overload."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-ieee13-b632-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b632",
+        "fault_type": "single-line-to-ground (SLG) fault with strong unbalance",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "Bus b632 shows a deep voltage sag (minVa=0.21) with pronounced negative-sequence content (maxI2I1=0.48) and negligible zero-sequence content (maxI0I1=0.006). This signature indicates a severe unbalanced fault condition, most consistent with a single-line-to-ground event or closely related unbalanced fault on the feeder section near b632.",
+        "root_cause": "The electrical signature is dominated by negative-sequence current with a very low zero-sequence ratio, which per the detection guidance indicates an unbalanced fault rather than a balanced three-phase event. The deep sag at b632 supports a faulted conductor condition rather than overload; the transformer overcurrent SOP (SOP-TRF-004, Section 6.1) is relevant only as a protective-response reference because overcurrent elements may operate during fault events, but the measured pattern is not consistent with sustained overload.",
+        "recommended_actions": [
+          "Dispatch field crew to inspect the line segment and equipment around bus b632 for conductor contact, damaged insulation, tree contact, or a grounded phase.",
+          "Review SCADA and relay event records for feeder breaker/recloser operations and confirm which protective element operated first.",
+          "Verify phase-to-ground insulation integrity and perform outage-interval testing before re-energization.",
+          "If any transformer or downstream device carried abnormal current during the event, assess thermal condition per SOP-TRF-004 and confirm no winding/oil overheating.",
+          "Check coordination settings and event sequence for any protective miscoordination that may have contributed to the outage pattern."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:00Z",
+            "metric": "voltage",
+            "description": "b632 recorded a deep voltage sag with minVa=0.21, consistent with a severe fault near the bus."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:00Z",
+            "metric": "current",
+            "description": "b632 showed elevated current with maxIa=3.9 and strong negative-sequence content (maxI2I1=0.48) while zero-sequence remained near zero (maxI0I1=0.006), indicating an unbalanced fault signature."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-TRF-004",
+            "title": "Transformer Overcurrent and Thermal Protection",
+            "section": "6.1 Transformer Protection Guidelines",
+            "snippet": "Overcurrent relay elements operating during heavy load or fault events."
+          },
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "Upstream devices trip for faults that should have been cleared by downstream devices."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T06",
+      "fault_type": "LL",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-TRF-004",
+        "SOP-OVLD-001"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002",
+        "SOP-TRF-004"
+      ],
+      "context_precision": 0.5,
+      "context_recall": 0.5,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.1818,
+      "total_claims": 11,
+      "grounded_claims": 2,
+      "ungrounded_examples": [
+        "The disturbance at bus b671 shows a deep voltage sag with strong negative-sequence current and very low zero-sequence involvement.",
+        "This pattern is most consistent with an unbalanced fault.",
+        "The magnitude and voltage collapse indicate a high-severity event on the feeder.",
+        "The electrical signature indicates a fault rather than an overload.",
+        "minVa is extremely low (0.19).",
+        "elevated negative-sequence ratio (maxI2I1=0.49).",
+        "zero-sequence ratio remains near zero (maxI0I1=0.008).",
+        "Per the SOP guidance, overload conditions typically show sustained high current with gradual heating and only modest sag.",
+        "The unbalanced current and deep sag are therefore most consistent with a faulted conductor condition.",
+        "most plausibly a single-line-to-ground fault localized near b671."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-001",
+        "scenario": "ieee13",
+        "bus_id": "b671",
+        "fault_type": "single-line-to-ground fault",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "The disturbance at bus b671 shows a deep voltage sag with strong negative-sequence current and very low zero-sequence involvement. This pattern is most consistent with an unbalanced fault, with the magnitude and voltage collapse indicating a high-severity event on the feeder.",
+        "root_cause": "The electrical signature indicates a fault rather than an overload: minVa is extremely low (0.19) with elevated negative-sequence ratio (maxI2I1=0.49), while zero-sequence ratio remains near zero (maxI0I1=0.008). Per the SOP guidance, overload conditions typically show sustained high current with gradual heating and only modest sag, which does not match this event. The unbalanced current and deep sag are therefore most consistent with a faulted conductor condition, most plausibly a single-line-to-ground fault localized near b671.",
+        "recommended_actions": [
+          "Dispatch field crew to inspect the b671 segment for conductor damage, insulator flashover, vegetation contact, or wildlife intrusion.",
+          "Verify protection relay and recloser operations for the event window and confirm whether fault clearing was successful.",
+          "Check downstream customers and critical loads for outage impact and restore service only after fault isolation and safety clearance.",
+          "Review feeder loading and transformer thermal data to rule out concurrent equipment stress, but treat the primary issue as a fault condition.",
+          "If the fault location is not visually evident, perform sectionalizing and fault-locating tests to isolate the damaged span."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "voltage",
+            "description": "Bus b671 recorded a deep voltage sag with minVa=0.19, indicating a severe fault-level disturbance rather than a mild loading issue."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "current",
+            "description": "Bus b671 showed elevated current and unbalance with maxIa=4.1 and maxI2I1=0.49, while maxI0I1 remained very low at 0.008, supporting an unbalanced fault signature."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Overload Trip Criteria",
+            "snippet": "Feeder current trending above 80% of the continuous thermal rating... sustained current at or above 100% ... showing gradual heating rather than instantaneous faults."
+          },
+          {
+            "source_id": "SOP-TRF-004",
+            "title": "Transformer Overcurrent and Thermal Protection",
+            "section": "6.1 Transformer Protection Guidelines",
+            "snippet": "Transformer load approaching or exceeding nameplate MVA rating... overcurrent relay elements operating during heavy load or fault events."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T07",
+      "fault_type": "LLG",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-TRF-004",
+        "SOP-MISC-002"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002",
+        "SOP-TRF-004"
+      ],
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.1111,
+      "total_claims": 9,
+      "grounded_claims": 1,
+      "ungrounded_examples": [
+        "Bus b650 shows a very deep voltage sag (minVa=0.09) with strong zero-sequence and negative-sequence components, which is most consistent with a grounded asymmetric fault.",
+        "The disturbance is severe and localized, indicating a likely SLG event rather than an overload condition.",
+        "The signature at b650 indicates ground involvement and phase unbalance: max_I0_I1=0.51 points to significant zero-sequence current, while max_I2_I1=0.46 confirms a strong negative-sequence component.",
+        "Per the SOP guidance, this aligns with a fault event rather than transformer thermal overload.",
+        "The most plausible root cause is a single-line-to-ground fault on or near the feeder section downstream of b650.",
+        "Protection likely responding to the faulted phase and ground current path."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b650",
+        "fault_type": "single-line-to-ground fault",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "Bus b650 shows a very deep voltage sag (minVa=0.09) with strong zero-sequence and negative-sequence components, which is most consistent with a grounded asymmetric fault. The disturbance is severe and localized, indicating a likely SLG event rather than an overload condition.",
+        "root_cause": "The signature at b650 indicates ground involvement and phase unbalance: max_I0_I1=0.51 points to significant zero-sequence current, while max_I2_I1=0.46 confirms a strong negative-sequence component. Per the SOP guidance, this aligns with a fault event rather than transformer thermal overload; the most plausible root cause is a single-line-to-ground fault on or near the feeder section downstream of b650, with protection likely responding to the faulted phase and ground current path.",
+        "recommended_actions": [
+          "Dispatch field crew to inspect the b650 section for conductor contact with vegetation, downed hardware, insulator damage, or contamination causing ground fault.",
+          "Review feeder protection relay targets and event records to confirm faulted phase, ground current pickup, and clearing time.",
+          "Inspect downstream equipment and customer service transformers for visible damage before re-energization.",
+          "Isolate the suspected faulted section if still energized, then perform sectionalizing and restoration per switching procedure.",
+          "If relay operations do not match expected coordination, initiate a miscoordination review per SOP-MISC-002."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:05:00Z",
+            "metric": "voltage",
+            "description": "b650 experienced a deep voltage sag with minVa=0.09, consistent with a severe fault rather than normal load variation."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:05:00Z",
+            "metric": "current",
+            "description": "b650 shows elevated current with maxIa=5.2 and notable sequence imbalance (maxI0I1=0.51, maxI2I1=0.46), indicating ground-involved unbalanced fault behavior."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-TRF-004",
+            "title": "Transformer Overcurrent and Thermal Protection",
+            "section": "6.1 Transformer Protection Guidelines",
+            "snippet": "Conditions: Transformer load approaching or exceeding nameplate MVA rating; SCADA trends showing elevated winding or oil temperature; Overcurrent relay elements operating during heavy load or fault events."
+          },
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "Multiple protective devices operate for the same event in a way that does not match the intended coordination study."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T08",
+      "fault_type": "LLG",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-TRF-004",
+        "SOP-THFT-003"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002",
+        "SOP-TRF-004"
+      ],
+      "context_precision": 0.5,
+      "context_recall": 0.5,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.0,
+      "total_claims": 10,
+      "grounded_claims": 0,
+      "ungrounded_examples": [
+        "Bus b632 shows a severe voltage collapse (minVa=0.11)",
+        "elevated current",
+        "clear sequence-component imbalance",
+        "high zero-sequence and negative-sequence ratios indicate a ground-involved unbalanced fault",
+        "most consistent with an SLG event",
+        "maxI0I1=0.49 indicates substantial zero-sequence current",
+        "maxI2I1=0.44 indicates strong negative-sequence imbalance",
+        "this pattern aligns with a ground fault rather than a balanced three-phase event",
+        "the deep sag at minVa=0.11 confirms a severe fault rather than an overload-only condition",
+        "Verify field conditions for conductor contact to ground, insulator failure, or vegetation intrusion near bus b632, and coordinate protection review for fault-clearing performance"
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b632",
+        "fault_type": "single-line-to-ground (SLG) fault",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "Bus b632 shows a severe voltage collapse (minVa=0.11) with elevated current and clear sequence-component imbalance. The combination of high zero-sequence and negative-sequence ratios indicates a ground-involved unbalanced fault, most consistent with an SLG event.",
+        "root_cause": "The disturbance signature is consistent with ground involvement: maxI0I1=0.49 indicates substantial zero-sequence current, and maxI2I1=0.44 indicates strong negative-sequence imbalance. Per the operating guidance, this pattern aligns with a ground fault rather than a balanced three-phase event; the deep sag at minVa=0.11 confirms a severe fault rather than an overload-only condition. Verify field conditions for conductor contact to ground, insulator failure, or vegetation intrusion near bus b632, and coordinate protection review for fault-clearing performance.",
+        "recommended_actions": [
+          "Dispatch a field crew to inspect bus b632 and nearby spans for conductor-to-ground contact, damaged insulation, or vegetation encroachment.",
+          "Review relay and recloser operations to confirm the fault was cleared and no miscoordination occurred.",
+          "Check SCADA and outage logs for feeder interruption timing and any repeated fault attempts at the same location.",
+          "Perform targeted patrol of downstream equipment and service drops for evidence of ground-fault damage.",
+          "If repeated events are observed, initiate protection settings and arc/ground-fault coordination review."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "voltage",
+            "description": "b632 experienced a deep voltage sag with minVa=0.11, indicating a severe disturbance at the bus."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "current",
+            "description": "b632 showed elevated current with maxIa=4.95 and significant sequence imbalance (maxI0I1=0.49, maxI2I1=0.44), consistent with an unbalanced ground-involved fault."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-TRF-004",
+            "title": "Transformer Overcurrent and Thermal Protection",
+            "section": "6.1 Transformer Protection Guidelines",
+            "snippet": "Overcurrent relay elements operating during heavy load or fault events."
+          },
+          {
+            "source_id": "SOP-THFT-003",
+            "title": "Suspected Theft-Related Overload on Distribution Feeders",
+            "section": "5.4 Non-Technical Loss and Overload Investigation",
+            "snippet": "Persistent high loading on a feeder without corresponding increases in billed demand."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T09",
+      "fault_type": "LLL",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-OVLD-001",
+        "SOP-MISC-002"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002",
+        "SOP-TRF-004"
+      ],
+      "context_precision": 0.5,
+      "context_recall": 0.5,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.0,
+      "total_claims": 8,
+      "grounded_claims": 0,
+      "ungrounded_examples": [
+        "Bus b650 shows a severe voltage collapse (minVa=0.05).",
+        "Bus b650 shows very low zero-sequence and negative-sequence current ratios.",
+        "This condition is most consistent with a balanced three-phase fault rather than a ground-involved or overload condition.",
+        "The event should be treated as a high-severity fault requiring isolation, inspection, and restoration checks.",
+        "The electrical signature at b650 indicates a balanced fault: both max_I0_I1=0.003 and max_I2_I1=0.004 are near zero, while minVa=0.05 shows a deep voltage sag.",
+        "Per the provided SOP context, the overload SOP (SOP-OVLD-001, Section 3.1) is not the best match because overloads are characterized by sustained high current with only a modest sag and gradual heating, whereas this event is an abrupt severe sag.",
+        "No strong evidence of relay miscoordination is present in the retrieved SOP context.",
+        "The most plausible root cause is a solid three-phase short or equivalent balanced fault at/near b650."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b650",
+        "fault_type": "balanced three-phase fault",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "Bus b650 shows a severe voltage collapse (minVa=0.05) with very low zero-sequence and negative-sequence current ratios, which is most consistent with a balanced three-phase fault rather than a ground-involved or overload condition. The event should be treated as a high-severity fault requiring isolation, inspection, and restoration checks.",
+        "root_cause": "The electrical signature at b650 indicates a balanced fault: both max_I0_I1=0.003 and max_I2_I1=0.004 are near zero, while minVa=0.05 shows a deep voltage sag. Per the provided SOP context, the overload SOP (SOP-OVLD-001, Section 3.1) is not the best match because overloads are characterized by sustained high current with only a modest sag and gradual heating, whereas this event is an abrupt severe sag. No strong evidence of relay miscoordination is present in the retrieved SOP context, so the most plausible root cause is a solid three-phase short or equivalent balanced fault at/near b650.",
+        "recommended_actions": [
+          "Isolate the b650 section of the feeder and verify de-energization before field work.",
+          "Dispatch a patrol to inspect conductors, connectors, switches, and nearby equipment for three-phase damage or contact with foreign objects.",
+          "Review relay and SCADA event records to confirm fault clearing time and verify upstream/downstream device operation.",
+          "Perform insulation and visual checks before re-energizing the affected segment.",
+          "Restore service in stages after confirming fault location is cleared and protective devices have reset correctly."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:05:00Z",
+            "metric": "voltage",
+            "description": "At bus b650, minVa=0.05 indicates a deep voltage sag consistent with a severe fault event."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:05:00Z",
+            "metric": "current",
+            "description": "At bus b650, maxI0I1=0.003 and maxI2I1=0.004 are near zero, indicating minimal ground and negative-sequence content and supporting a balanced three-phase fault interpretation."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Overload Trip Criteria",
+            "snippet": "Feeder current trending above 80% of the continuous thermal rating; sustained current at or above 100% of the feeder rating for several seconds; gradual heating rather than instantaneous faults."
+          },
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "Multiple protective devices operate for the same event in a way that does not match the intended coordination study."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T10",
+      "fault_type": "LLL",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-TRF-004",
+        "SOP-THFT-003"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002",
+        "SOP-TRF-004"
+      ],
+      "context_precision": 0.5,
+      "context_recall": 0.5,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.4,
+      "total_claims": 10,
+      "grounded_claims": 4,
+      "ungrounded_examples": [
+        "The disturbance at bus b632 shows very deep voltage depression (minVa=0.07 pu).",
+        "The disturbance at bus b632 shows elevated current (maxIa=6.8 pu).",
+        "Near-zero zero-sequence and negative-sequence ratios indicate the event is not dominated by ground involvement or phase unbalance.",
+        "This pattern is more consistent with a severe overload or sustained overcurrent condition than a grounded or unbalanced fault.",
+        "The very low minVa with high current indicates a heavy loading/overcurrent condition.",
+        "This aligns with SOP-TRF-004 \u00a76.1, which calls out transformer load approaching or exceeding nameplate rating and overcurrent relay operation during heavy load or fault events.",
+        "SOP-THFT-003 \u00a75.4 is also relevant if the overload is persistent and not supported by expected billed demand, suggesting possible non-technical loss or unauthorized load."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b632",
+        "fault_type": "overload / sustained overcurrent",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "The disturbance at bus b632 shows very deep voltage depression (minVa=0.07 pu) with elevated current (maxIa=6.8 pu) but near-zero zero-sequence and negative-sequence ratios. This pattern is more consistent with a severe overload or sustained overcurrent condition than a grounded or unbalanced fault.",
+        "root_cause": "Per the signature guidance, low max_I0_I1 and low max_I2_I1 indicate the event is not dominated by ground involvement or phase unbalance, while the very low minVa with high current indicates a heavy loading/overcurrent condition. This aligns with SOP-TRF-004 \u00a76.1, which calls out transformer load approaching or exceeding nameplate rating and overcurrent relay operation during heavy load or fault events. SOP-THFT-003 \u00a75.4 is also relevant if the overload is persistent and not supported by expected billed demand, suggesting possible non-technical loss or unauthorized load.",
+        "recommended_actions": [
+          "Verify feeder and transformer loading at bus b632 against nameplate and operating limits.",
+          "Check SCADA and substation records for elevated winding or oil temperature, overcurrent relay pickup, and breaker/recloser operations.",
+          "Inspect downstream service area for abnormal or unauthorized connections if the overload is persistent or time-correlated with unusual demand patterns.",
+          "Coordinate field patrol to confirm no temporary equipment failure, loose connections, or customer-side load concentration is driving the current rise.",
+          "Apply load management or sectionalizing if thermal limits are being approached, and monitor voltage recovery after load reduction."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "voltage",
+            "description": "Bus b632 experienced severe voltage sag with minVa=0.07 pu, indicating a major stress event on the feeder."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "current",
+            "description": "Bus b632 current rose to maxIa=6.8 pu while maxI0I1=0.002 and maxI2I1=0.003 remained near zero, supporting an overload-type condition rather than a grounded or unbalanced fault."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-TRF-004",
+            "title": "Transformer Overcurrent and Thermal Protection",
+            "section": "6.1 Transformer Protection Guidelines",
+            "snippet": "Transformer load approaching or exceeding nameplate MVA rating; overcurrent relay elements operating during heavy load or fault events."
+          },
+          {
+            "source_id": "SOP-THFT-003",
+            "title": "Suspected Theft-Related Overload on Distribution Feeders",
+            "section": "5.4 Non-Technical Loss and Overload Investigation",
+            "snippet": "Persistent high loading on a feeder without corresponding increases in billed demand."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T11",
+      "fault_type": "LLLG",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-TRF-004",
+        "SOP-OVLD-001"
+      ],
+      "ground_truth_sops": [
+        "SOP-OVLD-001",
+        "SOP-TRF-004"
+      ],
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.1,
+      "total_claims": 10,
+      "grounded_claims": 1,
+      "ungrounded_examples": [
+        "Bus b650 shows a severe voltage collapse (minVa=0.03).",
+        "Bus b650 shows elevated current.",
+        "Bus b650 shows a strong zero-sequence component (maxI0I1=0.61).",
+        "This indicates ground involvement.",
+        "The near-zero negative-sequence ratio suggests a largely single-phase, ground-referenced disturbance.",
+        "This is rather than a balanced three-phase event.",
+        "This is rather than a pure overload.",
+        "The electrical signature is most consistent with a single-line-to-ground fault.",
+        "The very low voltage at the disturbed bus confirms a fault-level voltage sag.",
+        "This is not aligned with SOP-OVLD-001 overload criteria, which describe sustained elevated current with gradual heating; instead, the abrupt deep sag and sequence components indicate a fault event requiring feeder fault isolation and inspection."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b650",
+        "fault_type": "single-line-to-ground fault (SLG)",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "Bus b650 shows a severe voltage collapse (minVa=0.03) with elevated current and a strong zero-sequence component (maxI0I1=0.61), indicating ground involvement. The near-zero negative-sequence ratio suggests a largely single-phase, ground-referenced disturbance rather than a balanced three-phase event or pure overload.",
+        "root_cause": "The electrical signature is most consistent with a single-line-to-ground fault: high zero-sequence current ratio indicates ground path involvement, while the very low voltage at the disturbed bus confirms a fault-level voltage sag. This is not aligned with SOP-OVLD-001 overload criteria, which describe sustained elevated current with gradual heating; instead, the abrupt deep sag and sequence components indicate a fault event requiring feeder fault isolation and inspection.",
+        "recommended_actions": [
+          "Confirm protection relay operations and identify the faulted phase using relay/SCADA event records.",
+          "Isolate the affected section of feeder ieee13 at or upstream of bus b650 and execute the approved switching plan.",
+          "Perform field patrol from the source side to b650 for conductor contact with vegetation, pole-top damage, insulator flashover, or downed equipment.",
+          "Check upstream and downstream recloser/fuse status and verify whether the fault was temporary or permanent before re-energizing.",
+          "Review post-event current and voltage waveforms for coordination and confirm no additional equipment damage occurred."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "voltage",
+            "description": "b650 experienced a deep voltage sag with minVa=0.03, consistent with a fault-level collapse."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "current",
+            "description": "b650 showed elevated current maxIa=8.1 with strong zero-sequence ratio maxI0I1=0.61 and negligible negative-sequence ratio maxI2I1=0.005, indicating ground-involved fault behavior."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Overload Trip Criteria",
+            "snippet": "Feeder current trending above 80% of the continuous thermal rating."
+          },
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Overload Trip Criteria",
+            "snippet": "Sustained current at or above 100% of the feeder rating for several seconds."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T12",
+      "fault_type": "LLLG",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-TRF-004",
+        "SOP-OVLD-001"
+      ],
+      "ground_truth_sops": [
+        "SOP-OVLD-001",
+        "SOP-TRF-004"
+      ],
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.0,
+      "total_claims": 8,
+      "grounded_claims": 0,
+      "ungrounded_examples": [
+        "Bus b632 shows a severe voltage collapse (minVa=0.04)",
+        "Bus b632 shows elevated current",
+        "Bus b632 shows a strong zero-sequence component (maxI0I1=0.59)",
+        "negative-sequence remains near zero",
+        "This pattern is most consistent with a ground-involved fault",
+        "likely a single-line-to-ground event",
+        "The deep voltage sag at the same bus supports an actual fault rather than a thermal overload condition",
+        "SOP-OVLD-001 applies to sustained feeder current with gradual heating, which is not the observed pattern here"
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b632",
+        "fault_type": "single-line-to-ground fault",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "Bus b632 shows a severe voltage collapse (minVa=0.04) with elevated current and a strong zero-sequence component (maxI0I1=0.59) while negative-sequence remains near zero. This pattern is most consistent with a ground-involved fault, likely a single-line-to-ground event rather than overload.",
+        "root_cause": "The electrical signature is dominated by high zero-sequence current with very low negative-sequence current, which per the detection guidance indicates ground involvement and points to an SLG-type fault. The deep voltage sag at the same bus supports an actual fault rather than a thermal overload condition; SOP-OVLD-001 applies to sustained feeder current with gradual heating, which is not the observed pattern here.",
+        "recommended_actions": [
+          "Isolate and inspect feeder section around bus b632 for conductor-to-ground contact, insulator failure, vegetation contact, or damaged hardware.",
+          "Check relay event records and protection flags for ground fault pickup and clearing times.",
+          "Verify downstream and upstream devices for any miscoordination or failed clearing during the event.",
+          "After isolation, perform patrol and infrared/visual inspection before re-energizing the affected segment.",
+          "If no permanent damage is found, restore service incrementally and confirm normal voltage/current balance."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:00Z",
+            "metric": "voltage",
+            "description": "b632 minVa=0.04 indicates a severe voltage sag consistent with a faulted condition."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:00Z",
+            "metric": "current",
+            "description": "b632 maxIa=7.9 with maxI0I1=0.59 and maxI2I1=0.004 indicates strong zero-sequence current and negligible negative-sequence current, supporting a ground fault."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Overload Trip Criteria",
+            "snippet": "Feeder current trending above 80% of the continuous thermal rating... sustained current at or above 100%... gradual heating rather than instantaneous faults."
+          },
+          {
+            "source_id": "SOP-TRF-004",
+            "title": "Transformer Overcurrent and Thermal Protection",
+            "section": "6.1 Transformer Protection Guidelines",
+            "snippet": "Overcurrent relay elements operating during heavy load or fault events."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T13",
+      "fault_type": "LLLG",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-TRF-004",
+        "SOP-OVLD-001"
+      ],
+      "ground_truth_sops": [
+        "SOP-OVLD-001",
+        "SOP-TRF-004"
+      ],
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.2,
+      "total_claims": 10,
+      "grounded_claims": 2,
+      "ungrounded_examples": [
+        "Bus b671 shows a severe voltage collapse (minVa=0.05 pu).",
+        "Elevated current and a strong zero-sequence component indicate a ground-involved fault rather than a balanced three-phase event.",
+        "The disturbance signature is most consistent with a single-line-to-ground fault on or near the b671 section of the feeder.",
+        "max_I0_I1=0.57 is high.",
+        "max_I2_I1=0.003 is near zero, which rules out a balanced three-phase fault and strongly supports an SLG-type fault.",
+        "The very low voltage (minVa=0.05 pu) together with high current (maxIa=7.6) indicates an abrupt fault rather than an overload.",
+        "This is consistent with SOP-TRF-004 guidance that overcurrent during fault events can accompany protection operations.",
+        "The dominant evidence here is a faulted condition with ground return current rather than thermal overload.",
+        "SOP-OVLD-001 is less applicable because overloads typically show sustained heating and gradual current rise.",
+        "Overloads typically show a deep instantaneous sag."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b671",
+        "fault_type": "single-line-to-ground fault",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "Bus b671 shows a severe voltage collapse (minVa=0.05 pu) with elevated current and a strong zero-sequence component, indicating a ground-involved fault rather than a balanced three-phase event. The disturbance signature is most consistent with a single-line-to-ground fault on or near the b671 section of the feeder.",
+        "root_cause": "The electrical signature points to ground involvement: max_I0_I1=0.57 is high, while max_I2_I1=0.003 is near zero, which rules out a balanced three-phase fault and strongly supports an SLG-type fault. The very low voltage (minVa=0.05 pu) together with high current (maxIa=7.6) indicates an abrupt fault rather than an overload. This is consistent with SOP-TRF-004 guidance that overcurrent during fault events can accompany protection operations, but the dominant evidence here is a faulted condition with ground return current rather than thermal overload; SOP-OVLD-001 is less applicable because overloads typically show sustained heating and gradual current rise, not a deep instantaneous sag.",
+        "recommended_actions": [
+          "Dispatch field crew to inspect feeder section around bus b671 for conductor contact to ground, damaged insulation, broken hardware, or vegetation intrusion.",
+          "Verify protective relay and recloser operations on the ieee13 feeder and confirm whether an SLG element operated.",
+          "Check SCADA/DMS event logs for fault current magnitude, phase, and time correlation to locate the faulted section.",
+          "If the feeder remains in service, isolate the affected section and restore downstream customers only after faulted equipment is cleared and tested.",
+          "Inspect transformer and upstream protection devices for any overcurrent operation that may have accompanied the fault, per SOP-TRF-004."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:05:00Z",
+            "metric": "voltage",
+            "description": "b671 recorded a severe voltage sag with minVa=0.05 pu, consistent with a faulted section rather than a loading event."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:05:00Z",
+            "metric": "current",
+            "description": "b671 showed elevated current with maxIa=7.6 and strong zero-sequence ratio maxI0I1=0.57, indicating ground fault involvement."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-TRF-004",
+            "title": "Transformer Overcurrent and Thermal Protection",
+            "section": "6.1 Transformer Protection Guidelines",
+            "snippet": "Overcurrent relay elements operating during heavy load or fault events."
+          },
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Overload Trip Criteria",
+            "snippet": "Feeder current trending above 80% of the continuous thermal rating."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T14",
+      "fault_type": "OPEN_1PH",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-OVLD-001",
+        "SOP-MISC-002"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002"
+      ],
+      "context_precision": 0.5,
+      "context_recall": 1.0,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.2,
+      "total_claims": 10,
+      "grounded_claims": 2,
+      "ungrounded_examples": [
+        "Bus b684 shows a deep voltage sag (minVa=0.61)",
+        "with elevated zero-sequence and negative-sequence current ratios",
+        "indicating an unbalanced fault with ground involvement.",
+        "The current magnitude is not strongly elevated",
+        "so this is more consistent with a localized SLG fault than an overload condition.",
+        "The electrical signature is most consistent with a single line-to-ground fault",
+        "the zero-sequence ratio (maxI0I1=0.22) indicates ground involvement",
+        "and the negative-sequence ratio (maxI2I1=0.19) confirms unbalance.",
+        "Instead, the observed deep sag at b684 suggests a fault event requiring protection review and field inspection rather than thermal overload handling."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-001",
+        "scenario": "ieee13",
+        "bus_id": "b684",
+        "fault_type": "single line-to-ground fault (SLG)",
+        "severity": "medium",
+        "status": "diagnosed",
+        "summary": "Bus b684 shows a deep voltage sag (minVa=0.61) with elevated zero-sequence and negative-sequence current ratios, indicating an unbalanced fault with ground involvement. The current magnitude is not strongly elevated, so this is more consistent with a localized SLG fault than an overload condition.",
+        "root_cause": "The electrical signature is most consistent with a single line-to-ground fault: the zero-sequence ratio (maxI0I1=0.22) indicates ground involvement, and the negative-sequence ratio (maxI2I1=0.19) confirms unbalance. This does not match SOP-OVLD-001 overload criteria, which require sustained high current and gradual thermal buildup; instead, the observed deep sag at b684 suggests a fault event requiring protection review and field inspection rather than thermal overload handling.",
+        "recommended_actions": [
+          "Inspect bus b684 and the downstream line section for conductor-to-ground contact, insulation damage, vegetation encroachment, or pole-top hardware faults.",
+          "Review relay and recloser operations for the event to confirm correct fault clearing and verify no miscoordination occurred.",
+          "Check SCADA and disturbance records for the fault duration and phase involvement to validate SLG classification.",
+          "If the fault has cleared, perform an insulated visual patrol before re-energization; if still present, isolate the affected section and dispatch a crew.",
+          "Trend post-event voltage and current to confirm system recovery and ensure no secondary damage remains."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:00Z",
+            "metric": "voltage",
+            "description": "Bus b684 experienced a deep voltage sag with minVa=0.61, consistent with a faulted condition rather than normal loading."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:00Z",
+            "metric": "current",
+            "description": "Current signature at b684 shows maxI0I1=0.22 and maxI2I1=0.19, indicating ground involvement and phase unbalance typical of an SLG fault."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Overload Trip Criteria",
+            "snippet": "Feeder current trending above 80% of the continuous thermal rating... sustained current... for several seconds."
+          },
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "Multiple protective devices operate for the same event... Upstream devices trip for faults that should have been cleared by downstream devices."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T15",
+      "fault_type": "OPEN_1PH",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-MISC-002",
+        "SOP-THFT-003"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002"
+      ],
+      "context_precision": 0.5,
+      "context_recall": 1.0,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.0,
+      "total_claims": 9,
+      "grounded_claims": 0,
+      "ungrounded_examples": [
+        "Bus b675 shows a deep voltage sag (minVa=0.58)",
+        "moderate zero-sequence and negative-sequence current ratios",
+        "indicating an unbalanced event with ground involvement",
+        "The pattern is most consistent with a single line-to-ground fault rather than a balanced three-phase fault or pure overload.",
+        "the electrical signature at b675 indicates ground involvement because max_I0_I1=0.2 and unbalance because max_I2_I1=0.18",
+        "the voltage magnitude drops sharply to 0.58 pu",
+        "Per SOP-MISC-002 Section 4.2, nuisance operations and miscoordination should be considered when protective behavior does not align with expected clearing",
+        "the present signature is more indicative of an actual feeder fault than relay-only miscoordination",
+        "the current level is modest (maxIa=0.16) and does not fit sustained overload criteria"
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-001",
+        "scenario": "ieee13",
+        "bus_id": "b675",
+        "fault_type": "single line-to-ground (SLG) fault",
+        "severity": "medium",
+        "status": "diagnosed",
+        "summary": "Bus b675 shows a deep voltage sag (minVa=0.58) with moderate zero-sequence and negative-sequence current ratios, indicating an unbalanced event with ground involvement. The pattern is most consistent with a single line-to-ground fault rather than a balanced three-phase fault or pure overload.",
+        "root_cause": "The electrical signature at b675 indicates ground involvement because max_I0_I1=0.2 and unbalance because max_I2_I1=0.18, while the voltage magnitude drops sharply to 0.58 pu. Per SOP-MISC-002 Section 4.2, nuisance operations and miscoordination should be considered when protective behavior does not align with expected clearing, but the present signature is more indicative of an actual feeder fault than relay-only miscoordination. SOP-THFT-003 was reviewed for overload conditions, but the current level is modest (maxIa=0.16) and does not fit sustained overload criteria.",
+        "recommended_actions": [
+          "Dispatch field crew to inspect bus b675 and the adjacent feeder section for conductor contact, insulation damage, or vegetation-caused ground fault.",
+          "Review relay and recloser event logs for the event window to confirm which protective devices operated and whether coordination was maintained.",
+          "Check downstream customer outage reports and feeder SCADA/OMS alarms to correlate the disturbance with any visible interruption or auto-reclose attempts.",
+          "If no physical fault is found, verify grounding, fuse status, and protection settings to rule out miscoordination per SOP-MISC-002.",
+          "Monitor feeder loading after restoration to ensure no persistent abnormal current remains and that the event does not recur."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "voltage",
+            "description": "Bus b675 experienced a deep voltage sag with minVa=0.58 pu, consistent with a fault-induced disturbance."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "current",
+            "description": "Moderate zero-sequence and negative-sequence ratios were observed (max_I0_I1=0.2, max_I2_I1=0.18), indicating ground involvement and unbalance."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "Upstream devices trip for faults that should have been cleared by downstream devices."
+          },
+          {
+            "source_id": "SOP-THFT-003",
+            "title": "Suspected Theft-Related Overload on Distribution Feeders",
+            "section": "5.4 Non-Technical Loss and Overload Investigation",
+            "snippet": "Persistent high loading on a feeder without corresponding increases in billed demand."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T16",
+      "fault_type": "OPEN_1PH",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-MISC-002",
+        "SOP-THFT-003"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002"
+      ],
+      "context_precision": 0.5,
+      "context_recall": 1.0,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.0,
+      "total_claims": 9,
+      "grounded_claims": 0,
+      "ungrounded_examples": [
+        "Bus b632 shows a deep voltage sag (minVa=0.6).",
+        "Bus b632 shows elevated zero-sequence and negative-sequence current ratios.",
+        "This indicates an unbalanced ground-involved fault rather than a pure overload.",
+        "The disturbance is consistent with an SLG event on the feeder.",
+        "The disturbance warrants immediate field verification and protection review.",
+        "The signature at b632 indicates ground involvement because max_I0_I1=0.21 is elevated.",
+        "The negative-sequence ratio max_I2_I1=0.17 confirms significant unbalance.",
+        "Per SOP-MISC-002 Section 4.2, abnormal tripping or miscoordination should be reviewed when a feeder event does not align with intended coordination behavior.",
+        "The observed deep sag (minVa=0.6) supports a fault rather than the sustained high-current, modest-sag pattern described in SOP-THFT-003 for overload-related non-technical loss investigations."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b632",
+        "fault_type": "single-line-to-ground (SLG) fault",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "Bus b632 shows a deep voltage sag (minVa=0.6) with elevated zero-sequence and negative-sequence current ratios, indicating an unbalanced ground-involved fault rather than a pure overload. The disturbance is consistent with an SLG event on the feeder and warrants immediate field verification and protection review.",
+        "root_cause": "The signature at b632 indicates ground involvement because max_I0_I1=0.21 is elevated, and the negative-sequence ratio max_I2_I1=0.17 confirms significant unbalance. Per SOP-MISC-002 Section 4.2, abnormal tripping or miscoordination should be reviewed when a feeder event does not align with intended coordination behavior; however, the electrical signature here is more consistent with a genuine fault than a nuisance trip. The observed deep sag (minVa=0.6) supports a fault rather than the sustained high-current, modest-sag pattern described in SOP-THFT-003 for overload-related non-technical loss investigations.",
+        "recommended_actions": [
+          "Inspect feeder segment around bus b632 for line-to-ground contact, damaged insulation, vegetation contact, or compromised hardware.",
+          "Review relay and recloser event logs for the fault interval to confirm clearing sequence and check for any coordination issues.",
+          "Verify sectionalizing device status and isolate the affected section if the fault is still present.",
+          "Perform protective device coordination check consistent with SOP-MISC-002 Section 4.2 if upstream/downstream operations appear abnormal.",
+          "After restoration, inspect conductor, insulator, and grounding conditions at and upstream of b632 before re-energization."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "voltage",
+            "description": "At bus b632, minVa=0.6 indicates a deep voltage sag consistent with a fault event."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "current",
+            "description": "At bus b632, maxI0I1=0.21 and maxI2I1=0.17 indicate ground involvement and strong unbalance, supporting an SLG fault signature."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "Upstream devices trip for faults that should have been cleared by downstream devices."
+          },
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "Nuisance trips occur with no clear corresponding fault indication."
+          },
+          {
+            "source_id": "SOP-THFT-003",
+            "title": "Suspected Theft-Related Overload on Distribution Feeders",
+            "section": "5.4 Non-Technical Loss and Overload Investigation",
+            "snippet": "Persistent high loading on a feeder without corresponding increases in billed demand."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T17",
+      "fault_type": "OPEN_2PH",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-TRF-004",
+        "SOP-MISC-002"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002"
+      ],
+      "context_precision": 0.5,
+      "context_recall": 1.0,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.125,
+      "total_claims": 8,
+      "grounded_claims": 1,
+      "ungrounded_examples": [
+        "Bus b650 shows a deep voltage sag (minVa=0.41)",
+        "elevated zero-sequence and negative-sequence current ratios",
+        "which is consistent with an unbalanced ground-involved fault",
+        "The current magnitude is not high enough to suggest a transformer overload condition",
+        "the most plausible event is a single-line-to-ground fault or similar ground-involved disturbance",
+        "The electrical signature at b650 indicates ground involvement because maxI0I1=0.31 is elevated, and the unbalance is reinforced by maxI2I1=0.28",
+        "high zero-sequence current indicates GROUND involvement and high negative-sequence current indicates UNBALANCE, which together point to an SLG-type fault rather than a balanced three-phase fault or an overload",
+        "SOP-MISC-002 is relevant for checking whether feeder protection operated as intended and whether any upstream/downstream devices cleared the event in coordination"
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-ieee13-b650-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b650",
+        "fault_type": "single-line-to-ground fault",
+        "severity": "medium",
+        "status": "diagnosed",
+        "summary": "Bus b650 shows a deep voltage sag (minVa=0.41) with elevated zero-sequence and negative-sequence current ratios, which is consistent with an unbalanced ground-involved fault. The current magnitude is not high enough to suggest a transformer overload condition, so the most plausible event is a single-line-to-ground fault or similar ground-involved disturbance.",
+        "root_cause": "The electrical signature at b650 indicates ground involvement because maxI0I1=0.31 is elevated, and the unbalance is reinforced by maxI2I1=0.28. Per the provided detection interpretation, high zero-sequence current indicates GROUND involvement and high negative-sequence current indicates UNBALANCE, which together point to an SLG-type fault rather than a balanced three-phase fault or an overload. SOP-MISC-002 is relevant for checking whether feeder protection operated as intended and whether any upstream/downstream devices cleared the event in coordination.",
+        "recommended_actions": [
+          "Inspect feeder protection and event records for b650 to confirm which device cleared the disturbance and whether relay coordination was maintained.",
+          "Perform field inspection on the lateral/section served by b650 for evidence of conductor contact to ground, insulator damage, vegetation intrusion, or wildlife contact.",
+          "Verify downstream and upstream protective device operations to rule out nuisance tripping or miscoordination per SOP-MISC-002.",
+          "If the event is ongoing or recurring, isolate the affected section and patrol before re-energization.",
+          "Collect relay fault records, waveform captures, and SCADA snapshots for post-event analysis."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:10Z",
+            "metric": "voltage",
+            "description": "b650 minimum phase voltage sagged to 0.41 pu, indicating a significant disturbance at the bus."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:10Z",
+            "metric": "current",
+            "description": "b650 shows elevated zero-sequence and negative-sequence ratios (maxI0I1=0.31, maxI2I1=0.28), supporting a ground-involved unbalanced fault signature."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "Multiple protective devices operate for the same event in a way that does not match the intended coordination study."
+          },
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "Upstream devices trip for faults that should have been cleared by downstream devices."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T18",
+      "fault_type": "OPEN_2PH",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-MISC-002",
+        "SOP-TRF-004"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002"
+      ],
+      "context_precision": 0.5,
+      "context_recall": 1.0,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.0,
+      "total_claims": 9,
+      "grounded_claims": 0,
+      "ungrounded_examples": [
+        "Bus b671 shows a deep voltage sag (minVa=0.44 pu) with moderate zero-sequence and negative-sequence components, which is consistent with a ground-involved unbalanced fault.",
+        "The current is not strongly elevated, so this does not look like an overload condition.",
+        "The electrical signature most closely matches an SLG event on or near the bus.",
+        "The disturbance signature indicates ground involvement because maxI0I1=0.29 and unbalance because maxI2I1=0.26.",
+        "The low voltage (minVa=0.44) confirms a fault rather than a simple loading issue.",
+        "Per SOP-MISC-002 Section 4.2, protection events that do not match expected coordination and can appear as nuisance or unexpected trips should be investigated for relay miscoordination and a fault local to the feeder section.",
+        "SOP-TRF-004 is less likely here because the current magnitude is modest (maxIa=0.2).",
+        "There is no evidence of sustained overload.",
+        "There is no evidence of thermal stress."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b671",
+        "fault_type": "single-line-to-ground fault",
+        "severity": "medium",
+        "status": "diagnosed",
+        "summary": "Bus b671 shows a deep voltage sag (minVa=0.44 pu) with moderate zero-sequence and negative-sequence components, which is consistent with a ground-involved unbalanced fault. The current is not strongly elevated, so this does not look like an overload condition; the electrical signature most closely matches an SLG event on or near the bus.",
+        "root_cause": "The disturbance signature indicates ground involvement because maxI0I1=0.29 and unbalance because maxI2I1=0.26, while the low voltage (minVa=0.44) confirms a fault rather than a simple loading issue. Per SOP-MISC-002 Section 4.2, protection events that do not match expected coordination and can appear as nuisance or unexpected trips should be investigated for relay miscoordination and a fault local to the feeder section. SOP-TRF-004 is less likely here because the current magnitude is modest (maxIa=0.2) and there is no evidence of sustained overload or thermal stress.",
+        "recommended_actions": [
+          "Inspect protective relay operations and event logs for feeder section around b671 to confirm whether a downstream device cleared the event as intended.",
+          "Perform field patrol and fault location checks on the lateral/section associated with b671 for signs of a ground fault, conductor contact, insulator damage, or vegetation intrusion.",
+          "Review relay coordination settings and sequence of operations to rule out nuisance tripping or miscoordination per SOP-MISC-002.",
+          "Verify post-event voltage recovery and monitor for \u043f\u043e\u0432\u0442\u043e\u0440 recurrence before re-energizing affected section if isolation was applied."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "voltage",
+            "description": "b671 experienced a deep sag with minVa=0.44 pu, indicating a significant fault-level disturbance."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "current",
+            "description": "Moderate maxI0I1=0.29 and maxI2I1=0.26 indicate ground involvement and phase unbalance, while maxIa=0.2 does not support an overload-dominant condition."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "Upstream devices trip for faults that should have been cleared by downstream devices."
+          },
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "Nuisance trips occur with no clear corresponding"
+          },
+          {
+            "source_id": "SOP-TRF-004",
+            "title": "Transformer Overcurrent and Thermal Protection",
+            "section": "6.1 Transformer Protection Guidelines",
+            "snippet": "Transformer load approaching or exceeding nameplate MVA rating."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T19",
+      "fault_type": "OPEN_3PH",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-TRF-004",
+        "SOP-THFT-003"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002",
+        "SOP-TRF-004"
+      ],
+      "context_precision": 0.5,
+      "context_recall": 0.5,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.18,
+      "total_claims": 11,
+      "grounded_claims": 2,
+      "ungrounded_examples": [
+        "Bus b650 shows a deep voltage sag (minVa=0.08) with elevated zero-sequence and negative-sequence ratios.",
+        "This is most consistent with a ground-involved unbalanced fault.",
+        "The signature is not typical of a pure overload, since current is not strongly elevated relative to the severe voltage depression.",
+        "The electrical signature indicates ground involvement and unbalance: maxI0I1=0.41 points to significant zero-sequence current and maxI2I1=0.38 indicates strong negative-sequence content.",
+        "Per fault interpretation rules, this aligns best with an SLG-type disturbance rather than a balanced three-phase event or a pure overload.",
+        "The most plausible root cause is a single-phase insulation failure or conductor-to-ground contact on the feeder segment near b650.",
+        "The retrieved SOPs focus on overload/transformer protection rather than fault isolation.",
+        "SOP-TRF-004 notes overcurrent protection operation during fault events.",
+        "This supports immediate protective-device review.",
+        "SOP-THFT-003 supports checking for abnormal feeder loading patterns that could contribute to stressed equipment or conceal recurring non-technical losses."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-001",
+        "scenario": "ieee13",
+        "bus_id": "b650",
+        "fault_type": "single-line-to-ground fault",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "Bus b650 shows a deep voltage sag (minVa=0.08) with elevated zero-sequence and negative-sequence ratios, which is most consistent with a ground-involved unbalanced fault. The signature is not typical of a pure overload, since current is not strongly elevated relative to the severe voltage depression.",
+        "root_cause": "The electrical signature indicates ground involvement and unbalance: maxI0I1=0.41 points to significant zero-sequence current and maxI2I1=0.38 indicates strong negative-sequence content. Per fault interpretation rules, this aligns best with an SLG-type disturbance rather than a balanced three-phase event or a pure overload; therefore the most plausible root cause is a single-phase insulation failure or conductor-to-ground contact on the feeder segment near b650. Although the retrieved SOPs focus on overload/transformer protection rather than fault isolation, SOP-TRF-004 notes overcurrent protection operation during fault events, supporting immediate protective-device review, and SOP-THFT-003 supports checking for abnormal feeder loading patterns that could contribute to stressed equipment or conceal recurring non-technical losses.",
+        "recommended_actions": [
+          "Inspect and isolate the feeder section around b650 using standard switching procedures and confirm whether a phase-to-ground fault is present.",
+          "Check relay, recloser, and SCADA event logs for ground overcurrent, negative-sequence, and trip operations during the disturbance window.",
+          "Perform\u73b0\u573a/field inspection for damaged conductors, insulator failure, vegetation contact, or contamination at and upstream of b650.",
+          "Verify transformer and feeder thermal loading to ensure no secondary equipment damage occurred following the fault.",
+          "If no physical fault is found, review load and billing patterns for abnormal persistent loading that may indicate unauthorized connections or recurring stress conditions."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:05:00Z",
+            "metric": "voltage",
+            "description": "b650 recorded a severe voltage sag with minVa=0.08, indicating a major disturbance rather than a mild overload."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:05:00Z",
+            "metric": "current",
+            "description": "b650 showed elevated zero-sequence and negative-sequence ratios (maxI0I1=0.41, maxI2I1=0.38), consistent with an unbalanced ground-involved fault."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-TRF-004",
+            "title": "Transformer Overcurrent and Thermal Protection",
+            "section": "6.1 Transformer Protection Guidelines",
+            "snippet": "Overcurrent relay elements operating during heavy load or fault events."
+          },
+          {
+            "source_id": "SOP-THFT-003",
+            "title": "Suspected Theft-Related Overload on Distribution Feeders",
+            "section": "5.4 Non-Technical Loss and Overload Investigation",
+            "snippet": "Persistent high loading on a feeder without corresponding increases in billed demand."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T20",
+      "fault_type": "OPEN_3PH",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-TRF-004",
+        "SOP-THFT-003"
+      ],
+      "ground_truth_sops": [
+        "SOP-MISC-002",
+        "SOP-TRF-004"
+      ],
+      "context_precision": 0.5,
+      "context_recall": 0.5,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.3,
+      "total_claims": 10,
+      "grounded_claims": 3,
+      "ungrounded_examples": [
+        "Bus b632 shows a deep voltage sag with very low minVa=0.09",
+        "accompanied by elevated zero-sequence and negative-sequence current ratios",
+        "This pattern is most consistent with a ground-involved fault, likely an SLG event, rather than a pure overload condition.",
+        "The electrical signature indicates faulted phase-to-ground involvement: maxI0I1=0.39 suggests significant zero-sequence current and maxI2I1=0.36 indicates strong unbalance, which matches a ground fault classification.",
+        "While the retrieved SOPs focus on overload/overcurrent scenarios rather than a direct fault isolation procedure",
+        "supporting the need to treat this as a protection and isolation issue rather than a thermal overload.",
+        "SOP-THFT-003 is less applicable because the observed event is a sudden sag with unbalanced current ratios",
+        "not a persistent feeder loading condition.",
+        "deep voltage sag",
+        "ground fault classification"
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-632-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b632",
+        "fault_type": "single line-to-ground fault",
+        "severity": "high",
+        "status": "diagnosed",
+        "summary": "Bus b632 shows a deep voltage sag with very low minVa=0.09, accompanied by elevated zero-sequence and negative-sequence current ratios. This pattern is most consistent with a ground-involved fault, likely an SLG event, rather than a pure overload condition.",
+        "root_cause": "The electrical signature indicates faulted phase-to-ground involvement: maxI0I1=0.39 suggests significant zero-sequence current and maxI2I1=0.36 indicates strong unbalance, which matches a ground fault classification. While the retrieved SOPs focus on overload/overcurrent scenarios rather than a direct fault isolation procedure, SOP-TRF-004 notes that overcurrent elements may operate during fault events, supporting the need to treat this as a protection and isolation issue rather than a thermal overload. SOP-THFT-003 is less applicable because the observed event is a sudden sag with unbalanced current ratios, not a persistent feeder loading condition.",
+        "recommended_actions": [
+          "Inspect protection relay logs and SCADA event records for ground fault pickup, breaker trip, and recloser operations near bus b632.",
+          "Dispatch field crew to inspect the line segment and connected equipment around b632 for conductor contact to ground, insulation damage, vegetation contact, or failed hardware.",
+          "Verify transformer and feeder protection coordination to confirm the event was cleared correctly and no downstream equipment remains isolated or damaged.",
+          "If a transformer or upstream device experienced sustained overcurrent during the event, review SOP-TRF-004 for post-event thermal and overcurrent checks.",
+          "If load anomalies are later observed without fault evidence, initiate a separate non-technical loss review per SOP-THFT-003."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:05:00Z",
+            "metric": "voltage",
+            "description": "b632 recorded a severe voltage sag with minVa=0.09, indicating an abrupt fault-like disturbance rather than gradual loading."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:05:00Z",
+            "metric": "current",
+            "description": "b632 showed elevated zero-sequence and negative-sequence ratios (maxI0I1=0.39, maxI2I1=0.36), supporting a ground-involved unbalanced fault signature."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-TRF-004",
+            "title": "Transformer Overcurrent and Thermal Protection",
+            "section": "6.1 Transformer Protection Guidelines",
+            "snippet": "Overcurrent relay elements operating during heavy load or fault events."
+          },
+          {
+            "source_id": "SOP-THFT-003",
+            "title": "Suspected Theft-Related Overload on Distribution Feeders",
+            "section": "5.4 Non-Technical Loss and Overload Investigation",
+            "snippet": "Persistent high loading on a feeder without corresponding increases in billed demand."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T21",
+      "fault_type": "OVERLOAD",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-OVLD-001",
+        "SOP-TRF-004"
+      ],
+      "ground_truth_sops": [
+        "SOP-OVLD-001",
+        "SOP-THFT-003"
+      ],
+      "context_precision": 0.5,
+      "context_recall": 0.5,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.4444,
+      "total_claims": 9,
+      "grounded_claims": 4,
+      "ungrounded_examples": [
+        "The disturbance is centered at bus b650.",
+        "It is characterized by modest voltage sag (minVa=0.88) with elevated current (maxIa=1.15) and near-zero zero/negative-sequence ratios.",
+        "This signature is more consistent with an overload or thermal stress condition than a short-circuit fault.",
+        "The overall anomaly score indicates a moderate event.",
+        "The observed pattern fits this guidance.",
+        "Transformer thermal stress is also plausible under SOP-TRF-004 Section 6.1 if the disturbed bus is downstream of a loaded transformer.",
+        "The primary diagnosis remains feeder overload / thermal stress."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b650",
+        "fault_type": "overload / thermal stress",
+        "severity": "medium",
+        "status": "diagnosed",
+        "summary": "The disturbance is centered at bus b650 and is characterized by modest voltage sag (minVa=0.88) with elevated current (maxIa=1.15) and near-zero zero/negative-sequence ratios. This signature is more consistent with an overload or thermal stress condition than a short-circuit fault, and the overall anomaly score indicates a moderate event.",
+        "root_cause": "The electrical signature does not show strong ground involvement or phase unbalance: maxI0I1=0.003 and maxI2I1=0.002 are both near zero, while current is elevated and voltage is only moderately depressed. Per SOP-OVLD-001 Section 3.1, overload conditions are identified by feeder current trending above 80% of thermal rating or sustained current at/above rating with gradual heating rather than instantaneous fault behavior; the observed pattern fits this guidance. Transformer thermal stress is also plausible under SOP-TRF-004 Section 6.1 if the disturbed bus is downstream of a loaded transformer, but the primary diagnosis remains feeder overload / thermal stress.",
+        "recommended_actions": [
+          "Check SCADA and relay records for sustained current above thermal limits and any overload/thermal relay pickups.",
+          "Inspect feeder and any downstream transformer connected near b650 for elevated temperature, loading, or cooling issues.",
+          "Verify load level and recent switching operations; shed or transfer load if current remains elevated.",
+          "Monitor voltage and current at b650 and adjacent buses for progression toward deeper sag or thermal protection operation.",
+          "If field confirmation is needed, perform a targeted inspection for loose connections, hotspotting, or overloaded equipment."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:00Z",
+            "metric": "voltage",
+            "description": "b650 shows a moderate voltage sag with minVa=0.88, which is not characteristic of a deep balanced fault."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:00:00Z",
+            "metric": "current",
+            "description": "b650 shows elevated current with maxIa=1.15 and near-zero sequence ratios (maxI0I1=0.003, maxI2I1=0.002), supporting an overload/thermal-stress interpretation rather than a ground or phase fault."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Overload Trip Criteria",
+            "snippet": "Feeder current trending above 80% of the continuous thermal rating... sustained current at or above 100% of the feeder rating for several seconds."
+          },
+          {
+            "source_id": "SOP-TRF-004",
+            "title": "Transformer Overcurrent and Thermal Protection",
+            "section": "6.1 Transformer Protection Guidelines",
+            "snippet": "Transformer load approaching or exceeding nameplate MVA rating... overcurrent relay elements operating during heavy load or fault events."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T22",
+      "fault_type": "OVERLOAD",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-OVLD-001",
+        "SOP-THFT-003"
+      ],
+      "ground_truth_sops": [
+        "SOP-OVLD-001",
+        "SOP-THFT-003"
+      ],
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.3333,
+      "total_claims": 9,
+      "grounded_claims": 3,
+      "ungrounded_examples": [
+        "The disturbance at bus b632 is characterized by elevated current with only a modest voltage sag and negligible zero- and negative-sequence content.",
+        "This pattern is more consistent with an overload or thermal stress condition than a short-circuit fault.",
+        "The disturbance is at bus b632.",
+        "based on sustained current elevation (maxIa=1.08) with only a mild voltage depression (minVa=0.9) and near-zero sequence components (maxI0I1=0.002, maxI2I1=0.002).",
+        "Per SOP-OVLD-001 Section 3.1, overload conditions are indicated by feeder current above normal thermal limits and traces showing gradual heating rather than instantaneous fault signatures.",
+        "the absence of strong ground or unbalance indicators argues against SLG/LL/LLG fault types.",
+        "If loading persists without corresponding billed demand changes, SOP-THFT-003 Section 5.4 recommends investigation for potential non-technical loss or unauthorized connections."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b632",
+        "fault_type": "feeder overload / thermal stress",
+        "severity": "medium",
+        "status": "diagnosed",
+        "summary": "The disturbance at bus b632 is characterized by elevated current with only a modest voltage sag and negligible zero- and negative-sequence content. This pattern is more consistent with an overload or thermal stress condition than a short-circuit fault.",
+        "root_cause": "Likely feeder overload or thermal loading near bus b632, based on sustained current elevation (maxIa=1.08) with only a mild voltage depression (minVa=0.9) and near-zero sequence components (maxI0I1=0.002, maxI2I1=0.002). Per SOP-OVLD-001 Section 3.1, overload conditions are indicated by feeder current above normal thermal limits and traces showing gradual heating rather than instantaneous fault signatures; the absence of strong ground or unbalance indicators argues against SLG/LL/LLG fault types. If loading persists without corresponding billed demand changes, SOP-THFT-003 Section 5.4 recommends investigation for potential non-technical loss or unauthorized connections.",
+        "recommended_actions": [
+          "Verify feeder loading against continuous thermal rating and monitor for sustained current above 80% of rating.",
+          "Inspect SCADA trends for gradual current rise or repeated peak-period loading rather than abrupt fault onset.",
+          "Check downstream service connections and customer demand records for possible non-technical loss indicators.",
+          "Perform field inspection of conductor, transformer, and termination temperatures near bus b632 if loading remains elevated.",
+          "Increase operational surveillance and consider temporary load transfer or feeder reconfiguration if thermal margins tighten."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:05:00Z",
+            "metric": "current",
+            "description": "b632 shows elevated current (maxIa=1.08) with no meaningful zero-sequence or negative-sequence rise, supporting overload rather than faulted phase-to-ground behavior."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:05:00Z",
+            "metric": "voltage",
+            "description": "Voltage sag is modest (minVa=0.9), which is more consistent with loading stress than an instantaneous balanced three-phase fault."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Overload Trip Criteria",
+            "snippet": "Feeder current trending above 80% of the continuous thermal rating."
+          },
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Overload Trip Criteria",
+            "snippet": "Historical or real-time SCADA traces showing gradual heating rather than instantaneous faults."
+          },
+          {
+            "source_id": "SOP-THFT-003",
+            "title": "Suspected Theft-Related Overload on Distribution Feeders",
+            "section": "5.4 Non-Technical Loss and Overload Investigation",
+            "snippet": "Persistent high loading on a feeder without corresponding increases in billed demand."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T23",
+      "fault_type": "OVERLOAD",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-THFT-003",
+        "SOP-OVLD-001"
+      ],
+      "ground_truth_sops": [
+        "SOP-OVLD-001",
+        "SOP-THFT-003"
+      ],
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.375,
+      "total_claims": 8,
+      "grounded_claims": 3,
+      "ungrounded_examples": [
+        "The disturbance is centered at bus b671.",
+        "It is characterized by very high current with only a modest voltage sag.",
+        "Zero-sequence and negative-sequence ratios remain near zero.",
+        "This pattern is consistent with an overload-type condition rather than a ground or phase-phase fault.",
+        "maxIa=0.98 with minVa=0.93 indicates sustained loading near feeder thermal limits with only modest sag.",
+        "maxI0I1/maxI2I1 \u2248 0.001 rules out significant ground or unbalance involvement.",
+        "SOP-OVLD-001 Section 3.1 describes overloads where feeder current trends above thermal thresholds and may precede thermal protection operation.",
+        "SOP-THFT-003 Section 5.4 notes persistent high loading can also be associated with non-technical loss or unauthorized connections."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-ieee13-b671-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b671",
+        "fault_type": "feeder overload / suspected non-technical loss-associated overload",
+        "severity": "low",
+        "status": "diagnosed",
+        "summary": "The disturbance is centered at bus b671 and is characterized by very high current with only a modest voltage sag, while zero-sequence and negative-sequence ratios remain near zero. This pattern is consistent with an overload-type condition rather than a ground or phase-phase fault.",
+        "root_cause": "Per the detection signature, maxIa=0.98 with minVa=0.93 indicates sustained loading near feeder thermal limits with only modest sag, and maxI0I1/maxI2I1 \u2248 0.001 rules out significant ground or unbalance involvement. This aligns with SOP-OVLD-001 Section 3.1, which describes overloads where feeder current trends above thermal thresholds and may precede thermal protection operation, and SOP-THFT-003 Section 5.4, which notes persistent high loading can also be associated with non-technical loss or unauthorized connections.",
+        "recommended_actions": [
+          "Verify feeder loading against continuous thermal rating and confirm whether current remains elevated during the affected interval.",
+          "Review SCADA and metering history for gradual heating/overload behavior versus an instantaneous fault signature.",
+          "Check billing, customer connection records, and recent load additions for possible non-technical loss or unauthorized connections.",
+          "Inspect the downstream section around bus b671 for loose terminations, equipment heating, or other localized causes of excess current.",
+          "Increase monitoring and prepare to rebalance or shed load if loading continues to rise toward thermal protection limits."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "current",
+            "description": "b671 shows maxIa=0.98, indicating sustained current near feeder rating and consistent with overload behavior."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "voltage",
+            "description": "b671 shows minVa=0.93 with maxI0I1=0.001 and maxI2I1=0.001, indicating only modest sag and no strong ground/unbalance fault signature."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Overload Trip Criteria",
+            "snippet": "Feeder current trending above 80% of the continuous thermal rating."
+          },
+          {
+            "source_id": "SOP-THFT-003",
+            "title": "Suspected Theft-Related Overload on Distribution Feeders",
+            "section": "5.4 Non-Technical Loss and Overload Investigation",
+            "snippet": "Persistent high loading on a feeder without corresponding increases in billed demand."
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "T24",
+      "fault_type": "OVERLOAD",
+      "feeder": "ieee13",
+      "retrieved_sops": [
+        "SOP-THFT-003",
+        "SOP-OVLD-001"
+      ],
+      "ground_truth_sops": [
+        "SOP-OVLD-001",
+        "SOP-THFT-003"
+      ],
+      "context_precision": 1.0,
+      "context_recall": 1.0,
+      "generation_method": "llm",
+      "faithfulness_method": "llm_judge",
+      "faithfulness_score": 0.5,
+      "total_claims": 8,
+      "grounded_claims": 4,
+      "ungrounded_examples": [
+        "The disturbance is centered at bus b684.",
+        "with elevated current (maxIa=0.95) and only a modest voltage sag (minVa=0.94).",
+        "Zero-sequence and negative-sequence ratios are near zero, which does not indicate a ground or unbalanced fault signature.",
+        "This is most consistent with an overload-type condition rather than a short-circuit fault.",
+        "The electrical signature suggests sustained loading rather than a fault."
+      ],
+      "generated_ticket": {
+        "ticket_id": "FT-IEEE13-20260830-0001",
+        "scenario": "ieee13",
+        "bus_id": "b684",
+        "fault_type": "overload / high-loading condition",
+        "severity": "low",
+        "status": "diagnosed",
+        "summary": "The disturbance is centered at bus b684, with elevated current (maxIa=0.95) and only a modest voltage sag (minVa=0.94). Zero-sequence and negative-sequence ratios are near zero, which does not indicate a ground or unbalanced fault signature; this is most consistent with an overload-type condition rather than a short-circuit fault. ",
+        "root_cause": "The electrical signature suggests sustained loading rather than a fault: maxIa is high while minVa remains relatively high and both maxI0I1 and maxI2I1 are near zero. This aligns with SOP-OVLD-001 Section 3.1, which identifies feeder overload risk when current trends above thermal limits with gradual heating rather than an instantaneous fault, and may warrant further review under SOP-THFT-003 Section 5.4 if persistent loading is not matched by billed demand.",
+        "recommended_actions": [
+          "Verify feeder loading against the continuous thermal rating and recent SCADA/current trends.",
+          "Check whether the high-current condition is persistent or limited to specific time windows.",
+          "Inspect downstream load growth, new connections, or possible unauthorized connections if the overload persists.",
+          "Monitor bus b684 and adjacent sections for rising temperature, voltage drop progression, or protective device stress.",
+          "If loading approaches or exceeds rating, implement operational mitigation such as load transfer or reconfiguration."
+        ],
+        "evidence": [
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "current",
+            "description": "Bus b684 shows elevated current magnitude (maxIa=0.95), consistent with a loading issue near the feeder operating limit."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "voltage",
+            "description": "Voltage sag is modest (minVa=0.94), which is more typical of overload than of a hard fault."
+          },
+          {
+            "start_timestamp": "2026-08-30T00:00:00Z",
+            "end_timestamp": "2026-08-30T00:15:00Z",
+            "metric": "current",
+            "description": "Sequence components are near zero (maxI0I1=0.001, maxI2I1=0.001), indicating no strong ground or unbalance signature."
+          }
+        ],
+        "kb_citations": [
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Overload Trip Criteria",
+            "snippet": "Feeder current trending above 80% of the continuous thermal rating."
+          },
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Overload Trip Criteria",
+            "snippet": "Historical or real-time SCADA traces showing gradual heating rather than instantaneous faults."
+          },
+          {
+            "source_id": "SOP-THFT-003",
+            "title": "Suspected Theft-Related Overload on Distribution Feeders",
+            "section": "5.4 Non-Technical Loss and Overload Investigation",
+            "snippet": "Persistent high loading on a feeder without corresponding increases in billed demand."
+          }
+        ]
+      }
+    }
+  ]
+}
