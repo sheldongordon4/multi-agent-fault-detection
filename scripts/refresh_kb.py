@@ -1,3 +1,7 @@
+"""Rebuild the local SOP knowledge base from the source markdown files."""
+
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 
@@ -14,15 +18,16 @@ from app.rag.vector_store import build_vectordb  # noqa: E402
 
 
 def main() -> None:
+    """Force a clean rebuild of the vector store used for KB retrieval."""
     artifacts_dir = Path("artifacts/kb")
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
-    # Force a clean rebuild of the KB
     vectordb = build_vectordb(persist_dir=str(artifacts_dir), reset=True)
-    # Touch the collection so Chroma materializes it
+
+    # Touch the collection so Chroma materializes it even when the DB is empty.
     try:
         _ = vectordb._collection.count()  # type: ignore[attr-defined]
-    except Exception:
+    except Exception:  # pragma: no cover - Chroma internals vary by version.
         pass
 
     print("[refresh_kb] Rebuilt KB vector store from data/sop into artifacts/kb")

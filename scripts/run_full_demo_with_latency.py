@@ -1,3 +1,7 @@
+"""Run the local detection→ticket demo and report end-to-end latency."""
+
+from __future__ import annotations
+
 import json
 import subprocess
 import time
@@ -8,10 +12,7 @@ INCIDENTS_DIR = ROOT / "artifacts" / "incidents"
 
 
 def run_cmd(cmd: str) -> None:
-    """
-    Run a shell command in the project root, show stdout/stderr,
-    and raise if it fails.
-    """
+    """Run a shell command from the project root and surface stdout/stderr."""
     proc = subprocess.run(
         cmd,
         shell=True,
@@ -21,39 +22,36 @@ def run_cmd(cmd: str) -> None:
     )
 
     if proc.stdout:
-        # This will show the "Wrote ticket to ..." line, etc.
         print(proc.stdout.strip())
-
     if proc.stderr:
         print(f"[stderr from '{cmd}']\n{proc.stderr}")
 
     proc.check_returncode()
 
 
-def main():
+def ticket_path_for(scenario: str, bus_id: str) -> Path:
+    """Return the ticket file produced by the demo ticket helper."""
+    ticket_id = f"LOCAL-{scenario}-{bus_id}"
+    return INCIDENTS_DIR / f"{ticket_id}.json"
+
+
+def main() -> None:
     scenario = "overload_trip"
     bus_id = "bus_1"
-    ticket_id = f"LOCAL-{scenario}-{bus_id}"
-    ticket_path = INCIDENTS_DIR / f"{ticket_id}.json"
+    ticket_path = ticket_path_for(scenario, bus_id)
 
-    # Clear old ticket file if it exists
     if ticket_path.exists():
         ticket_path.unlink()
 
-    # 1) Measure full pipeline latency: detection → ticket writer
     t0 = time.perf_counter()
-
     pipeline_cmd = (
         f"python scripts/run_detection_demo.py "
         f"--scenario {scenario} --bus_id {bus_id} "
         f"| python scripts/make_ticket_from_demo.py"
     )
     run_cmd(pipeline_cmd)
+    latency_sec = time.perf_counter() - t0
 
-    t1 = time.perf_counter()
-    latency_sec = t1 - t0
-
-    # 2) Load the ticket JSON from artifacts/incidents
     if not ticket_path.exists():
         raise FileNotFoundError(
             f"Expected ticket file not found at: {ticket_path}. "
@@ -63,7 +61,6 @@ def main():
     with ticket_path.open("r", encoding="utf-8") as f:
         ticket = json.load(f)
 
-    # 3) Wrap and print a clean demo object
     wrapped = {
         "latencySec": latency_sec,
         "ticketFile": str(ticket_path.relative_to(ROOT)),

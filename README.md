@@ -59,13 +59,36 @@ app/
   alembic/           migrations (Alembic owns the schema)
 docs/                System_Architecture.md (authoritative), Agent_Architecture.md, API_Reference.md, ...
 data/sop/            SOP .md knowledge base       data/testbed/ + data/generated/  ML data
-scripts/             produce_events / produce_signals / bootstrap / refresh_kb / generate_* / validate_*
+scripts/             reproduce_step{1..7}.py  ·  reproduce_steps_1_4.py  ·  produce_events / produce_signals
+                     bootstrap / refresh_kb / generate_* / validate_*
 frontend/            React operator console — map-first incidents screen (see frontend/README.md)
 ui/streamlit_app.py  legacy ticket browser (reads ticket JSON; not SSE-wired yet)
 tests/               pytest suite (AsyncClient + ASGITransport)
 ```
 
+## Reproduction flow
+
+The paper reproduction flow is tracked in [scripts/REPRODUCE.md](scripts/REPRODUCE.md) and matches the actual script set:
+
+1. `scripts/reproduce_step1_generate_data.py`
+2. `scripts/reproduce_step2_detection.py`
+3. `scripts/reproduce_step3_classification.py`
+4. `scripts/reproduce_step4_latency.py`
+5. `scripts/reproduce_step5_noise_sensitivity.py`
+6. `scripts/reproduce_step6_rag_retrieval.py`
+7. `scripts/reproduce_step7_faithfulness.py`
+
+For a one-command run of the first four steps, use:
+
+```bash
+python scripts/reproduce_steps_1_4.py
+```
+
+The older `reproduce_all.py` name was a mismatch with the actual coverage; the numbered scripts reflect the real execution order and outputs.
+
 ## Running
+
+For the reproducibility workflow, see [scripts/REPRODUCE.md](scripts/REPRODUCE.md). It covers the curated run order, expected outputs, and the step-by-step paper validation flow.
 
 Full stack (Postgres + Kafka + Kafdrop + app + React client) in Docker — see **`README.docker.md`**
 for details and the app-on-host variant:

@@ -1,3 +1,7 @@
+"""Load the synthetic signal CSVs into the local SQLite demo database."""
+
+from __future__ import annotations
+
 import sqlite3
 from pathlib import Path
 
@@ -8,12 +12,11 @@ DATA_DIR = ROOT_DIR / "data" / "synthetic"
 DB_PATH = DATA_DIR / "synthetic_signals.db"
 
 
-
-def load_csvs_to_sqlite():
+def load_csvs_to_sqlite() -> None:
+    """Create the demo SQLite tables and load all synthetic CSVs into them."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # Simple signals table. For MVP we just wipe and recreate on each run.
     cursor.execute("DROP TABLE IF EXISTS signals;")
     cursor.execute(
         """
@@ -29,11 +32,9 @@ def load_csvs_to_sqlite():
             "59_overvoltage" INTEGER,
             "50_overcurrent" INTEGER
         );
-
         """
     )
 
-    # Simple scenarios metadata table
     cursor.execute("DROP TABLE IF EXISTS scenarios;")
     cursor.execute(
         """
@@ -51,7 +52,7 @@ def load_csvs_to_sqlite():
         "theft_overload": "Theft driven overload with delayed tripping.",
     }
 
-    for scenario, desc in descriptions.items():
+    for scenario, description in descriptions.items():
         csv_path = DATA_DIR / f"{scenario}.csv"
         if not csv_path.exists():
             raise FileNotFoundError(f"Expected CSV not found: {csv_path}")
@@ -61,7 +62,7 @@ def load_csvs_to_sqlite():
 
         cursor.execute(
             "INSERT OR REPLACE INTO scenarios (name, description) VALUES (?, ?);",
-            (scenario, desc),
+            (scenario, description),
         )
 
     conn.commit()

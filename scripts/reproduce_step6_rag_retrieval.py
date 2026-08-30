@@ -181,35 +181,29 @@ def main() -> None:
     sops = _load_sops()
     print(f"\n[step6] SOPs loaded: {list(sops.keys())}")
 
-    sop_ids    = list(sops.keys())
+    sop_ids = list(sops.keys())
     sop_tokens = [_tokenize(sops[sid]["text"]) for sid in sop_ids]
-    idf_map    = _idf(sop_tokens)
+    idf_map = _idf(sop_tokens)
 
     results = []
-    for sc in SCENARIOS:
-        q_tokens  = _tokenize(sc["query"])
-        scores    = {sid: _tfidf_score(q_tokens, sop_tokens[i], idf_map)
-                     for i, sid in enumerate(sop_ids)}
-        ranked    = sorted(scores, key=scores.get, reverse=True)  # type: ignore[arg-type]
+    for scenario in SCENARIOS:
+        q_tokens = _tokenize(scenario["query"])
+        scores = {sid: _tfidf_score(q_tokens, sop_tokens[i], idf_map) for i, sid in enumerate(sop_ids)}
+        ranked = sorted(scores, key=scores.get, reverse=True)
         retrieved = set(ranked[:TOP_K])
-        gt        = set(GROUND_TRUTH[sc["fault_type"]])
-        cp = len(retrieved & gt) / len(retrieved) if retrieved else 0.0
-        cr = len(retrieved & gt) / len(gt)        if gt        else 0.0
-        results.append({**sc, "retrieved": sorted(retrieved),
-                         "gt": sorted(gt), "cp": cp, "cr": cr})
+        truth = set(GROUND_TRUTH[scenario["fault_type"]])
+        context_precision = len(retrieved & truth) / len(retrieved) if retrieved else 0.0
+        context_recall = len(retrieved & truth) / len(truth) if truth else 0.0
+        results.append({**scenario, "retrieved": sorted(retrieved), "gt": sorted(truth), "cp": context_precision, "cr": context_recall})
 
-    # ── Per-scenario output ────────────────────────────────────────────────────
     print()
-    print(f"{'ID':>4} {'FaultType':>9} {'CP':>6} {'CR':>6}  "
-          f"{'Retrieved':32}  {'Ground Truth'}")
+    print(f"{'ID':>4} {'FaultType':>9} {'CP':>6} {'CR':>6}  {'Retrieved':32}  {'Ground Truth'}")
     print("-" * 90)
-    for r in results:
-        print(f"{r['id']:>4} {r['fault_type']:>9} {r['cp']:>6.2f} {r['cr']:>6.2f}  "
-              f"{str(r['retrieved']):32}  {r['gt']}")
+    for row in results:
+        print(f"{row['id']:>4} {row['fault_type']:>9} {row['cp']:>6.2f} {row['cr']:>6.2f}  {str(row['retrieved']):32}  {row['gt']}")
 
-    # ── Aggregate ──────────────────────────────────────────────────────────────
-    cp_mean = sum(r["cp"] for r in results) / len(results)
-    cr_mean = sum(r["cr"] for r in results) / len(results)
+    cp_mean = sum(row["cp"] for row in results) / len(results)
+    cr_mean = sum(row["cr"] for row in results) / len(results)
 
     print()
     print("=" * 70)
@@ -218,13 +212,13 @@ def main() -> None:
     print(f"{'Fault Type':<12} {'n':>4} {'Context Precision':>18} {'Context Recall':>15}")
     print("-" * 55)
     by_type: dict[str, list] = defaultdict(list)
-    for r in results:
-        by_type[r["fault_type"]].append(r)
-    for ft in sorted(by_type):
-        rs   = by_type[ft]
-        cp_t = sum(r["cp"] for r in rs) / len(rs)
-        cr_t = sum(r["cr"] for r in rs) / len(rs)
-        print(f"{ft:<12} {len(rs):>4} {cp_t:>18.4f} {cr_t:>15.4f}")
+    for row in results:
+        by_type[row["fault_type"]].append(row)
+    for fault_type in sorted(by_type):
+        rows = by_type[fault_type]
+        cp_type = sum(row["cp"] for row in rows) / len(rows)
+        cr_type = sum(row["cr"] for row in rows) / len(rows)
+        print(f"{fault_type:<12} {len(rows):>4} {cp_type:>18.4f} {cr_type:>15.4f}")
     print("-" * 55)
     print(f"{'Mean':<12} {len(results):>4} {cp_mean:>18.4f} {cr_mean:>15.4f}")
 
