@@ -18,7 +18,7 @@ scripts/produce_events.py ─▶ feeder.events ─▶ [detection]  app/ml/fault_
                                                    │  publishes verdict + most-disturbed buses + classification
                                                    ▼
                                              anomalies.detected ─▶ [coordinator]  app/faults
-                                                   │   Azure gpt-4o-mini + kb_retrieve (RAG)  ·  offline heuristic fallback
+                                                   │   Azure gpt-5.4-mini + kb_retrieve (RAG)  ·  offline heuristic fallback
                                                    ▼
                                              faulttickets ─┬─▶ [notification]  SSE broadcast + Postgres
                                                            └─▶ [persistence]   Postgres (upsert) → GET /tickets
@@ -42,7 +42,7 @@ architecture doc.
 
 Python 3.11+ · FastAPI · Pydantic v2 · SQLAlchemy 2.0 async + asyncpg + Alembic →
 Postgres · confluent-kafka (+ Kafdrop) · LangChain / LangGraph ReAct agent · Azure
-OpenAI `gpt-4o-mini` (coordinator LLM) · local `bge-small` embeddings + Chroma
+OpenAI `gpt-5.4-mini` (coordinator LLM) · local `bge-small` embeddings + Chroma
 (RAG) · scikit-learn (detection/classification) · **React 19 + Vite + Tailwind v4 +
 MapLibre GL** (operator console) · Streamlit (legacy ticket browser).
 

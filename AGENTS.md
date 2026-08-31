@@ -38,7 +38,7 @@ scripts/produce_events.py ─▶ feeder.events ─▶ [detection]  app/ml/fault_
                                                    │  publishes verdict + most-disturbed buses + classification
                                                    ▼
                                              anomalies.detected ─▶ [coordinator]  app/faults
-                                                   │   Azure gpt-4o-mini + kb_retrieve (RAG)
+                                                 │   Azure gpt-5.4-mini + kb_retrieve (RAG)
                                                    ▼
                                              faulttickets ─┬─▶ [notification]  SSE broadcast + Postgres
                                                            └─▶ [persistence]   Postgres (upsert) → GET /tickets
@@ -57,7 +57,7 @@ scripts/produce_signals.py ─▶ raw.signals ─▶ [streaming]  per-bus rollin
 - **Python 3.11+** (venv currently 3.14), **FastAPI**, **Pydantic v2** + **pydantic-settings**
 - **SQLAlchemy 2.0 (async)** + **asyncpg** + **Alembic** → **Postgres** (persistence)
 - **confluent-kafka** (event bus); **Kafdrop** UI for inspection
-- **LangChain** + **LangGraph** (ReAct agent), **Azure OpenAI** `gpt-4o-mini` (coordinator LLM)
+- **LangChain** + **LangGraph** (ReAct agent), **Azure OpenAI** `gpt-5.4-mini` (coordinator LLM)
 - **scikit-learn** IsolationForest (detection); **Streamlit** UI
 
 Minimum versions to honor (per the best-practices AGENTS.md below): FastAPI 0.115, Pydantic 2.7, SQLAlchemy 2.0, Alembic 1.13, httpx 0.27, ruff 0.6.
@@ -134,7 +134,7 @@ Source: **https://github.com/zhanymkanov/fastapi-best-practices** (its `README.m
 
 ## Project-specific conventions
 
-- **Models:** coordinator → Azure `gpt-4o-mini`; embeddings → local `bge-small` (offline). If `AZURE_OPENAI_*` is unset/placeholder, `run_fault_diagnosis` returns a **local heuristic ticket** (no LLM) — this is intentional, keep it working.
+- **Models:** coordinator → Azure `gpt-5.4-mini`; embeddings → local `bge-small` (offline). If `AZURE_OPENAI_*` is unset/placeholder, `run_fault_diagnosis` returns a **local heuristic ticket** (no LLM) — this is intentional, keep it working.
 - **Detection-as-trigger:** the coordinator never calls a detection tool; it diagnoses the `anomalies.detected` payload (`feeder`, `verdict`, `topBuses`) and only calls `kb_retrieve`.
 - **Idempotency:** `incident_id` keys the ticket; persistence upserts (at-least-once Kafka delivery → overwrite, not duplicate).
 - **Kafka:** five consumer groups for fan-out (`detection`, `streaming`, `coordinator`, `notification`, `persistence`); `run_consumer(group_id, handlers)` is generic. Partition by `feeder`/`bus_id`/`incident_id`.
@@ -181,4 +181,4 @@ Gotcha: a native host Postgres on `:5432` can shadow the container's — the app
 - [ ] **Notification email/external channels** — only in-process SSE broadcast exists; no email/SMS/webhook delivery.
 - [ ] **Feeder-agnostic classifier** — `fault_classifier` is feeder-specific (13-bus columns); §6.1 wants topology-independent aggregate features so it transfers to new feeders.
 
-**Done (for reference):** **concurrency isolation** (`app/kafka/executors.py` — dedicated Kafka thread pool + ML `ProcessPoolExecutor`; fixed the live chart freezing while events processed) · **fast-path streaming consumer** (batched auto-commit for `raw.signals`; at-most-once for that topic only) · **React operator console** (`frontend/` — map-first incidents screen) · event/`fault_detector` detection · supervised `fault_classifier` (type/category/location, attached to `anomalies.detected`) · coordinator (Azure `gpt-4o-mini` + `kb_retrieve`, rate-limited + bounded retries, heuristic fallback) · per-domain configs · `StrEnum` `FaultTicket` · `feature_extractor` DSP (1-cycle DFT) · DLQ on all topics · `GET /tickets` + `/tickets/{id}` history API · `/ready` (DB+Kafka) · Alembic migration · Kafka topic bootstrap · Dockerfile + self-bootstrapping entrypoint · integration tests.
+**Done (for reference):** **concurrency isolation** (`app/kafka/executors.py` — dedicated Kafka thread pool + ML `ProcessPoolExecutor`; fixed the live chart freezing while events processed) · **fast-path streaming consumer** (batched auto-commit for `raw.signals`; at-most-once for that topic only) · **React operator console** (`frontend/` — map-first incidents screen) · event/`fault_detector` detection · supervised `fault_classifier` (type/category/location, attached to `anomalies.detected`) · coordinator (Azure `gpt-5.4-mini` + `kb_retrieve`, rate-limited + bounded retries, heuristic fallback) · per-domain configs · `StrEnum` `FaultTicket` · `feature_extractor` DSP (1-cycle DFT) · DLQ on all topics · `GET /tickets` + `/tickets/{id}` history API · `/ready` (DB+Kafka) · Alembic migration · Kafka topic bootstrap · Dockerfile + self-bootstrapping entrypoint · integration tests.
