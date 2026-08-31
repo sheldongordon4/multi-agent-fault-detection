@@ -68,27 +68,24 @@ tests/               pytest suite (AsyncClient + ASGITransport)
 
 ## Reproduction flow
 
-The paper reproduction flow is tracked in [scripts/REPRODUCE.md](scripts/REPRODUCE.md) and matches the actual script set:
+The Git-tracked reproduction runners are:
 
-1. `scripts/reproduce_step1_generate_data.py`
-2. `scripts/reproduce_step2_detection.py`
-3. `scripts/reproduce_step3_classification.py`
-4. `scripts/reproduce_step4_latency.py`
-5. `scripts/reproduce_step5_noise_sensitivity.py`
-6. `scripts/reproduce_step6_rag_retrieval.py`
-7. `scripts/reproduce_step7_faithfulness.py`
+1. `scripts/reproduce_steps_1_4.py` — combined data-generation, detection,
+   classification, and latency workflow.
+2. `scripts/reproduce_step5_noise_sensitivity.py`
+3. `scripts/reproduce_step6_rag_retrieval.py`
+4. `scripts/reproduce_step7_faithfulness.py`
 
-For a one-command run of the first four steps, use:
+Run the combined workflow with:
 
 ```bash
 python scripts/reproduce_steps_1_4.py
 ```
 
-The older `reproduce_all.py` name was a mismatch with the actual coverage; the numbered scripts reflect the real execution order and outputs.
+Generated datasets and artifacts are intentionally excluded from Git and are
+created by the reproduction runners.
 
 ## Running
-
-For the reproducibility workflow, see [scripts/REPRODUCE.md](scripts/REPRODUCE.md). It covers the curated run order, expected outputs, and the step-by-step paper validation flow.
 
 Full stack (Postgres + Kafka + Kafdrop + app + React client) in Docker — see **`README.docker.md`**
 for details and the app-on-host variant:
