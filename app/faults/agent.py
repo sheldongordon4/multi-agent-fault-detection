@@ -1,7 +1,7 @@
 """
 coordinator.py - the MAFD Coordinator agent graph.
 
-A LangGraph ReAct loop: an Azure OpenAI chat model (the gpt-4o-mini deployment)
+A LangGraph ReAct loop: an Azure OpenAI chat model (the gpt-5.4-mini deployment)
 bound to the kb_retrieve tool (SOP RAG over the local vector DB). Detection runs
 upstream (the event IsolationForest) and arrives as a trigger, so the coordinator's
 only tool is SOP retrieval. The model retrieves SOPs, then emits a single

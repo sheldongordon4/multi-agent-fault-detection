@@ -19,4 +19,3 @@ scripts/REPRODUCE.md
 scripts/reproduce_step1_generate_data.py
 scripts/reproduce_step2_detection.py
 scripts/reproduce_step3_classification.py
-scripts/reproduce_step4_latency.py

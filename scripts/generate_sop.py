@@ -1,3 +1,7 @@
+"""Generate a markdown SOP stub for the retrieval knowledge base."""
+
+from __future__ import annotations
+
 import argparse
 from pathlib import Path
 
@@ -26,10 +30,12 @@ Operator Actions:
 
 Notes:
 - {note1}
-- {note2} 
+- {note2}
 """
 
-def build_default_fields(args):
+
+def build_default_fields(args: argparse.Namespace) -> dict[str, str]:
+    """Populate the standard fields used by every generated SOP file."""
     return {
         "id": args.id,
         "title": args.title,
@@ -53,7 +59,18 @@ def build_default_fields(args):
         "note2": "Always follow local safety rules and lockout/tagout procedures.",
     }
 
-def main():
+
+def build_output_path(args: argparse.Namespace, output_dir: Path) -> Path:
+    """Resolve the output path from the CLI arguments."""
+    if args.slug:
+        filename = f"{args.id}_{args.slug}.md"
+    else:
+        slug = args.title.lower().replace(" ", "_")
+        filename = f"{args.id}_{slug}.md"
+    return output_dir / filename
+
+
+def main() -> None:
     parser = argparse.ArgumentParser(description="Generate a SOP markdown file for the MAFD KB.")
     parser.add_argument("--id", required=True, help="SOP identifier, e.g. SOP-OVLD-001")
     parser.add_argument("--title", required=True, help="SOP title")
@@ -66,24 +83,14 @@ def main():
     parser.add_argument("--output-dir", default="data/sop", help="Directory where the SOP file will be written")
 
     args = parser.parse_args()
-
     fields = build_default_fields(args)
-    content = TEMPLATE.format(**fields)
-
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    if args.slug:
-        filename = f"{args.id}_{args.slug}.md"
-    else:
-        # default slug based on title
-        slug = args.title.lower().replace(" ", "_")
-        filename = f"{args.id}_{slug}.md"
-
-    output_path = output_dir / filename
-    output_path.write_text(content, encoding="utf-8")
+    output_path = build_output_path(args, output_dir)
+    output_path.write_text(TEMPLATE.format(**fields), encoding="utf-8")
 
     print(f"Generated SOP file: {output_path}")
+
 
 if __name__ == "__main__":
     main()

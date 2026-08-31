@@ -22,7 +22,7 @@ flowchart LR
 ## The agent (`app/faults/`)
 
 - **`agent.py`** — a LangGraph ReAct loop over an Azure OpenAI chat model
-  (`gpt-4o-mini`-class deployment), bound to a **single tool: `kb_retrieve`**
+  (`gpt-5.4-mini` deployment), bound to a **single tool: `kb_retrieve`**
   (SOP RAG over local `bge-small` embeddings). Client-side rate limiting
   (`InMemoryRateLimiter`), bounded `max_retries`, and a request `timeout` are set
   from `app/faults/config.py`.

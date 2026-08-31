@@ -18,7 +18,7 @@ scripts/produce_events.py ─▶ feeder.events ─▶ [detection]  app/ml/fault_
                                                    │  publishes verdict + most-disturbed buses + classification
                                                    ▼
                                              anomalies.detected ─▶ [coordinator]  app/faults
-                                                   │   Azure gpt-4o-mini + kb_retrieve (RAG)  ·  offline heuristic fallback
+                                                   │   Azure gpt-5.4-mini + kb_retrieve (RAG)  ·  offline heuristic fallback
                                                    ▼
                                              faulttickets ─┬─▶ [notification]  SSE broadcast + Postgres
                                                            └─▶ [persistence]   Postgres (upsert) → GET /tickets
@@ -42,7 +42,7 @@ architecture doc.
 
 Python 3.11+ · FastAPI · Pydantic v2 · SQLAlchemy 2.0 async + asyncpg + Alembic →
 Postgres · confluent-kafka (+ Kafdrop) · LangChain / LangGraph ReAct agent · Azure
-OpenAI `gpt-4o-mini` (coordinator LLM) · local `bge-small` embeddings + Chroma
+OpenAI `gpt-5.4-mini` (coordinator LLM) · local `bge-small` embeddings + Chroma
 (RAG) · scikit-learn (detection/classification) · **React 19 + Vite + Tailwind v4 +
 MapLibre GL** (operator console) · Streamlit (legacy ticket browser).
 
@@ -59,11 +59,31 @@ app/
   alembic/           migrations (Alembic owns the schema)
 docs/                System_Architecture.md (authoritative), Agent_Architecture.md, API_Reference.md, ...
 data/sop/            SOP .md knowledge base       data/testbed/ + data/generated/  ML data
-scripts/             produce_events / produce_signals / bootstrap / refresh_kb / generate_* / validate_*
+scripts/             reproduce_step{1..7}.py  ·  reproduce_steps_1_4.py  ·  produce_events / produce_signals
+                     bootstrap / refresh_kb / generate_* / validate_*
 frontend/            React operator console — map-first incidents screen (see frontend/README.md)
 ui/streamlit_app.py  legacy ticket browser (reads ticket JSON; not SSE-wired yet)
 tests/               pytest suite (AsyncClient + ASGITransport)
 ```
+
+## Reproduction flow
+
+The Git-tracked reproduction runners are:
+
+1. `scripts/reproduce_steps_1_4.py` — combined data-generation, detection,
+   classification, and latency workflow.
+2. `scripts/reproduce_step5_noise_sensitivity.py`
+3. `scripts/reproduce_step6_rag_retrieval.py`
+4. `scripts/reproduce_step7_faithfulness.py`
+
+Run the combined workflow with:
+
+```bash
+python scripts/reproduce_steps_1_4.py
+```
+
+Generated datasets and artifacts are intentionally excluded from Git and are
+created by the reproduction runners.
 
 ## Running
 

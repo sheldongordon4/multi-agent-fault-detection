@@ -1,3 +1,5 @@
+"""Compatibility wrapper for writing the demo signal CSV used by the Streamlit UI."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,7 +9,14 @@ import pandas as pd
 OUT_PATH = Path("artifacts/signals/demo_signals.csv")
 
 
-def save_signals(timestamps, values, bus_id: str, scenario: str, metric: str = "current") -> None:
+def save_signals(
+    timestamps,
+    values,
+    bus_id: str,
+    scenario: str,
+    metric: str = "current",
+) -> None:
+    """Write a simple signal trace to the demo artifacts directory."""
     df = pd.DataFrame(
         {
             "timestamp": timestamps,

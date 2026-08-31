@@ -74,6 +74,12 @@ def _metrics(is_fault: np.ndarray, flagged: np.ndarray,
                 precision=prec, recall=rec, f1=f1, auprc=auprc, far=far)
 
 
+def _evaluate_matrix(model: IsolationForest, X_test: np.ndarray, is_fault: np.ndarray) -> dict:
+    flagged = model.predict(X_test) == -1
+    scores = -model.decision_function(X_test)
+    return _metrics(is_fault, flagged, scores)
+
+
 def main() -> None:
     print("=" * 70)
     print("MAFD — Step 5: Noise sensitivity  (Table 5, Sections 4.5 and 5.7)")
@@ -83,23 +89,19 @@ def main() -> None:
 
     print("\n[step5] Loading datasets...")
     X_train, _, _ = load_testbed(TRAIN_013, target_col="target_fault_type")
-    X_val, y_val, _ = load_testbed(VAL_013,  target_col="target_fault_type")
+    X_val, y_val, _ = load_testbed(VAL_013, target_col="target_fault_type")
     is_fault = (y_val != "NO_FAULT").to_numpy()
-    print(f"        Train: {len(X_train)} normal rows | "
-          f"Val: {len(X_val)} rows ({is_fault.sum()} faults)")
+    print(f"        Train: {len(X_train)} normal rows | Val: {len(X_val)} rows ({is_fault.sum()} faults)")
 
     print("[step5] Training Isolation Forest on clean normal data...")
     model = IsolationForest(**IF_PARAMS)
     model.fit(X_train.values)
 
-    # Per-feature std of NORMAL training data — the correct noise baseline.
-    # Using fault-inclusive validation std would overestimate noise amplitude.
     normal_std = X_train.values.std(axis=0)
-    normal_std[normal_std == 0] = 1.0  # guard zero-variance features
+    normal_std[normal_std == 0] = 1.0
 
     rng = np.random.default_rng(NOISE_RNG_SEED)
 
-    # ── Table header ─────────────────────────────────────────────────────────
     print()
     print("=" * 75)
     print("TABLE 5 — Isolation Forest noise sensitivity (13-bus validation)")
@@ -110,7 +112,6 @@ def main() -> None:
     print(hdr)
     print("-" * 75)
 
-    # ── Gaussian noise ────────────────────────────────────────────────────────
     for frac in GAUSSIAN_LEVELS:
         if frac == 0.0:
             X_test = X_val.values.copy()
@@ -120,28 +121,23 @@ def main() -> None:
             X_test = X_val.values + noise
             label = f"{frac * 100:.0f}% Gaussian noise"
 
-        flagged = model.predict(X_test) == -1
-        scores  = -model.decision_function(X_test)
-        m = _metrics(is_fault, flagged, scores)
-        print(f"{label:<22} {m['precision']:>10.4f} {m['recall']:>8.4f} "
-              f"{m['f1']:>8.4f} {m['auprc']:>8.4f} {m['far']:>8.4f} "
-              f"{m['tp']:>5} {m['fp']:>5} {m['fn']:>5}")
+        metrics = _evaluate_matrix(model, X_test, is_fault)
+        print(f"{label:<22} {metrics['precision']:>10.4f} {metrics['recall']:>8.4f} "
+              f"{metrics['f1']:>8.4f} {metrics['auprc']:>8.4f} {metrics['far']:>8.4f} "
+              f"{metrics['tp']:>5} {metrics['fp']:>5} {metrics['fn']:>5}")
 
     print("-" * 75)
 
-    # ── Missing packet simulation ─────────────────────────────────────────────
     for frac in MISSING_LEVELS:
         X_test = X_val.values.copy()
         mask = rng.random(X_val.shape) < frac
         X_test[mask] = 0.0
         label = f"{frac * 100:.0f}% missing packets"
 
-        flagged = model.predict(X_test) == -1
-        scores  = -model.decision_function(X_test)
-        m = _metrics(is_fault, flagged, scores)
-        print(f"{label:<22} {m['precision']:>10.4f} {m['recall']:>8.4f} "
-              f"{m['f1']:>8.4f} {m['auprc']:>8.4f} {m['far']:>8.4f} "
-              f"{m['tp']:>5} {m['fp']:>5} {m['fn']:>5}")
+        metrics = _evaluate_matrix(model, X_test, is_fault)
+        print(f"{label:<22} {metrics['precision']:>10.4f} {metrics['recall']:>8.4f} "
+              f"{metrics['f1']:>8.4f} {metrics['auprc']:>8.4f} {metrics['far']:>8.4f} "
+              f"{metrics['tp']:>5} {metrics['fp']:>5} {metrics['fn']:>5}")
 
     print()
     print("Note: noise amplitude is relative to per-feature normal operating std,")
