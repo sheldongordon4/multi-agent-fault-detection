@@ -105,7 +105,7 @@ return silently.
 
 ### Citations are re-verified against the KB
 
-When the Azure agent path runs, the LLM composes `kb_citations` itself, so its
+When the LLM agent path runs, the model composes `kb_citations` itself, so its
 `snippet` is model output — it paraphrased past the SYNTHETIC REFERENCE notice,
 dropping the provenance from the one place an operator would see it, and a
 model-written snippet is a fabricated quotation of a real document.

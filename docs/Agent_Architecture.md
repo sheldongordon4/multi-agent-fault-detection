@@ -21,16 +21,17 @@ flowchart LR
 
 ## The agent (`app/faults/`)
 
-- **`agent.py`** — a LangGraph ReAct loop over an Azure OpenAI chat model
-  (`gpt-5.4-mini` deployment), bound to a **single tool: `kb_retrieve`**
+- **`agent.py`** — a LangGraph ReAct loop over an OpenAI-protocol chat model
+  (Google AI Studio's `gemini-3.8-flash` by default; any OpenAI-compatible
+  endpoint works — see `app/faults/config.py`), bound to a **single tool: `kb_retrieve`**
   (SOP RAG over local `bge-small` embeddings). Client-side rate limiting
   (`InMemoryRateLimiter`), bounded `max_retries`, and a request `timeout` are set
   from `app/faults/config.py`.
 - **`service.py`** — `run_fault_diagnosis(detection)`. Interprets the detection
   signature (I0/I1 → ground, I2/I1 → unbalance, deep sag → 3-phase), prefers the
   supervised classifier's label when present, retrieves SOPs, and assembles a
-  **Pydantic-validated `FaultTicket`**. If Azure is not configured it returns a
-  **local heuristic ticket** with no LLM call.
+  **Pydantic-validated `FaultTicket`**. If no LLM endpoint is configured it returns
+  a **local heuristic ticket** with no LLM call.
 - **`tools.py`** — `kb_retrieve`.
 - **`constants.py`** — the coordinator `SYSTEM_PROMPT`.
 - **`schemas.py`** — `FaultTicket` (severity/status are `StrEnum` with tolerant

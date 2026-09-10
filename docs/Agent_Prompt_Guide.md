@@ -45,6 +45,6 @@ default) so a slightly-off LLM value doesn't reject the ticket.
 
 ## Offline fallback
 
-If Azure is not configured, `run_fault_diagnosis` produces the ticket **without any
-LLM call** — signature heuristics plus a direct `kb_retrieve`. This path is
+If no LLM endpoint is configured, `run_fault_diagnosis` produces the ticket
+**without any LLM call** — signature heuristics plus a direct `kb_retrieve`. This path is
 intentional and must keep working; keep the two paths' output shape identical.
