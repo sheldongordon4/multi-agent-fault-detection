@@ -54,7 +54,7 @@ export default function Overview() {
 	}, [incidents]);
 
 	return (
-		<div className="mx-auto w-full max-w-7xl space-y-4 p-4 md:p-6">
+		<div className="w-full space-y-4 p-4 md:p-6">
 			<header className="flex flex-wrap items-end justify-between gap-3">
 				<div>
 					<h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
