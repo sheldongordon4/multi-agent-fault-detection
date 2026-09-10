@@ -122,3 +122,87 @@ export function formatFaultType(value: string | null | undefined): string {
 	const text = (value ?? '').trim();
 	return text || 'Unknown';
 }
+
+/**
+ * What each classifier code actually means, in operator language.
+ *
+ * The models emit terse codes — `SLG`, `OPEN_2PH` — which are unreadable to
+ * anyone who is not a protection engineer, and the console shows them on the
+ * map, in the incident list and on the fault-type chart. This is the one place
+ * that translates them.
+ *
+ * `signature` is what the detector keys on, drawn from the same physics the SOPs
+ * describe: zero-sequence current (I0/I1) means a ground path, negative-sequence
+ * (I2/I1) means unbalance, and both near zero with a deep sag means the fault is
+ * balanced. Worth surfacing — it is the reason the classifier chose this label.
+ */
+export interface FaultTypeInfo {
+	/** Full name, spelled out. */
+	name: string;
+	/** One line: what physically happened on the line. */
+	description: string;
+	/** The electrical signature that identifies it. */
+	signature: string;
+}
+
+export const FAULT_TYPES: Record<string, FaultTypeInfo> = {
+	SLG: {
+		name: 'Single line-to-ground',
+		description:
+			'One phase conductor in contact with ground. The most common fault on overhead distribution.',
+		signature: 'Zero-sequence current elevated; one phase sags.',
+	},
+	LL: {
+		name: 'Line-to-line',
+		description:
+			'Two phase conductors shorted together, with no path to ground — often conductor slap or a tree limb.',
+		signature: 'Negative-sequence elevated, zero-sequence near zero.',
+	},
+	LLG: {
+		name: 'Double line-to-ground',
+		description:
+			'Two phases faulted to ground. Carries more current than a single-phase fault and more often damages equipment.',
+		signature: 'Both zero- and negative-sequence elevated.',
+	},
+	LLL: {
+		name: 'Three-phase',
+		description:
+			'All three phases shorted together. The rarest fault and the most severe — the highest current the feeder can deliver.',
+		signature: 'Deep sag on all three phases, sequence ratios near zero.',
+	},
+	LLLG: {
+		name: 'Three-phase to ground',
+		description:
+			'All three phases faulted to ground. Behaves much like a three-phase fault; the ground path adds zero-sequence current.',
+		signature: 'Deep balanced sag with a ground return.',
+	},
+	OPEN_1PH: {
+		name: 'Open conductor — one phase',
+		description:
+			'One phase interrupted: a broken conductor, blown fuse or failed splice. Downstream three-phase motors single-phase and overheat.',
+		signature: 'Current near zero on one phase while its voltage persists.',
+	},
+	OPEN_2PH: {
+		name: 'Open conductor — two phases',
+		description: 'Two phases interrupted. Severe unbalance with little or no fault current.',
+		signature: 'Unbalance without the overcurrent a short circuit produces.',
+	},
+	OPEN_3PH: {
+		name: 'Open conductor — three phases',
+		description:
+			'All three phases interrupted — usually presents simply as loss of supply downstream.',
+		signature: 'Current collapses on all phases; voltage may float.',
+	},
+	UNKNOWN: {
+		name: 'Unclassified',
+		description:
+			'The detector flagged a disturbance the classifier could not place — or no classification was attached.',
+		signature: 'No matching signature.',
+	},
+};
+
+/** Description for a code, falling back to `UNKNOWN` rather than throwing. */
+export function faultTypeInfo(code: string | null | undefined): FaultTypeInfo {
+	const key = formatFaultCode(code);
+	return FAULT_TYPES[key] ?? FAULT_TYPES.UNKNOWN;
+}
