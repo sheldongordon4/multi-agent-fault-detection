@@ -166,7 +166,8 @@ export default function Incidents() {
 							{/* The same panel the assignments board opens: Work, Diagnosis
 							    and Activity. Sharing it means an operator can take ownership of
 							    a fault without leaving the map, and there is exactly one place
-							    where a ticket's detail is defined. */}
+							    where a ticket's detail is defined. It opens on Diagnosis here —
+							    clicking a pin asks what the fault is, not who owns it. */}
 							<div className="min-h-0 flex-1 overflow-hidden">
 								{selectedIncidentId && (
 									<AssignmentDetailPanel
@@ -174,6 +175,7 @@ export default function Incidents() {
 										onClose={closeDetail}
 										showCloseButton={false}
 										showMapLink={false}
+										defaultTab="diagnosis"
 									/>
 								)}
 							</div>

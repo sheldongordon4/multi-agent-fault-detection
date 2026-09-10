@@ -42,6 +42,33 @@ export interface TopBus {
 }
 
 
+/** A class the classifier nearly chose instead. */
+export interface ClassifierAlternative {
+	fault_type: string;
+	confidence: number;
+}
+
+/**
+ * One measurement that put the event outside the normal distribution.
+ *
+ * Written by the detector (app/ml/attribution.py) against the same rows the
+ * IsolationForest trained on, so it explains THIS verdict rather than restating
+ * a textbook fault signature.
+ */
+export interface FeatureAttribution {
+	feature: string;
+	bus: string;
+	family: string;
+	/** Operator-readable name, e.g. "zero-sequence current ratio". */
+	label: string;
+	/** What an elevated value means physically. */
+	meaning: string;
+	value: number;
+	baseline: number;
+	sigma: number;
+	direction: 'above' | 'below';
+}
+
 export interface FaultTicket {
 	ticket_id: string;
 	scenario: string;
@@ -55,6 +82,17 @@ export interface FaultTicket {
 	evidence: EvidenceWindow[];
 	kb_citations: KBCitation[];
 	created_at: string;
+
+	/**
+	 * Written by the backend after the ticket is validated, never by the LLM —
+	 * see app/faults/service.py::_enrich_ticket. All optional: tickets created
+	 * before these existed still render.
+	 */
+	fault_type_confidence?: number | null;
+	fault_type_alternatives?: ClassifierAlternative[];
+	attribution?: FeatureAttribution[];
+	customers_affected?: number | null;
+	customers_share?: number | null;
 }
 
 
@@ -71,6 +109,9 @@ export interface TicketSummary {
 	status: string | null;
 	summary: string | null;
 	created_at: string;
+	/** Derived from bus_id server-side, so the list can rank by impact. */
+	customers_affected?: number | null;
+	customers_share?: number | null;
 }
 
 export interface TicketListResponse {
@@ -319,4 +360,32 @@ export interface AssignmentEvent {
 export interface AssignmentEventListResponse {
 	items: AssignmentEvent[];
 	count: number;
+}
+
+
+/* ── Insights ────────────────────────────────────────────────────────────── */
+
+/**
+ * A bus producing the same fault code repeatedly.
+ *
+ * Grouped by bus AND code: a bus with three unrelated faults is a busy bus, a
+ * bus with three SLGs is a defect nobody has found yet.
+ */
+export interface RepeatOffender {
+	bus_id: string;
+	fault_code: string;
+	occurrences: number;
+	first_seen: string;
+	last_seen: string;
+	worst_severity: string | null;
+	customers_affected: number | null;
+	mean_days_between: number | null;
+	recent_incident_ids: string[];
+}
+
+export interface RepeatOffenderResponse {
+	items: RepeatOffender[];
+	count: number;
+	window_days: number;
+	min_occurrences: number;
 }
