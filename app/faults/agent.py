@@ -1,15 +1,19 @@
 """
 coordinator.py - the MAFD Coordinator agent graph.
 
-A LangGraph ReAct loop: an Azure OpenAI chat model (the gpt-5.4-mini deployment)
-bound to the kb_retrieve tool (SOP RAG over the local vector DB). Detection runs
-upstream (the event IsolationForest) and arrives as a trigger, so the coordinator's
-only tool is SOP retrieval. The model retrieves SOPs, then emits a single
-FaultTicket JSON object (parsed + validated downstream in
-coordinator_service._coerce_to_ticket).
+A LangGraph ReAct loop: an OpenAI-protocol chat model (Google AI Studio's Gemini
+by default — see app/faults/config.py) bound to the kb_retrieve tool (SOP RAG over
+the local vector DB). Detection runs upstream (the event IsolationForest) and
+arrives as a trigger, so the coordinator's only tool is SOP retrieval. The model
+retrieves SOPs, then emits a single FaultTicket JSON object (parsed + validated
+downstream in coordinator_service._coerce_to_ticket).
+
+The client is a plain ChatOpenAI pointed at a configurable base_url, never a
+provider-specific class, so changing provider is a change of endpoint/key/model
+and nothing else.
 
 The graph is built lazily via build_coordinator_graph() so importing this module
-never requires Azure credentials; it is only constructed when Azure is configured
+never requires credentials; it is only constructed when an endpoint is configured
 (see coordinator_service.USE_LOCAL_FALLBACK).
 
 """
@@ -27,9 +31,10 @@ from .tools import kb_retrieve
 TOOLS = [kb_retrieve]
 
 # Process-wide client-side throttle: a token bucket that caps how often the
-# coordinator may call the LLM, so a burst of anomaly events can't blow the Azure
-# quota / student credit. requests_per_second is the steady refill rate;
-# max_bucket_size is the allowed burst. Tune to your deployment's RPM limit.
+# coordinator may call the LLM, so a burst of anomaly events can't blow the
+# provider's quota — which on a free tier is a per-minute request limit, not a
+# bill. requests_per_second is the steady refill rate; max_bucket_size is the
+# allowed burst. Tune to your endpoint's RPM limit.
 _RATE_LIMITER = InMemoryRateLimiter(
     requests_per_second=settings.LLM_REQUESTS_PER_SECOND,
     check_every_n_seconds=0.1,
@@ -39,14 +44,14 @@ _RATE_LIMITER = InMemoryRateLimiter(
 
 def _make_llm() -> ChatOpenAI:
     """
-    Chat model for the coordinator (Azure deployment via config), rate-limited and
-    with bounded retries + a request timeout so a slow/failing call can't hang the
-    consumer or retry forever.
+    Chat model for the coordinator (endpoint/key/model from config), rate-limited
+    and with bounded retries + a request timeout so a slow/failing call can't hang
+    the consumer or retry forever.
     """
     return ChatOpenAI(
-        base_url=settings.AZURE_OPENAI_ENDPOINT,
-        api_key=settings.AZURE_OPENAI_API_KEY,
-        model=settings.AZURE_OPENAI_DEPLOYMENT,
+        base_url=settings.LLM_ENDPOINT,
+        api_key=settings.LLM_API_KEY,
+        model=settings.LLM_MODEL,
         rate_limiter=_RATE_LIMITER,
         max_retries=settings.LLM_MAX_RETRIES,
         timeout=settings.LLM_TIMEOUT_SECONDS,

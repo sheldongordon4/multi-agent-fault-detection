@@ -1,12 +1,12 @@
 """
-Process-wide cost guardrail for the coordinator's Azure LLM usage.
+Process-wide cost guardrail for the coordinator's LLM usage.
 
 Every real chat-completion call the coordinator makes must first `spend()` one
 unit of budget. Once `settings.LLM_MAX_ENDPOINT_CALLS` units are spent, `spend()`
 raises `LLMBudgetExceeded` and the service permanently falls back to the local
 (no-LLM) ticket builder. This is a hard stop, independent of the per-model retry
 and rate-limit settings, so a runaway ReAct loop or a long-lived worker can never
-quietly drain your Azure credit.
+quietly drain a paid credit or exhaust a free tier's daily quota.
 
 The counter is per-process and thread-safe. It is deliberately NOT resettable from
 normal app code (only tests reset it) so the ceiling can't be bumped at runtime.

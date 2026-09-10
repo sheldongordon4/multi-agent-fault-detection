@@ -1,12 +1,15 @@
 """
-azure_smoke_test.py - a *strictly bounded* live check of the Azure OpenAI endpoint.
+llm_smoke_test.py - a *strictly bounded* live check of the coordinator's LLM endpoint.
 
 Why this exists
 ---------------
-Running the full app (Kafka -> detector -> coordinator graph -> LLM) to confirm
-the Azure deployment works would fire an unbounded number of chat completions and
-can quietly eat your student credit. This script instead makes AT MOST 2 calls to
-the endpoint, then stops - hard.
+Running the full app (Kafka -> detector -> coordinator graph -> LLM) to confirm the
+endpoint works would fire an unbounded number of chat completions - which eats a
+paid credit or burns through a free tier's daily quota. This script instead makes
+AT MOST 2 calls to the endpoint, then stops - hard.
+
+It is provider-agnostic, because the coordinator is: it reads whatever
+OpenAI-compatible endpoint is configured (Google AI Studio by default).
 
 Guardrails baked in:
   * A process-wide counter caps real endpoint calls at MAX_ENDPOINT_CALLS (2).
@@ -20,7 +23,7 @@ It reads the endpoint/key from your .env via the app's own FaultsConfig, so the
 secrets are never printed and the var names always match the app.
 
 Usage:
-    python -m scripts.azure_smoke_test --confirm
+    python -m scripts.llm_smoke_test --confirm
 """
 
 from __future__ import annotations
@@ -34,7 +37,14 @@ from app.faults.config import settings
 
 # ---- hard cap on billable calls -------------------------------------------------
 MAX_ENDPOINT_CALLS = 2
-MAX_TOKENS = 16  # keep every completion tiny
+
+# Why this is not 16 any more: reasoning models (Gemini 3.x, o-series) spend
+# output tokens on internal thinking BEFORE emitting any visible content. A
+# 16-token ceiling is consumed entirely by thinking, so the call succeeds, bills
+# you, and returns an EMPTY string with finish_reason="length" - which reads as
+# "the endpoint is broken" when nothing is broken at all. 512 is still tiny, and
+# the point of the cap was always the CALL count, not the token count.
+MAX_TOKENS = 512
 
 _calls_made = 0
 
@@ -48,7 +58,33 @@ def _guarded_invoke(llm, messages):
         )
     _calls_made += 1
     print(f"  -> endpoint call {_calls_made}/{MAX_ENDPOINT_CALLS} ...")
-    return llm.invoke(messages)
+    resp = llm.invoke(messages)
+    _report(resp)
+    return resp
+
+
+def _report(resp) -> None:
+    """
+    Print why a call produced what it did.
+
+    An empty reply is the failure mode most likely to be misread, because the
+    request itself succeeded. finish_reason and the token split say whether the
+    model was truncated, filtered, or genuinely silent - so print them always,
+    not only on failure.
+    """
+    meta = getattr(resp, "response_metadata", {}) or {}
+    usage = getattr(resp, "usage_metadata", {}) or {}
+    finish = meta.get("finish_reason", "?")
+    bits = [f"finish_reason={finish!r}"]
+    if usage:
+        bits.append(f"in={usage.get('input_tokens')}")
+        bits.append(f"out={usage.get('output_tokens')}")
+        details = usage.get("output_token_details") or {}
+        if details.get("reasoning"):
+            bits.append(f"reasoning={details['reasoning']}")
+    print("     " + "  ".join(bits))
+    if finish == "length":
+        print("     ^ truncated: raise MAX_TOKENS (thinking tokens ate the budget)")
 
 
 def _make_llm():
@@ -56,9 +92,9 @@ def _make_llm():
     from langchain_openai import ChatOpenAI
 
     return ChatOpenAI(
-        base_url=settings.AZURE_OPENAI_ENDPOINT,
-        api_key=settings.AZURE_OPENAI_API_KEY,
-        model=settings.AZURE_OPENAI_DEPLOYMENT,
+        base_url=settings.LLM_ENDPOINT,
+        api_key=settings.LLM_API_KEY,
+        model=settings.LLM_MODEL,
         max_retries=0,
         timeout=settings.LLM_TIMEOUT_SECONDS,
         max_tokens=MAX_TOKENS,
@@ -85,6 +121,10 @@ def test_1_connectivity(llm) -> bool:
 def test_2_tool_binding(llm) -> bool:
     """Call 2/2: the coordinator binds a tool, so confirm tool-calling works too.
 
+    This is the test that matters when switching providers: plenty of endpoints
+    speak the OpenAI chat protocol but handle `tools` differently, and the ReAct
+    loop is useless without it.
+
     Single .invoke() - we do NOT run the ReAct loop, so this stays one round-trip.
     """
     print("[test 2] tool-binding sanity (single round-trip, no tool loop)")
@@ -101,7 +141,7 @@ def test_2_tool_binding(llm) -> bool:
     text = (resp.content or "").strip()
     n_tool_calls = len(getattr(resp, "tool_calls", []) or [])
     print(f"  reply: {text!r}  (tool_calls requested: {n_tool_calls})")
-    # A valid structured response (content or a tool call) means the deployment
+    # A valid structured response (content or a tool call) means the endpoint
     # supports the coordinator's usage.
     ok = bool(text) or n_tool_calls > 0
     print(f"  result: {'PASS' if ok else 'FAIL'}")
@@ -113,21 +153,21 @@ def main() -> int:
     parser.add_argument(
         "--confirm",
         action="store_true",
-        help=f"Required. Authorize up to {MAX_ENDPOINT_CALLS} billable endpoint calls.",
+        help=f"Required. Authorize up to {MAX_ENDPOINT_CALLS} real endpoint calls.",
     )
     args = parser.parse_args()
 
-    if not settings.azure_configured:
+    if not settings.llm_configured:
         print(
-            "Azure is not configured (endpoint/key/deployment missing or placeholder).\n"
-            "Fill AZURE_OPENAI_* in .env, then re-run. No endpoint call was made.",
+            "No LLM endpoint configured (endpoint/key/model missing or placeholder).\n"
+            "Set LLM_API_KEY (and LLM_ENDPOINT / LLM_MODEL) in .env, then re-run. No endpoint call was made.",
             file=sys.stderr,
         )
         return 2
 
     if not args.confirm:
         print(
-            f"This makes UP TO {MAX_ENDPOINT_CALLS} live Azure calls (max_tokens={MAX_TOKENS} each).\n"
+            f"This makes UP TO {MAX_ENDPOINT_CALLS} live endpoint calls (max_tokens={MAX_TOKENS} each).\n"
             "Re-run with --confirm to proceed. No endpoint call was made.",
             file=sys.stderr,
         )
