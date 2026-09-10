@@ -1,13 +1,10 @@
 import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { KanbanSquare, Table2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useStore } from '@app/store';
 import { Sheet, SheetContent } from '@shared/components/ui/sheet';
-import { ToggleGroup, ToggleGroupItem } from '@shared/components/ui/toggle-group';
 import type { Assignment, WorkState } from '@shared/types';
 import { ActingAsPicker } from '../components/acting-as-picker';
-import { AssignmentBoard } from '../components/assignment-board';
 import { AssignmentDetailPanel } from '../components/assignment-detail-panel';
 import { AssignmentFilters } from '../components/assignment-filters';
 import {
@@ -26,9 +23,6 @@ export default function Assignments() {
 	// ticket is deep-linkable and the back button closes the panel.
 	const { incidentId } = useParams<{ incidentId: string }>();
 	const navigate = useNavigate();
-
-	const view = useStore((state) => state.assignmentView);
-	const setView = useStore((state) => state.setAssignmentView);
 
 	const workState = useStore((state) => state.assignmentWorkState);
 	const assignee = useStore((state) => state.assignmentAssignee);
@@ -98,10 +92,7 @@ export default function Assignments() {
 	};
 
 	const ready = !isPending && !isError;
-	// The board keeps its columns even with nothing in them: they ARE the
-	// workflow, and a blank page reads as broken rather than as empty. The table
-	// has no such structure to show, so it still gets the full empty state.
-	const showTableEmpty = ready && view === 'table' && assignments.length === 0;
+	const isEmpty = ready && assignments.length === 0;
 
 	return (
 		<div className="mx-auto flex h-full w-full max-w-[1600px] flex-col p-4 md:p-6">
@@ -114,26 +105,7 @@ export default function Assignments() {
 					</p>
 				</div>
 
-				<div className="flex items-center gap-3">
-					<ToggleGroup
-						type="single"
-						value={view}
-						onValueChange={(next) => next && setView(next as 'board' | 'table')}
-						variant="outline"
-						size="sm"
-					>
-						<ToggleGroupItem value="board" aria-label="Board view" className="gap-1.5 text-xs">
-							<KanbanSquare className="size-3.5" />
-							Board
-						</ToggleGroupItem>
-						<ToggleGroupItem value="table" aria-label="Table view" className="gap-1.5 text-xs">
-							<Table2 className="size-3.5" />
-							Table
-						</ToggleGroupItem>
-					</ToggleGroup>
-
-					<ActingAsPicker />
-				</div>
+				<ActingAsPicker />
 			</header>
 
 			<div className="bg-card border-border/60 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border">
@@ -150,26 +122,9 @@ export default function Assignments() {
 						<AssignmentTableError onRetry={() => void refetch()} />
 					)}
 
-					{showTableEmpty && <AssignmentTableEmpty hasFilters={hasFilters} />}
+					{isEmpty && <AssignmentTableEmpty hasFilters={hasFilters} />}
 
-					{ready && view === 'board' && (
-						<div className="flex h-full flex-col">
-							{assignments.length === 0 && (
-								<p className="text-muted-foreground border-border/60 border-b px-4 py-2.5 text-xs">
-									{hasFilters
-										? 'Nothing matches those filters — the columns below are empty, not missing.'
-										: 'No fault tickets yet. They land in Unassigned as soon as the coordinator raises them.'}
-								</p>
-							)}
-							<AssignmentBoard
-								assignments={assignments}
-								onChangeState={handleChangeState}
-								onOpen={openTicket}
-							/>
-						</div>
-					)}
-
-					{ready && view === 'table' && assignments.length > 0 && (
+					{ready && assignments.length > 0 && (
 						<AssignmentTable
 							assignments={assignments}
 							operators={operators}
@@ -189,7 +144,9 @@ export default function Assignments() {
 				<SheetContent
 					side="right"
 					className="w-full gap-0 p-0 sm:max-w-[440px]"
-					// The panel's own header carries the close button and the title.
+					// The panel's own header carries the close button and the title, so
+					// the sheet must not add a second one — they overlap.
+					showCloseButton={false}
 					aria-describedby={undefined}
 				>
 					{incidentId !== undefined && (

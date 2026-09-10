@@ -57,7 +57,6 @@ export const useStore = create<StoreState>()(
 						// Who this terminal is acting as persists per browser — it is
 						// the closest thing MAFD has to an identity.
 						actingOperatorId: state.actingOperatorId,
-						assignmentView: state.assignmentView,
 						assignmentWorkState: state.assignmentWorkState,
 						assignmentAssignee: state.assignmentAssignee,
 						assignmentSeverity: state.assignmentSeverity,

@@ -49,6 +49,12 @@ import { SlaCell } from './assignment-badges';
  *
  * Height comes from the parent — a full-height sheet on the board, a floating
  * card over the map — so nothing here is sized against the viewport.
+ *
+ * `defaultTab` is what each page opens on, and the two pages want different
+ * answers: the board exists to move work along, so it lands on Work, while the
+ * map is a monitoring screen where the first question about a pin is what the
+ * coordinator made of it. Uncontrolled, so switching tabs sticks for as long as
+ * the panel stays open and resets the next time one is opened.
  */
 export function AssignmentDetailPanel({
 	incidentId,
@@ -56,6 +62,7 @@ export function AssignmentDetailPanel({
 	filters,
 	showCloseButton = true,
 	showMapLink = true,
+	defaultTab = 'work',
 }: {
 	incidentId: string;
 	onClose: () => void;
@@ -64,6 +71,8 @@ export function AssignmentDetailPanel({
 	showCloseButton?: boolean;
 	/** Suppressed on the map itself, where "view on map" means nothing. */
 	showMapLink?: boolean;
+	/** Tab shown when the panel opens. */
+	defaultTab?: 'work' | 'diagnosis' | 'activity';
 }) {
 	const actingOperatorId = useStore((state) => state.actingOperatorId);
 
@@ -140,7 +149,7 @@ export function AssignmentDetailPanel({
 	}
 
 	return (
-		<Tabs defaultValue="work" className="flex h-full min-h-0 flex-col gap-0">
+		<Tabs defaultValue={defaultTab} className="flex h-full min-h-0 flex-col gap-0">
 			<header className="border-border/60 shrink-0 border-b px-4 pt-3">
 				<div className="flex flex-wrap items-center gap-2">
 					<h2 className="font-mono text-lg font-medium tracking-tight">

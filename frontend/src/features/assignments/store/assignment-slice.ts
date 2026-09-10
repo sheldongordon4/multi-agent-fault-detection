@@ -16,11 +16,7 @@ export type AssignmentFilters = {
 	search: string;
 };
 
-/** Board is for a shift's worth of work; table is what copes with a storm. */
-export type AssignmentView = 'board' | 'table';
-
 export type AssignmentsSliceState = {
-	assignmentView: AssignmentView;
 	assignmentWorkState: WorkStateFilter;
 	assignmentAssignee: AssigneeFilter;
 	assignmentSeverity: SeverityFilter;
@@ -36,7 +32,6 @@ export type AssignmentsSliceState = {
 };
 
 export type AssignmentsSliceActions = {
-	setAssignmentView: (view: AssignmentView) => void;
 	setAssignmentWorkState: (state: WorkStateFilter) => void;
 	setAssignmentAssignee: (assignee: AssigneeFilter) => void;
 	setAssignmentSeverity: (severity: SeverityFilter) => void;
@@ -63,9 +58,7 @@ export const createAssignmentsSlice: StateCreator<
 	AssignmentsSlice
 > = (set) => ({
 	...initialFilters,
-	assignmentView: 'board',
 	actingOperatorId: null,
-	setAssignmentView: (view) => set({ assignmentView: view }),
 	setAssignmentWorkState: (state) => set({ assignmentWorkState: state }),
 	setAssignmentAssignee: (assignee) => set({ assignmentAssignee: assignee }),
 	setAssignmentSeverity: (severity) => set({ assignmentSeverity: severity }),
