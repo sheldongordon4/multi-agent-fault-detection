@@ -2,7 +2,7 @@
 
 `docker-compose.dev.yaml` brings up the full local stack: **Postgres** (persistence),
 **Kafka** (event bus, KRaft mode — no ZooKeeper), **Kafdrop** (topic inspection UI),
-and the **app** (FastAPI API + the 5 Kafka consumer groups).
+and the **app** (FastAPI API + the 6 Kafka consumer groups).
 
 ## Services & ports
 
@@ -21,7 +21,9 @@ starts uvicorn.
 
 ```bash
 docker compose -f docker-compose.dev.yaml up -d --build
-# drive the pipeline from the host (replays pre-reduced event rows onto feeder.events):
+# drive the whole chain from the host, starting at raw.signals:
+.venv/bin/python scripts/produce_waveforms.py --fault SLG
+# or skip extraction and replay pre-reduced rows onto feeder.events:
 .venv/bin/python scripts/produce_events.py
 ```
 
@@ -29,7 +31,7 @@ Check readiness and watch the pipeline:
 
 ```bash
 curl -fsS http://localhost:8000/ready     # {"ready": true, "checks": {...}}
-# open http://localhost:9000 (Kafdrop) to see feeder.events → anomalies.detected → faulttickets
+# open http://localhost:9000 (Kafdrop) to see raw.signals → feeder.events → anomalies.detected → faulttickets
 ```
 
 ## Infra in Docker, app on the host
@@ -42,7 +44,7 @@ docker compose -f docker-compose.dev.yaml up -d db kafka kafdrop
 alembic -c app/alembic.ini upgrade head          # Alembic owns the schema
 .venv/bin/python scripts/bootstrap.py            # topics + models + Chroma KB
 uvicorn app.api.main:app --reload                # host talks to kafka on localhost:29092
-.venv/bin/python scripts/produce_events.py
+.venv/bin/python scripts/produce_waveforms.py --fault SLG
 ```
 
 > Don't run the host `uvicorn` **and** the container `app` at once — they share Kafka

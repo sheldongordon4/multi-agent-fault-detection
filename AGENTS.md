@@ -16,7 +16,7 @@ If any of these disagree with this file, treat `docs/System_Architecture.md` as 
 
 ##  Critical rules
 
-- **NEVER read, open, print, or echo `.env` or any `.env.*` file** — they contain secrets (Azure keys, DB credentials). The **only** env file you may read is **`.env.example`** (placeholders only). Need a variable's meaning? Read `app/config.py` or `.env.example`.
+- **NEVER read, open, print, or echo `.env` or any `.env.*` file** — they contain secrets (LLM API keys, DB credentials). The **only** env file you may read is **`.env.example`** (placeholders only). Need a variable's meaning? Read `app/config.py` or `.env.example`.
 - **Use the project venv**, not system Python: `.venv/Scripts/python.exe` (Windows). Don't install global packages.
 - **Do not read the large testbed CSVs in full** (`data/testbed/**`, and the bigger `data/generated/*.csv`). They will flood context. Read only headers / first ~10 lines when you need the schema.
 - **Don't commit, push, or change branches** unless explicitly asked. Never commit `.env`.
@@ -41,7 +41,7 @@ scripts/produce_waveforms.py ─▶ raw.signals ─▶ [extraction]  app/kafka/h
                                                    │  publishes verdict + most-disturbed buses + classification
                                                    ▼
                                              anomalies.detected ─▶ [coordinator]  app/faults
-                                                 │   Azure gpt-5.4-mini + kb_retrieve (RAG)
+                                                 │   Gemini + kb_retrieve (RAG)
                                                    ▼
                                              faulttickets ─┬─▶ [notification]  SSE broadcast + Postgres
                                                            └─▶ [persistence]   Postgres (upsert) → GET /tickets
@@ -63,7 +63,7 @@ offline work — it bypasses extraction by design.)
 - **Python 3.11+** (venv currently 3.14), **FastAPI**, **Pydantic v2** + **pydantic-settings**
 - **SQLAlchemy 2.0 (async)** + **asyncpg** + **Alembic** → **Postgres** (persistence)
 - **confluent-kafka** (event bus); **Kafdrop** UI for inspection
-- **LangChain** + **LangGraph** (ReAct agent), **Azure OpenAI** `gpt-5.4-mini` (coordinator LLM)
+- **LangChain** + **LangGraph** (ReAct agent); coordinator LLM is **any OpenAI-compatible endpoint** — **Google AI Studio** `gemini-3.8-flash` by default
 - **scikit-learn** IsolationForest (detection); **Streamlit** UI
 
 Minimum versions to honor (per the best-practices AGENTS.md below): FastAPI 0.115, Pydantic 2.7, SQLAlchemy 2.0, Alembic 1.13, httpx 0.27, ruff 0.6.
@@ -74,7 +74,7 @@ Minimum versions to honor (per the best-practices AGENTS.md below): FastAPI 0.11
 
 ```
 app/
-  config.py            global settings (pydantic-settings) — Azure, DB, Kafka, embeddings
+  config.py            global settings (pydantic-settings) — DB, Kafka, embeddings
   constants.py         Environment enum + DB naming convention
   database.py          async engine + fetch_one/fetch_all/execute helpers
   orm.py               SQLAlchemy DeclarativeBase + ULID/Timestamp mixins
@@ -84,8 +84,8 @@ app/
 
   faults/              COORDINATOR domain (diagnosis)
     router.py          POST /faults/diagnose  (response_model=FaultTicket)
-    service.py         run_fault_diagnosis(detection) — Azure agent OR local heuristic fallback
-    agent.py           LangGraph ReAct graph (AzureChatOpenAI + kb_retrieve)
+    service.py         run_fault_diagnosis(detection) — LLM agent OR local heuristic fallback
+    agent.py           LangGraph ReAct graph (ChatOpenAI @ LLM_ENDPOINT + kb_retrieve)
     tools.py           kb_retrieve tool
     schemas.py         FaultTicket / EvidenceWindow / KBCitation / DiagnoseRequest / TopBus
     constants.py       SYSTEM_PROMPT
@@ -96,7 +96,7 @@ app/
     service.py         assignment reads/writes; the redelivery invariant lives here
     constants.py       WorkState / Priority / OperatorRole / EventKind enums
 
-  faults/config.py     per-domain settings (Azure/LLM + rate-limit/retry/timeout)
+  faults/config.py     per-domain settings (LLM endpoint/key/model + rate-limit/retry/timeout/budget)
   rag/config.py        per-domain settings (embedding model)
   notification/        incident alerts (router, service, models, schemas, sse, constants)
   streaming/           per-bus live signal SSE (manager, router)
@@ -107,7 +107,8 @@ app/
   ml/                  the models (moved from top-level ml/):
     fault_detector.py    PRIMARY detection — testbed event IsolationForest (per-bus feature rows)
     fault_classifier.py  supervised RandomForest — fault type / category / location
-    feature_extractor.py raw 3-phase → event row bridge (1-cycle DFT implemented; streaming worker TODO)
+    feature_extractor.py raw 3-phase → event row bridge (1-cycle DFT); driven live by kafka/handlers/extract.py
+    waveform.py          the raw.signals frame: expand() to samples, rms() for the chart, the cheap gate tests
     baseline_detector.py DEPRECATED legacy time-series IsolationForest — scripts-only, NOT in the app
   alembic/ + alembic.ini   migrations
 
@@ -123,11 +124,15 @@ frontend/  React operator console (Vite + React 19 + Tailwind v4 + shadcn/Radix,
            its OWN page at /overview — it was briefly a bottom drawer on the
            map, which stacked a thing you read on a thing you operate.
            features/assignments/ is the ticket-ownership page at /assignments —
-           a dnd-kit board + a table view + a route-driven detail sheet
-           (/assignments/:incidentId). AssignmentDetailPanel (Work/Diagnosis/
-           Activity) is SHARED: the map's incident panel renders the same
-           component, so a ticket's detail is defined in one place. It fetches
-           by incident id and takes its height from its parent — don't give it
+           a filterable table + a route-driven detail sheet
+           (/assignments/:incidentId). There was a dnd-kit kanban board beside
+           the table; it was REMOVED, along with the view toggle and the
+           @dnd-kit/core dependency. Don't reintroduce one without asking.
+           AssignmentDetailPanel (Work/Diagnosis/Activity) is SHARED: the map's
+           incident panel renders the same component, so a ticket's detail is
+           defined in one place. Its defaultTab differs by page on purpose —
+           Work on /assignments, Diagnosis on the map. It fetches by incident id
+           and takes its height from its parent — don't give it
            viewport-relative sizing or a second copy.
 ui/        streamlit_app.py (reads ticket JSON; not SSE-wired yet)
 tests/     test_api.py (AsyncClient+ASGITransport), test_assignments.py (routes + real-DB integration), test_feature_extractor.py, test_fault_ticket_schema.py, test_health.py
@@ -154,7 +159,7 @@ Source: **https://github.com/zhanymkanov/fastapi-best-practices** (its `README.m
 
 ## Project-specific conventions
 
-- **Models:** coordinator → Azure `gpt-5.4-mini`; embeddings → local `bge-small` (offline). If `AZURE_OPENAI_*` is unset/placeholder, `run_fault_diagnosis` returns a **local heuristic ticket** (no LLM) — this is intentional, keep it working.
+- **Models:** coordinator → whatever `LLM_ENDPOINT` points at (**Google AI Studio `gemini-3.8-flash`** by default); embeddings → local `bge-small` (offline). The agent builds a plain `ChatOpenAI` on a configurable `base_url`, never a provider-specific client, so **switching provider is three .env values and no code**. `AZURE_OPENAI_*` still works as aliases for `LLM_ENDPOINT` / `LLM_API_KEY` / `LLM_MODEL`. If the key is unset/placeholder, `run_fault_diagnosis` returns a **local heuristic ticket** (no LLM) — intentional, keep it working.
 - **Detection-as-trigger:** the coordinator never calls a detection tool; it diagnoses the `anomalies.detected` payload (`feeder`, `verdict`, `topBuses`) and only calls `kb_retrieve`.
 - **Idempotency:** `incident_id` keys the ticket; persistence upserts (at-least-once Kafka delivery → overwrite, not duplicate).
 - **Never put operator state on `fault_tickets`.** `upsert_ticket` rewrites every column on each redelivery, so assignment/work state stored there is silently reset. It belongs in `ticket_assignments`, which no Kafka handler writes; reads LEFT JOIN, so a missing row *means* unassigned. `tests/test_assignments.py::test_assignment_survives_ticket_redelivery` pins this.
@@ -184,7 +189,7 @@ docker compose -f docker-compose.dev.yaml up -d db kafka kafdrop
 alembic -c app/alembic.ini upgrade head                # create schema (Alembic owns it)
 .venv/Scripts/python.exe scripts/bootstrap.py          # topics + models + Chroma KB
 # set AZURE_OPENAI_* in .env (else the coordinator returns a heuristic ticket)
-uvicorn app.api.main:app --reload                      # API + 5 consumer groups; /ready checks DB+Kafka
+uvicorn app.api.main:app --reload                      # API + 6 consumer groups; /ready checks DB+Kafka
 .venv/Scripts/python.exe scripts/produce_events.py     # drives detection → coordinator → tickets
 ```
 Don't run the host `uvicorn` and the container `app` at once — same Kafka `group.id`s + a port-8000 clash.
@@ -206,4 +211,4 @@ Gotcha: a native host Postgres on `:5432` can shadow the container's — the app
 - [ ] **Notification email/external channels** — only in-process SSE broadcast exists; no email/SMS/webhook delivery.
 - [ ] **Feeder-agnostic classifier** — `fault_classifier` is feeder-specific (13-bus columns); §6.1 wants topology-independent aggregate features so it transfers to new feeders.
 
-**Done (for reference):** **concurrency isolation** (`app/kafka/executors.py` — dedicated Kafka thread pool + ML `ProcessPoolExecutor`; fixed the live chart freezing while events processed) · **fast-path streaming consumer** (batched auto-commit for `raw.signals`; at-most-once for that topic only) · **React operator console** (`frontend/` — map-first incidents screen) · event/`fault_detector` detection · supervised `fault_classifier` (type/category/location, attached to `anomalies.detected`) · coordinator (Azure `gpt-5.4-mini` + `kb_retrieve`, rate-limited + bounded retries, heuristic fallback) · per-domain configs · `StrEnum` `FaultTicket` · `feature_extractor` DSP (1-cycle DFT) · DLQ on all topics · `GET /tickets` + `/tickets/{id}` history API · `/ready` (DB+Kafka) · Alembic migration · Kafka topic bootstrap · Dockerfile + self-bootstrapping entrypoint · integration tests.
+**Done (for reference):** **concurrency isolation** (`app/kafka/executors.py` — dedicated Kafka thread pool + ML `ProcessPoolExecutor`; fixed the live chart freezing while events processed) · **fast-path streaming consumer** (batched auto-commit for `raw.signals`; at-most-once for that topic only) · **React operator console** (`frontend/` — map-first incidents screen) · event/`fault_detector` detection · supervised `fault_classifier` (type/category/location, attached to `anomalies.detected`) · coordinator (OpenAI-compatible LLM + `kb_retrieve`, rate-limited + bounded retries, heuristic fallback) · per-domain configs · `StrEnum` `FaultTicket` · `feature_extractor` DSP (1-cycle DFT) · DLQ on all topics · `GET /tickets` + `/tickets/{id}` history API · `/ready` (DB+Kafka) · Alembic migration · Kafka topic bootstrap · Dockerfile + self-bootstrapping entrypoint · integration tests.

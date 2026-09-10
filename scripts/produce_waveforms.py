@@ -26,29 +26,23 @@ rather than a generic dip:
     LLLG  as LLL with a ground path
     OPEN_1PH  phase A conductor open: its current -> ~0, voltage floats
 
-KNOWN LIMITATION — NO NETWORK PROPAGATION (this is why classification is wrong)
-------------------------------------------------------------------------------
-Each bus is generated independently: the faulted bus collapses, every other bus
-stays at nominal. A real feeder does not behave that way. Measured from
-data/generated/validation_013.csv, an SLG at b671 disturbs the WHOLE feeder:
+NETWORK PROPAGATION — THE FAULT IS APPLIED TO THE WHOLE FEEDER
+--------------------------------------------------------------
+An earlier version generated each bus independently: the faulted bus collapsed
+and every other bus stayed at nominal. A real feeder does not behave that way,
+"one bus dead, four pristine" matches no training scenario, and the classifier
+resolved every injected fault to OPEN_3PH — an open conductor being the nearest
+thing in the training set to a bus isolated from a healthy feeder. Detection
+coped (it only needs "anomalous"); classification did not.
 
-    bus     min_Va   max_Ia   max_I0_I1        vs. what this script emits
-    b650     0.997    960.4       0.447        1.000 /  400 / 0.000
-    b632     0.975    939.7       0.419        1.000 /  400 / 0.000
-    b671     0.939    453.5       0.308        0.250 / 5000 / 0.793  <- faulted
-    b684     0.932     72.2       0.211        1.000 /  400 / 0.000
-    b675     0.929      0.0       2.029        1.000 /  400 / 0.000
+So the fault profile is now applied to EVERY bus, from a table of values
+MEASURED per bus per fault class in data/generated/validation_013.csv (see
+PROFILE below). --fault-bus only selects where the disturbance is centred.
+Note from that table that the faulted bus is not even the most extreme: b650
+carries the most current, because fault current flows FROM the source.
 
-Note the faulted bus is not even the most extreme — b650 carries the most
-current, because fault current flows from the source. "One bus dead, four
-pristine" matches no training scenario, and the classifier resolves it to
-OPEN_3PH: an open conductor is the nearest thing in the training set to a bus
-isolated from a healthy feeder.
-
-Consequence: DETECTION works off these waveforms (it only needs "anomalous"),
-CLASSIFICATION does not. Fixing it means attenuating the disturbance along the
-radial topology (FEEDER_EDGES in the frontend's bus-locations.ts describes it)
-rather than applying it to one bus in isolation.
+tests/test_live_chain.py asserts the fault that goes in is the fault that comes
+out, per fault type, so a regression here cannot return silently.
 
 Usage:
     .venv/Scripts/python.exe scripts/produce_waveforms.py --seconds 3 --fault SLG --fault-bus b671
