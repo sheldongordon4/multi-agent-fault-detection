@@ -8,7 +8,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from app.faults import budget
 from app.faults.budget import LLMBudgetExceeded
 from app.faults.config import settings as faults_settings
-from app.faults.constants import SYSTEM_PROMPT
+from app.faults.constants import FAULT_QUERY_TERMS, SYSTEM_PROMPT
 from app.faults.schemas import FaultTicket
 from app.rag.retriever import kb_retrieve_impl  # direct KB retrieval for local mode
 
@@ -110,6 +110,29 @@ def _coerce_to_ticket(raw: Any) -> dict[str, Any]:
 # -------------------------------------------------------------------
 
 
+def _kb_query(fault_type: str, feeder: str) -> str:
+    """
+    Turn a fault label into a query the SOP knowledge base can actually match.
+
+    `fault_type` arrives as either a classifier code with context ("SLG near b671
+    (~0.4 km)") or a heuristic phrase ("Ground fault (SLG/LLG) near b671"). The
+    bare codes retrieve badly on their own — see FAULT_QUERY_TERMS — so a
+    recognised leading code is expanded into its physical description. Anything
+    unrecognised is passed through, which keeps the heuristic phrases working
+    since they are already descriptive.
+
+    The suffix is deliberately just "feeder <id>", not "on distribution feeder
+    <id>": the extra word "distribution" measurably biased retrieval toward
+    whichever SOPs happened to use it, and was enough on its own to send an LL
+    fault to the open-conductor procedure.
+    """
+    code = fault_type.strip().split()[0].upper() if fault_type.strip() else ""
+    described = FAULT_QUERY_TERMS.get(code)
+    if described:
+        return f"{described} feeder {feeder}"
+    return f"{fault_type} protection {feeder}"
+
+
 def _build_local_fault_ticket(detection: dict[str, Any]) -> dict[str, Any]:
     """
     Local fallback: build a plausible FaultTicket from the detection event using
@@ -140,7 +163,7 @@ def _build_local_fault_ticket(detection: dict[str, Any]) -> dict[str, Any]:
     else:
         fault_type = f"Disturbance on {feeder} near {bus_id}"
 
-    kb_results = kb_retrieve_impl(query=f"{fault_type} protection {feeder}", k=1)
+    kb_results = kb_retrieve_impl(query=_kb_query(fault_type, feeder), k=1)
     kb_citations: list[dict[str, Any]] = []
     if kb_results:
         doc = kb_results[0]
@@ -190,6 +213,61 @@ def _build_local_fault_ticket(detection: dict[str, Any]) -> dict[str, Any]:
         "kb_citations": kb_citations,
         "created_at": now,
     }
+
+
+def _restore_citation_snippets(ticket: dict[str, Any]) -> dict[str, Any]:
+    """
+    Replace each citation's snippet with the authoritative KB text for its id.
+
+    The agent composes the ticket, including `kb_citations`, so whatever it
+    writes into `snippet` is model output — paraphrased, truncated, or invented.
+    Two reasons that is not acceptable:
+
+      - the SOP bodies open with a SYNTHETIC REFERENCE provenance notice saying
+        they are generated references and not approved utility procedures. The
+        agent drops it, so the caveat silently disappears from exactly the place
+        an operator would read it.
+      - Agent_Prompt_Guide.md already forbids fabricating citations. A snippet
+        the model wrote is a fabricated quotation of a real document, which is
+        harder to catch than a fabricated source id.
+
+    So the id and title stay as the agent chose them, and the quoted text comes
+    from the knowledge base. A citation whose id matches nothing in the KB is
+    dropped rather than shown with unverifiable text.
+    """
+    citations = ticket.get("kb_citations")
+    if not isinstance(citations, list) or not citations:
+        return ticket
+
+    verified: list[dict[str, Any]] = []
+    for citation in citations:
+        if not isinstance(citation, dict):
+            continue
+        source_id = str(citation.get("source_id") or "").strip()
+        if not source_id:
+            continue
+
+        docs = kb_retrieve_impl(query=source_id, k=3)
+        match = next((d for d in docs if d.get("source_id") == source_id), None)
+        if match is None:
+            logger.warning(
+                "Dropping citation %s: no such document in the SOP knowledge base",
+                source_id,
+            )
+            continue
+
+        verified.append(
+            {
+                **citation,
+                "title": match.get("title") or citation.get("title"),
+                "section": match.get("section") or citation.get("section"),
+                "url": match.get("url") or citation.get("url"),
+                "snippet": (match.get("snippet") or "")[:600],
+            }
+        )
+
+    ticket["kb_citations"] = verified
+    return ticket
 
 
 # -------------------------------------------------------------------
@@ -256,4 +334,4 @@ def run_fault_diagnosis(detection: dict[str, Any]) -> dict[str, Any]:
         )
         return _build_local_fault_ticket(detection)
     ticket.setdefault("ticket_id", incident_id)
-    return ticket
+    return _restore_citation_snippets(ticket)

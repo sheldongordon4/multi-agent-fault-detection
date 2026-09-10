@@ -44,3 +44,44 @@ Return ONLY one JSON object matching the FaultTicket schema:
 STRICT RULES
 - Do not wrap the JSON in markdown. Return raw JSON only.
 """
+
+
+# Fault code -> the words an embedding model can actually match on.
+#
+# The classifier emits terse codes ("LL", "OPEN_1PH"). Querying the SOP knowledge
+# base with those directly retrieves badly: a two-letter code carries almost no
+# semantic signal, so the surrounding boilerplate dominates and "LL near b684
+# protection ieee13" lands on the RELAY MISCOORDINATION procedure — the word
+# "protection" and "feeder" outweigh the code. Expanding the code into its
+# physical description is what makes retrieval hit the right document.
+#
+# Keys are the `target_fault_type` values in the testbed data.
+FAULT_QUERY_TERMS: dict[str, str] = {
+    "SLG": (
+        "single line-to-ground fault, one phase faulted to ground, "
+        "elevated zero-sequence ground current"
+    ),
+    # Phrased WITHOUT negation. "no ground path" is the physically defining
+    # feature of an LL fault, but an embedding model reads the words present, not
+    # the ones denied: "ground path" pulled this query toward the ground-fault and
+    # open-conductor procedures while "no" contributed nothing. State what the
+    # fault IS and let the absent terms stay absent.
+    "LL": (
+        "phase-to-phase fault, two phase conductors in contact, conductor slap, "
+        "galloping conductors"
+    ),
+    "LLG": (
+        "double line-to-ground fault, two phases faulted to ground, "
+        "both zero-sequence and negative-sequence current elevated"
+    ),
+    "LLL": "balanced three-phase short circuit, deep symmetrical voltage sag",
+    "LLLG": (
+        "balanced three-phase fault to ground, deep symmetrical voltage sag, highest fault current"
+    ),
+    "OPEN_1PH": (
+        "open conductor, broken conductor, single-phasing, "
+        "phase current near zero with voltage present"
+    ),
+    "OPEN_2PH": "open conductor on two phases, single-phasing, series fault",
+    "OPEN_3PH": "open conductor on all three phases, loss of supply, series fault",
+}
