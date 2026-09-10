@@ -42,8 +42,8 @@ const JAMAICA_BOUNDS: [number, number, number, number] = [
 const MIN_ZOOM = 6.5;
 const MAX_ZOOM = 15;
 
-// Below this the bus labels collide (Kingston and Spanish Town are ~17km apart),
-// so they're hidden and only the dots remain.
+// Below this the bus labels collide, so they're hidden and only the dots remain.
+// Sized for the tightest pair on the map: Spanish Town and Ocho Rios, ~49km apart.
 const LABEL_MIN_ZOOM = 8.6;
 
 // Pins closer together than this ON SCREEN merge into one cluster.
@@ -53,10 +53,15 @@ const LABEL_MIN_ZOOM = 8.6;
 // town zoom, so the same threshold splits clusters apart as you zoom in without
 // any per-zoom tuning.
 //
-// Calibrated, not guessed: at the fitted island view the closest pair (Kingston
-// and Spanish Town, ~17km) projects 49px apart, and one zoom step puts them near
-// 70px. 64 therefore merges them when the whole island is in frame and splits
-// them as soon as you zoom in — which is the behaviour clustering is for.
+// 64px is a little wider than a pin, so it merges only pins that genuinely
+// overlap. Deliberately expressed in pixels and not kilometres: the ground
+// distance one pixel covers depends on the window size as well as the zoom, so a
+// km threshold would need re-tuning per viewport and this one does not.
+//
+// With the current five buses the tightest pair (Spanish Town and Ocho Rios,
+// ~49km) stays separate even with the whole island in frame, so nothing clusters
+// today. The threshold is here for the bus set growing — measure the closest
+// pair again if it does.
 const CLUSTER_RADIUS_PX = 64;
 
 const PARISHES_URL = '/map/jamaica-parishes.geojson';
@@ -132,10 +137,10 @@ export function GridMapCanvas({
 
 	// --- clustering ---------------------------------------------------------
 	// Grouped by distance ON SCREEN rather than on the ground. The whole point of
-	// clustering here is overlap: at island zoom Kingston and Spanish Town are the
-	// same pixel and must merge; at town zoom they are far apart and must not. A
-	// screen-space threshold expresses that directly, and clusters split apart on
-	// their own as you zoom in — no per-zoom rules to keep in sync.
+	// clustering here is overlap: two buses that land on the same pixel at island
+	// zoom must merge, and must not once you zoom into the town. A screen-space
+	// threshold expresses that directly, and clusters split apart on their own as
+	// you zoom in — no per-zoom rules to keep in sync.
 	//
 	// Deliberately not MapLibre's built-in GeoJSON clustering: that renders through
 	// circle layers, which would mean giving up the DOM pins and with them the
