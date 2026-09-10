@@ -7,6 +7,10 @@ import {
 } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import {
+	createAssignmentsSlice,
+	type AssignmentsSlice,
+} from '@features/assignments/store/assignment-slice';
+import {
 	createIncidentsSlice,
 	type IncidentsSlice,
 } from '@features/incidents/store/incident-slice';
@@ -22,7 +26,10 @@ import {
 
 // The root store composes per-feature UI slices (local UI state only; server
 // data lives in react-query). MAFD has no auth, so there is no auth slice.
-export type StoreState = ThemeSlice & IncidentsSlice & OverviewSlice;
+export type StoreState = ThemeSlice &
+	IncidentsSlice &
+	OverviewSlice &
+	AssignmentsSlice;
 
 export const useStore = create<StoreState>()(
 	subscribeWithSelector(
@@ -32,6 +39,7 @@ export const useStore = create<StoreState>()(
 					...createThemeSlice(...args),
 					...createIncidentsSlice(...args),
 					...createOverviewSlice(...args),
+					...createAssignmentsSlice(...args),
 				})),
 				{
 					name: 'mafd-store',
@@ -46,6 +54,14 @@ export const useStore = create<StoreState>()(
 						incidentStatus: state.incidentStatus,
 						selectedBusId: state.selectedBusId,
 						signalMetric: state.signalMetric,
+						// Who this terminal is acting as persists per browser — it is
+						// the closest thing MAFD has to an identity.
+						actingOperatorId: state.actingOperatorId,
+						assignmentView: state.assignmentView,
+						assignmentWorkState: state.assignmentWorkState,
+						assignmentAssignee: state.assignmentAssignee,
+						assignmentSeverity: state.assignmentSeverity,
+						assignmentPriority: state.assignmentPriority,
 					}),
 				}
 			),

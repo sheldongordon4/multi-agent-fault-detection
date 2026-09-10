@@ -4,6 +4,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
+import app.assignments.models  # noqa: F401 — registers Operator/TicketAssignment/AssignmentEvent
 import app.notification.models  # noqa: F401 — registers Notification table
 import app.persistence.models  # noqa: F401 — registers FaultTicketRecord table
 from app.config import settings
