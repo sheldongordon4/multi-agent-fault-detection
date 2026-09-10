@@ -36,6 +36,7 @@ from sklearn.ensemble import IsolationForest
 ROOT_DIR = Path(__file__).resolve().parents[2]  # repo root (for scripts + data)
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
+from app.ml.attribution import attribute  # noqa: E402
 from scripts.load_testbed import load_testbed  # noqa: E402
 
 MODEL_DIR = Path(__file__).resolve().parent / "models"  # app/ml/models
@@ -264,6 +265,11 @@ def publish_event(
             "severity": _severity(verdict["isFault"], verdict["anomalyScore"]),
         },
         "topBuses": top_buses,
+        # Which measurements put this event outside normal. Attached here, beside
+        # the verdict it explains, rather than reconstructed downstream — the
+        # coordinator no longer holds the feature row, and an explanation built
+        # from anything but the scored row is not an explanation of this verdict.
+        "attribution": attribute(row) if verdict["isFault"] else [],
         "model": {
             "type": "IsolationForest",
             "nFeatures": verdict["nFeatures"],

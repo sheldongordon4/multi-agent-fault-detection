@@ -16,6 +16,7 @@ Usage:
 
 from __future__ import annotations
 
+import logging
 import pickle
 import sys
 from pathlib import Path
@@ -28,6 +29,8 @@ ROOT_DIR = Path(__file__).resolve().parents[2]  # repo root (for scripts + data)
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 from scripts.load_testbed import feature_columns  # noqa: E402
+
+logger = logging.getLogger(__name__)
 
 MODEL_DIR = Path(__file__).resolve().parent / "models"  # app/ml/models
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
@@ -86,6 +89,52 @@ def load_classifier() -> dict:
         return pickle.load(f)
 
 
+# How many runner-up classes to report beside the prediction. Two is enough to
+# show what the model was torn between without turning the ticket into a
+# probability table.
+_N_ALTERNATIVES = 2
+
+
+def _type_confidence(clf, x) -> dict:
+    """
+    How sure the classifier is, and what it nearly said instead.
+
+    The ticket asserted a fault type flatly, which reads as certainty the model
+    does not have. A RandomForest already computes class probabilities on the
+    way to its prediction, so the number was being discarded rather than
+    missing.
+
+    It matters most exactly where this system is weakest. SLG and LLG are both
+    ground faults and sit close together in feature space; an operator who can
+    see "SLG 61%, LLG 34%" knows to check the sequence ratios themselves, while
+    a bare "SLG" invites them not to. Publishing the runner-up is the honest
+    form of that: the alternative IS the diagnosis when the margin is thin.
+
+    Returns {} when the estimator has no predict_proba, so a swapped model class
+    degrades to the old behaviour instead of failing.
+    """
+    proba = getattr(clf, "predict_proba", None)
+    classes = getattr(clf, "classes_", None)
+    if proba is None or classes is None:
+        return {}
+
+    try:
+        scores = proba(x)[0]
+    except Exception:  # pragma: no cover - estimator without a fitted proba
+        logger.warning("Classifier has predict_proba but it failed; omitting confidence.")
+        return {}
+
+    ranked = sorted(zip(classes, scores, strict=False), key=lambda p: float(p[1]), reverse=True)
+    return {
+        "confidence": round(float(ranked[0][1]), 4),
+        "alternatives": [
+            {"fault_type": str(name), "confidence": round(float(score), 4)}
+            for name, score in ranked[1 : 1 + _N_ALTERNATIVES]
+            if float(score) > 0.0
+        ],
+    }
+
+
 def classify_event(features, bundle: dict | None = None) -> dict:
     """Predict fault_type / fault_category / location_km for one event's features."""
     if bundle is None:
@@ -110,7 +159,8 @@ def classify_event(features, bundle: dict | None = None) -> dict:
     # Guard inf/nan (de-energized buses, docs §11) so sklearn scores instead of
     # raising — matches fault_detector.detect_event.
     x = np.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
-    out = {"fault_type": str(bundle["type_clf"].predict(x)[0])}
+    out: dict = {"fault_type": str(bundle["type_clf"].predict(x)[0])}
+    out.update(_type_confidence(bundle["type_clf"], x))
     if bundle.get("cat_clf") is not None:
         out["fault_category"] = str(bundle["cat_clf"].predict(x)[0])
     if bundle.get("loc_reg") is not None:
