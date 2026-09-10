@@ -33,6 +33,20 @@ _SEVERITY_SYNONYMS = {
 }
 
 
+def coerce_severity(value: object) -> Severity:
+    """
+    Map a free-form severity onto the enum.
+
+    Shared with the persistence layer, which ranks severities read back out of
+    the database and meets the same vocabulary: what the coordinator writes is
+    wider than the three enum values, and normalising in one place keeps a
+    "critical" from scoring as unknown in one caller and as high in another.
+    """
+    if isinstance(value, Severity):
+        return value
+    return _SEVERITY_SYNONYMS.get(str(value).strip().lower(), Severity.MEDIUM)
+
+
 class TopBus(BaseModel):
     bus: str
     minVa: float | None = None
@@ -66,6 +80,27 @@ class EvidenceWindow(BaseModel):
     description: str
 
 
+class ClassifierAlternative(BaseModel):
+    """A class the classifier nearly chose instead."""
+
+    fault_type: str
+    confidence: float
+
+
+class FeatureAttribution(BaseModel):
+    """One measurement that put the event outside the normal distribution."""
+
+    feature: str
+    bus: str
+    family: str
+    label: str
+    meaning: str
+    value: float
+    baseline: float
+    sigma: float
+    direction: str
+
+
 class FaultTicket(BaseModel):
     ticket_id: str
     scenario: str
@@ -80,12 +115,24 @@ class FaultTicket(BaseModel):
     kb_citations: list[KBCitation]
     created_at: str
 
+    # ── Deterministic enrichment ─────────────────────────────────────────────
+    #
+    # Everything below is written by app/faults/service.py AFTER the ticket is
+    # validated, from the detection payload — never by the LLM, and never
+    # parsed out of its output. A confidence the model invents is worse than no
+    # confidence at all, and a customer count it invents is a number an
+    # operator would dispatch on. All optional: a ticket built before these
+    # existed, or one whose detection carried none of it, still validates.
+    fault_type_confidence: float | None = None
+    fault_type_alternatives: list[ClassifierAlternative] = Field(default_factory=list)
+    attribution: list[FeatureAttribution] = Field(default_factory=list)
+    customers_affected: int | None = None
+    customers_share: float | None = None
+
     @field_validator("severity", mode="before")
     @classmethod
     def _coerce_severity(cls, v: object) -> Severity:
-        if isinstance(v, Severity):
-            return v
-        return _SEVERITY_SYNONYMS.get(str(v).strip().lower(), Severity.MEDIUM)
+        return coerce_severity(v)
 
     @field_validator("status", mode="before")
     @classmethod

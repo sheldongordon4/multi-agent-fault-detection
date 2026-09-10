@@ -9,21 +9,23 @@ from app.faults import budget
 from app.faults.budget import LLMBudgetExceeded
 from app.faults.config import settings as faults_settings
 from app.faults.constants import FAULT_QUERY_TERMS, SYSTEM_PROMPT
+from app.faults.customers import customers_affected, impact_share
 from app.faults.schemas import FaultTicket
 from app.rag.retriever import kb_retrieve_impl  # direct KB retrieval for local mode
 
 logger = logging.getLogger(__name__)
 
-# Fall back to the offline heuristic ticket only when Azure is not configured
-# (not on APP_ENV), so a configured endpoint works even with APP_ENV=local in dev.
-USE_LOCAL_FALLBACK = not faults_settings.azure_configured
+# Fall back to the offline heuristic ticket only when no LLM endpoint is
+# configured (not on APP_ENV), so a configured endpoint works even with
+# APP_ENV=local in dev.
+USE_LOCAL_FALLBACK = not faults_settings.llm_configured
 
 
 def _should_use_local() -> bool:
     """
-    Use the local (no-LLM) fallback when Azure isn't configured OR the process
+    Use the local (no-LLM) fallback when no endpoint is configured OR the process
     endpoint-call budget is spent. The budget check makes the switch permanent
-    once we hit the cap, so no further Azure calls are attempted.
+    once we hit the cap, so no further endpoint calls are attempted.
     """
     return USE_LOCAL_FALLBACK or budget.exhausted()
 
@@ -215,6 +217,51 @@ def _build_local_fault_ticket(detection: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _enrich_ticket(ticket: dict[str, Any], detection: dict[str, Any]) -> dict[str, Any]:
+    """
+    Attach what the pipeline measured, after the ticket has been written.
+
+    Same reasoning as `_restore_citation_snippets` directly below: these are
+    facts the detection payload already carries, and letting the LLM restate
+    them turns a measurement into a paraphrase. Three of them in particular
+    must never be model output —
+
+      - `fault_type_confidence` is the classifier's own probability. An invented
+        one would be confidently wrong precisely where the classifier is
+        uncertain, which is the only situation it exists to expose.
+      - `customers_affected` is a dispatch input. An operator ranks work by it.
+      - `attribution` is the explanation of the verdict; generated prose about
+        the evidence is exactly what it is meant to replace.
+
+    Enrichment is best-effort. A ticket with no classification, an unmodelled
+    bus, or no attribution baseline is still a valid ticket, so every field
+    stays absent rather than guessed.
+    """
+    classification = detection.get("classification") or {}
+
+    confidence = classification.get("confidence")
+    if confidence is not None:
+        ticket["fault_type_confidence"] = confidence
+    alternatives = classification.get("alternatives")
+    if alternatives:
+        ticket["fault_type_alternatives"] = alternatives
+
+    attribution = detection.get("attribution")
+    if attribution:
+        ticket["attribution"] = attribution
+
+    # Read from the ticket, not the detection: the bus the ticket names is the
+    # one an operator will be sent to, even when the coordinator picked a
+    # different bus from the top-buses list than detection ranked first.
+    bus_id = ticket.get("bus_id")
+    count = customers_affected(bus_id)
+    if count is not None:
+        ticket["customers_affected"] = count
+        ticket["customers_share"] = impact_share(bus_id)
+
+    return ticket
+
+
 def _restore_citation_snippets(ticket: dict[str, Any]) -> dict[str, Any]:
     """
     Replace each citation's snippet with the authoritative KB text for its id.
@@ -287,7 +334,7 @@ def run_fault_diagnosis(detection: dict[str, Any]) -> dict[str, Any]:
       a validated FaultTicket from the detection signature.
     """
     if _should_use_local():
-        return _build_local_fault_ticket(detection)
+        return _enrich_ticket(_build_local_fault_ticket(detection), detection)
 
     feeder, severity, score, top_buses, incident_id = _read_detection(detection)
     summary = _detection_summary(feeder, severity, score, top_buses)
@@ -318,7 +365,7 @@ def run_fault_diagnosis(detection: dict[str, Any]) -> dict[str, Any]:
     except LLMBudgetExceeded:
         # Budget ran out partway through the ReAct loop: stop spending and return
         # a locally built ticket instead of a partial/failed one.
-        return _build_local_fault_ticket(detection)
+        return _enrich_ticket(_build_local_fault_ticket(detection), detection)
 
     final_message = final_state["messages"][-1]
     try:
@@ -332,6 +379,6 @@ def run_fault_diagnosis(detection: dict[str, Any]) -> dict[str, Any]:
             "If this is truncation, raise LLM_MAX_OUTPUT_TOKENS.",
             incident_id,
         )
-        return _build_local_fault_ticket(detection)
+        return _enrich_ticket(_build_local_fault_ticket(detection), detection)
     ticket.setdefault("ticket_id", incident_id)
-    return _restore_citation_snippets(ticket)
+    return _enrich_ticket(_restore_citation_snippets(ticket), detection)
