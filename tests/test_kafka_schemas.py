@@ -19,8 +19,26 @@ _VALID_TICKET = {
 }
 
 
+# raw.signals carries 3-phase WAVEFORM frames, not scalar SCADA readings: I0/I1
+# and I2/I1 need all three phases (Open Decision #6). See app/ml/waveform.py.
+_VALID_FRAME = {
+    "bus_id": "b671",
+    "t0": 1_725_000_000.0,
+    "fs": 1920.0,
+    "Va": [1.0, 0.0, -1.0],
+    "Vb": [0.0, -1.0, 1.0],
+    "Vc": [-1.0, 1.0, 0.0],
+    "Ia": [400.0, 0.0, -400.0],
+    "Ib": [0.0, -400.0, 400.0],
+    "Ic": [-400.0, 400.0, 0.0],
+}
+
+
 def test_validate_payload_accepts_topic_contracts():
-    assert validate_payload("raw.signals", {"bus_id": "b1", "value": 1})["bus_id"] == "b1"
+    frame = validate_payload("raw.signals", _VALID_FRAME)
+    assert frame["bus_id"] == "b671"
+    assert frame["fs"] == 1920.0
+    assert len(frame["Va"]) == 3
     assert validate_payload(
         "feeder.events",
         {"feeder": "ieee13", "timestamp": "now", "features": {"min_Va": 0.9}},
@@ -35,6 +53,11 @@ def test_validate_payload_accepts_topic_contracts():
 def test_validate_payload_rejects_invalid_payload():
     with pytest.raises(ValidationError):
         validate_payload("raw.signals", {"value": 1})
+
+    # A frame without a sample rate cannot be expanded back into samples, so the
+    # timestamps would be unrecoverable — reject it rather than guess.
+    with pytest.raises(ValidationError):
+        validate_payload("raw.signals", {**_VALID_FRAME, "fs": 0.0})
 
     with pytest.raises(ValidationError):
         validate_payload("faulttickets", {"incident_id": "missing-fields"})

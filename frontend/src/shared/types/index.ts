@@ -116,21 +116,40 @@ export interface NotificationStreamEvent {
  * app/streaming/manager.py) and fans them out over SSE.
  */
 export interface SignalReading {
+	/** The frame's own sample clock (ISO-8601), not its arrival time. */
 	timestamp: string;
 	bus_id: string;
-	scenario?: string;
-	voltage_kv: number;
-	current_a: number;
-	frequency_hz: number;
-	temperature_c: number;
+	/** Epoch seconds of the frame this reading was reduced from. */
+	t?: number | null;
+	/** Per-phase RMS magnitudes, one point per 60 Hz cycle. */
+	Va_rms: number;
+	Vb_rms: number;
+	Vc_rms: number;
+	Ia_rms: number;
+	Ib_rms: number;
+	Ic_rms: number;
+	/** Deepest phase voltage, per unit — the sag the detector triggers on. */
+	v_pu: number;
 }
 
-/** Which numeric channels a reading carries — drives the chart metric picker. */
+/**
+ * Which numeric channel the chart plots.
+ *
+ * `raw.signals` now carries 3-phase waveform frames rather than scalar SCADA
+ * readings (Open Decision #6), so the old voltage_kv/current_a/frequency_hz/
+ * temperature_c channels no longer exist. The streaming service reduces each
+ * frame to per-cycle RMS before it reaches the browser (Decision #7): pushing
+ * ~2k raw samples/s/bus would swamp the SSE feed, and RMS is the quantity an
+ * operator already reads on SCADA.
+ */
 export type SignalMetric =
-	| 'voltage_kv'
-	| 'current_a'
-	| 'frequency_hz'
-	| 'temperature_c';
+	| 'Va_rms'
+	| 'Ia_rms'
+	| 'Vb_rms'
+	| 'Ib_rms'
+	| 'Vc_rms'
+	| 'Ic_rms'
+	| 'v_pu';
 
 /** Sent once on connect: the bus's current rolling buffer. */
 export interface SignalSnapshotEvent {
@@ -176,7 +195,7 @@ export interface NavItem {
 }
 
 
-/* â”€â”€ Assignments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Assignments ─────────────────────────────────────────────────────────── */
 
 /**
  * Operator-owned workflow state (app/assignments/constants.py::WorkState).
@@ -210,7 +229,7 @@ export type AssignmentEventKind =
 	| 'note_changed'
 	| 'commented';
 
-/** Board column order â€” also the order states are offered in the pickers. */
+/** Board column order — also the order states are offered in the pickers. */
 export const WORK_STATES: WorkState[] = [
 	'unassigned',
 	'assigned',
@@ -222,7 +241,7 @@ export const WORK_STATES: WorkState[] = [
 
 export const PRIORITIES: Priority[] = ['p1', 'p2', 'p3', 'p4'];
 
-/** A roster entry. Not a user account â€” MAFD has no auth. */
+/** A roster entry. Not a user account — MAFD has no auth. */
 export interface Operator {
 	id: string;
 	name: string;

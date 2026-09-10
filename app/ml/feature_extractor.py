@@ -35,6 +35,7 @@ import cmath
 import math
 import sys
 import uuid
+from collections import deque
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
@@ -67,6 +68,13 @@ def _buses_from_cols(feature_cols: Sequence[str]) -> list[str]:
     return buses
 
 
+# Fraction of a cycle's energy the fitted fundamental may leave unexplained
+# before that cycle is treated as a transition rather than a measurement. A
+# clean sinusoid leaves ~0; the cycle a fault steps through leaves several
+# percent. Set well above harmonic distortion and well below a step.
+_MAX_FIT_RESIDUAL = 0.02
+
+
 class FeatureExtractor:
     """
     Streaming extractor: feed it raw per-bus samples, get published events out.
@@ -88,6 +96,7 @@ class FeatureExtractor:
         low_current_floor: float = 1.0,
         mode: str = "rolling",
         sag_threshold: float = 0.9,
+        unbalance_threshold: float = 0.15,
         model=None,
         feature_cols: list[str] | None = None,
     ):
@@ -104,6 +113,11 @@ class FeatureExtractor:
                                sequence ratios forced to ~0 (mirrors the generator's
                                guard against small/small ratio blow-ups).
             mode:              "rolling" (cut every call) or "triggered" (on disturbance).
+            unbalance_threshold: sequence-ratio trigger, max(|I0|,|I2|)/|I1|. Sits
+                               between the healthy feeder (~0.03) and the mildest
+                               fault signature (~0.06 for OPEN_1PH at the source,
+                               ~0.36 for SLG), so normal load unbalance does not
+                               fire it.
             model, feature_cols: a preloaded model bundle; else the persisted testbed
                                model is loaded.
         """
@@ -119,26 +133,44 @@ class FeatureExtractor:
         self.window_seconds = window_seconds
         self.low_current_floor = low_current_floor
         self.mode = mode
-        # Triggered mode fires when any monitored bus's per-cycle voltage magnitude
-        # sags below sag_threshold (in per-unit of nominal_v).
+        # Triggered mode fires on EITHER a voltage sag or sequence unbalance —
+        # see _detect_disturbance for why one alone is not sufficient.
         self.sag_threshold = sag_threshold
+        self.unbalance_threshold = unbalance_threshold
 
-        #  per-bus rolling buffers of recent samples
-        self.buffer: dict[str, list[dict]] = {b: [] for b in self.buses}
+        # Per-bus rolling buffers. A deque, not a list: `ingest` is on the live
+        # hot path at ~1.9k samples/s PER BUS, and rebuilding a list to prune it
+        # is O(n) per sample — measured at ~3.5k samples/s total, which cannot
+        # sustain even two buses in real time. Popping expired samples off the
+        # front is O(1) amortized.
+        self.buffer: dict[str, deque[dict]] = {b: deque() for b in self.buses}
 
     #  ingest + buffer
     def ingest(self, sample: dict) -> None:
-        """Append one raw sample to its bus buffer, pruning anything older than
-        the window so the buffer stays bounded."""
+        """
+        Append one raw sample to its bus buffer, dropping anything too old to
+        take part in a window.
+
+        Retention is two window-lengths: a triggered window spans
+        [t_fire - window, t_fire + window], and the trigger can be a full window
+        behind the newest sample, so anything shorter would evict the pre-fault
+        baseline before the window closes.
+        """
         bus = sample["bus"]
         if bus not in self.buffer:
             return  # not a monitored bus
+
         buf = self.buffer[bus]
+        if not isinstance(buf, deque):
+            # Callers that reset buffers by assignment (scripts/produce_events_live)
+            # hand back plain lists; adopt them rather than losing O(1) pruning.
+            buf = deque(buf)
+            self.buffer[bus] = buf
+
         buf.append(sample)
-        t_now = sample["t"]
-        horizon = t_now - self.window_seconds
-        # keep a little slack beyond the window for the trigger / recovery tail
-        self.buffer[bus] = [s for s in buf if s["t"] >= horizon - self.window_seconds]
+        cutoff = sample["t"] - 2 * self.window_seconds
+        while buf and buf[0]["t"] < cutoff:
+            buf.popleft()
 
     # choose the window
     def cut_window(self):
@@ -152,9 +184,8 @@ class FeatureExtractor:
             fired_at = self._detect_disturbance()
             if fired_at is None:
                 return None
-            t_end = fired_at + self.window_seconds  # extend PAST the event for recovery
-            t_start = fired_at - self.window_seconds  # a little pre-fault baseline
-        elif self.mode == "rolling":
+            return self.window_around(fired_at)
+        if self.mode == "rolling":
             # newest timestamp across buffers defines "now"
             latest = [b[-1]["t"] for b in self.buffer.values() if b]
             if not latest:
@@ -169,15 +200,50 @@ class FeatureExtractor:
         }
         return window, t_start, t_end
 
+    def window_around(self, t_fire: float):
+        """
+        The window a disturbance at `t_fire` should be reduced over.
+
+        Split out of `cut_window` so a streaming caller can LATCH the trigger.
+        `cut_window` in triggered mode fires at "now", which means its window
+        always ends `window_seconds` in the future — fine for a batch caller that
+        already holds the whole waveform, impossible for a live worker, which
+        would wait forever for a tail that keeps receding. A worker instead
+        remembers when the sag started and asks for that window once the samples
+        past it have actually arrived.
+
+        Returns: (window: {bus: [samples]}, t_start, t_end).
+        """
+        t_end = t_fire + self.window_seconds  # extend PAST the event for recovery
+        t_start = t_fire - self.window_seconds  # a little pre-fault baseline
+        window = {
+            bus: [s for s in buf if t_start <= s["t"] <= t_end] for bus, buf in self.buffer.items()
+        }
+        return window, t_start, t_end
+
     def _detect_disturbance(self):
         """
         TRIGGERED mode: return the timestamp of a detected disturbance, or None.
 
-        Cheap monitor: reduce each bus buffer to per-cycle phasors and fire at the
-        latest sample if any bus's per-cycle voltage magnitude sags below
-        sag_threshold (in per-unit). A deep sag is the strongest single indicator
-        of a short-circuit fault; more elaborate dV/dt or dI/dt triggers can layer
-        on top of this without changing the windowing contract.
+        TWO independent triggers, because one is not enough:
+
+          - VOLTAGE SAG below `sag_threshold`. Catches balanced faults (LLL,
+            LLLG), which depress all three phases together.
+          - SEQUENCE UNBALANCE above `unbalance_threshold`. Catches unbalanced
+            faults (SLG, LL, LLG, open conductors), which a sag test misses
+            entirely.
+
+        The second one is not an embellishment. Measured on the testbed
+        (data/generated/validation_013.csv), an SLG at the feeder head sags
+        voltage to only ~0.995 pu — nowhere near any usable sag threshold —
+        while its zero-sequence ratio goes from ~0.003 to ~0.36, a hundredfold
+        change. Sag-only triggering silently ignored every unbalanced fault, and
+        since unbalanced faults are the majority of what happens on a
+        distribution feeder, that was most of them.
+
+        This mirrors real protection, which pairs undervoltage and overcurrent
+        elements with a dedicated negative-sequence element (device 46) for
+        exactly this reason.
         """
         for buf in self.buffer.values():
             if not buf:
@@ -185,9 +251,21 @@ class FeatureExtractor:
             cycles = self._phasors(buf)
             if not cycles:
                 continue
+
             vmin = min(min(c["Va"], c["Vb"], c["Vc"]) for c in cycles) / self.nominal_v
             if vmin < self.sag_threshold:
                 return buf[-1]["t"]  # fire at "now"
+
+            for c in cycles:
+                i0, i1, i2 = self._sequence(c["Ia"], c["Ib"], c["Ic"])
+                mag = abs(i1)
+                # Below the floor the ratios are noise over noise — the same
+                # guard _reduce_bus applies before dividing.
+                if mag < self.low_current_floor:
+                    continue
+                if max(abs(i0), abs(i2)) / mag > self.unbalance_threshold:
+                    return buf[-1]["t"]
+
         return None
 
     #  per-cycle phasors (1-cycle DFT at the fundamental)
@@ -234,8 +312,56 @@ class FeatureExtractor:
                 cyc[ch] = abs(self._dft_phasor([float(w[ch]) for w in win]))
             for ch in ("Ia", "Ib", "Ic"):
                 cyc[ch] = self._dft_phasor([float(w[ch]) for w in win])
+            cyc["stationary"] = self._is_stationary(win)
             cycles.append(cyc)
         return cycles
+
+    @staticmethod
+    def _is_stationary(win: list[dict]) -> bool:
+        """
+        Does this cycle hold one steady sinusoid, or does a step cross it?
+
+        `_dft_phasor` integrates over a whole cycle and assumes the waveform is
+        stationary across it. At fault inception exactly one cycle straddles the
+        step, and its phasor measures nothing real: the phases sit 120 degrees
+        apart, so the step lands at a different point in each one and the
+        estimator reports negative- and zero-sequence current the feeder never
+        carried. On an unbalanced fault that artifact is lost under a genuine
+        I2/I1 of 0.4; on a BALANCED one, where the true ratio is ~0.003, it is
+        an order of magnitude LARGER than the signal — and since
+        `max_I2_I1_fault` takes the peak over the window, the peak becomes the
+        artifact. It is enough on its own to turn an LLL into an LLLG.
+
+        Measured as how much of the cycle the fitted fundamental fails to
+        explain. Comparing half-cycle energy instead looks cheaper but misses a
+        step that lands near a cycle boundary, which is most of them: by then
+        both halves sit at the post-fault level and only the discontinuity
+        itself is left to see. This needs no knowledge of when the fault began,
+        so it behaves the same on a live feeder as on a replayed one.
+        """
+        n = len(win)
+        if n < 4:
+            return True
+        for ch in ("Va", "Vb", "Vc", "Ia", "Ib", "Ic"):
+            xs = [float(w[ch]) for w in win]
+            energy = sum(v * v for v in xs)
+            # A de-energized channel has no fit to speak of; the floor keeps
+            # b675's zero current from reading as a step every cycle.
+            if energy < 1e-12:
+                continue
+            acc = 0j
+            for k in range(n):
+                theta = 2.0 * math.pi * k / n
+                acc += xs[k] * complex(math.cos(theta), -math.sin(theta))
+            phasor = (2.0 / n) * acc
+            residual = 0.0
+            for k in range(n):
+                theta = 2.0 * math.pi * k / n
+                fitted = (phasor * complex(math.cos(theta), math.sin(theta))).real
+                residual += (xs[k] - fitted) ** 2
+            if residual / energy > _MAX_FIT_RESIDUAL:
+                return False
+        return True
 
     @staticmethod
     def _dft_phasor(x: list[float]) -> complex:
@@ -265,6 +391,13 @@ class FeatureExtractor:
         definitions: voltage families take the extreme/end value, spike families
         take the peak over cycles, with the low-current guard on the ratios.
         """
+        # Drop the inception/clearing cycles: their phasors are estimator
+        # artifacts, not measurements (see `_is_stationary`). Keep everything if
+        # nothing survives, so a pathological window degrades rather than
+        # silently reducing to zeros.
+        steady = [c for c in cycles if c.get("stationary", True)]
+        cycles = steady or cycles
+
         va = [c["Va"] / self.nominal_v for c in cycles]
         vb = [c["Vb"] / self.nominal_v for c in cycles]
         vc = [c["Vc"] / self.nominal_v for c in cycles]

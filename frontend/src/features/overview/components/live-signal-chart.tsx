@@ -25,10 +25,15 @@ export const SIGNAL_METRICS: {
 	label: string;
 	unit: string;
 }[] = [
-	{ value: 'voltage_kv', label: 'Voltage', unit: 'kV' },
-	{ value: 'current_a', label: 'Current', unit: 'A' },
-	{ value: 'frequency_hz', label: 'Frequency', unit: 'Hz' },
-	{ value: 'temperature_c', label: 'Temperature', unit: '°C' },
+	{ value: 'Va_rms', label: 'Va (RMS)', unit: 'pu' },
+	{ value: 'Vb_rms', label: 'Vb (RMS)', unit: 'pu' },
+	{ value: 'Vc_rms', label: 'Vc (RMS)', unit: 'pu' },
+	{ value: 'Ia_rms', label: 'Ia (RMS)', unit: 'A' },
+	{ value: 'Ib_rms', label: 'Ib (RMS)', unit: 'A' },
+	{ value: 'Ic_rms', label: 'Ic (RMS)', unit: 'A' },
+	// The trigger quantity itself: deepest phase voltage in per unit. A dip
+	// below 0.9 here is exactly what wakes the extraction worker.
+	{ value: 'v_pu', label: 'Sag (min V)', unit: 'pu' },
 ];
 
 function StatusPill({ status }: { status: SignalConnectionStatus }) {
