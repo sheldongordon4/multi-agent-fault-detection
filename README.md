@@ -52,6 +52,7 @@ MapLibre GL** (operator console) · Streamlit (legacy ticket browser).
 app/
   api/main.py        FastAPI app + lifespan (starts Kafka workers), /health, /ready
   faults/            COORDINATOR domain (agent, service, tools, schemas, config)
+  assignments/       ticket ownership: operator roster, work state, activity log
   ml/                fault_detector · fault_classifier · feature_extractor · baseline_detector (deprecated)
   rag/               SOP knowledge base (kb_loader, vector_store, retriever)
   kafka/             topics, producer, consumer, admin, workers, handlers/
@@ -110,6 +111,8 @@ Small surface — most work flows through Kafka. Full details in `docs/API_Refer
 | `GET /health` · `GET /ready` | liveness · readiness (checks Postgres + Kafka) |
 | `POST /faults/diagnose` | run the Coordinator on a detection result → `FaultTicket` |
 | `GET /tickets` · `GET /tickets/{incident_id}` | fault-ticket history (Postgres) |
+| `GET /assignments` · `PATCH /assignments/{incident_id}` | ticket ownership + work state |
+| `GET /operators` | the operator roster (no accounts — see below) |
 | `GET /notifications` · `POST /notifications/read-all` | operator notifications |
 | `GET /notifications/stream` | SSE incident alerts (broadcast) |
 | `GET /stream/signals?bus_id=<bus>` | SSE per-bus live signal feed (snapshot + live) |
@@ -131,12 +134,28 @@ and the feature-extraction DSP unit tests. Coverage summary + gaps:
 **Operator console (`frontend/`)** — the real UI. Runs as the `client` service in
 `docker-compose.dev.yaml` (→ http://localhost:5173) or `pnpm dev` in `frontend/`.
 
-One map-first screen: a full-bleed **offline** Jamaica basemap with substation
+Two screens. **Incidents** is map-first: a full-bleed **offline** Jamaica basemap with substation
 markers, IEEE13 feeder topology and parish fault shading; a collapsible incident
-list; a detail panel; and the overview (stat tiles, live signal, fault types) as a
-three-detent bottom drawer. The basemap is self-hosted with no API keys and no
+list; and a detail panel. The overview (stat tiles, live signal, fault types) is
+its own page at `/overview`. The basemap is self-hosted with no API keys and no
 runtime third-party calls — see **`frontend/README.md`** for the assets, how to
 regenerate them, and the licensing.
+
+**Assignments** (`/assignments`) is where tickets get an owner. A five-column
+**board** (Unassigned · Assigned · In progress · Blocked · Resolved) with
+drag-and-drop, a **table** view for when a storm puts hundreds of tickets on it,
+and a detail panel with three tabs: *Work* (assignee, state, priority, note),
+*Diagnosis* (the coordinator's ticket) and *Activity* (an append-only log with
+comments). **The map's incident panel is the same component**, so a fault can be
+assigned without leaving the map.
+
+Operators are a **roster, not user accounts**: MAFD has no auth, so the console
+picks who it is "acting as" and the log is *attributed*, not *authenticated*.
+Seed a starter roster with:
+
+```bash
+.venv/bin/python scripts/seed_operators.py
+```
 
 **Streamlit (legacy)**
 
@@ -160,6 +179,8 @@ Near-term work (see `docs/System_Architecture.md` §16 and `AGENTS.md`):
 5. **Reconcile the bus namespaces** — streaming uses `bus_1/2/3`, tickets carry
    IEEE13 ids (`b6xx`), so nothing joins them. A symptom of (1), not a rename.
 
-Recently landed: **concurrency isolation** (dedicated Kafka thread pool + ML process
+Recently landed: **ticket assignment** (`/assignments` — board + table, operator
+roster, work state, activity log; kept off `fault_tickets` so Kafka redelivery
+can't reset an operator's work), **concurrency isolation** (dedicated Kafka thread pool + ML process
 pool — the live signal chart no longer freezes while events process), the
 **fast-path `raw.signals` consumer**, and the **React operator console**.

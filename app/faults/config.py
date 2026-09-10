@@ -9,7 +9,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # effective limits via .env; you cannot raise them past these.
 HARD_MAX_RETRIES = 3
 HARD_MAX_OUTPUT_TOKENS = 2048
-HARD_MAX_ENDPOINT_CALLS = 2
+# Sized for the Table 4 latency run: 50 sampled events + 1 discarded warm-up, at
+# ~2 endpoint calls per diagnosis = 102, plus headroom for the occasional second
+# retrieval round. At ~$0.015/call this ceiling is worth ~$2.25 — that is the
+# point of the number: it is a spend cap enforced before any network I/O.
+HARD_MAX_ENDPOINT_CALLS = 150
 
 
 class FaultsConfig(BaseSettings):

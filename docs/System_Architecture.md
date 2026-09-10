@@ -21,6 +21,7 @@
     - [4.5 Notification service](#45-notification-service)
     - [4.6 Persistence service](#46-persistence-service)
     - [4.7 UI](#47-ui)
+    - [4.8 Assignment service (ticket ownership)](#48-assignment-service-ticket-ownership)
   - [5. Topics \& message contracts](#5-topics--message-contracts)
   - [6. The detection \& classification approach ("cover all faults")](#6-the-detection--classification-approach-cover-all-faults)
     - [6.1 Family 1 — short-circuit / open faults (supervised)](#61-family-1--short-circuit--open-faults-supervised)
@@ -152,6 +153,18 @@ Consumes `faulttickets` (consumer group B). Writes tickets to **Postgres** via *
 ### 4.7 UI
 
 Operator-facing dashboard: live per-bus signal chart (SSE, bus selector, incident window shaded), live ticket feed (SSE), and ticket history (Postgres API). In production this integrates with the existing control-room alarm/OMS rather than standing alone.
+
+### 4.8 Assignment service (ticket ownership)
+
+Where the pipeline stops and people start. Every stage above produces a diagnosed ticket; nothing until now says who owns it, what state the work is in, or what was done about it. `app/assignments/` adds three tables — `operators` (a roster), `ticket_assignments` (one row per incident) and `assignment_events` (an append-only activity log, comments included) — behind a small HTTP surface.
+
+Three properties are worth stating because each is a decision, not an accident:
+
+- **No new Kafka topic.** Assignment is one operator clicking one button, not a stream. The pipeline is event-driven because detection genuinely fans out; a CRUD write does not. An `assignments.changed` topic earns its place the day an external OMS needs to consume it.
+- **Its own table, never `fault_tickets`.** The persistence service upserts the ticket row wholesale (§4.6) and Kafka is at-least-once, so assignment state stored there is silently reset on the next redelivery. Reads LEFT JOIN from `fault_tickets`, so a missing assignment row *means* unassigned and nothing needs back-filling.
+- **`work_state` is not `status`.** `FaultTicket.status` is the coordinator's diagnostic verdict, owned by the pipeline. `work_state` (unassigned → assigned → in_progress → blocked → resolved → closed) is owned by operators. Merging them would let a redelivered model guess reopen closed work.
+
+**Operators are a roster, not accounts.** MAFD has no auth (§9), and this does not reintroduce it: there are no credentials, no sessions and no per-user scoping. The console picks who it is "acting as" and sends `X-Actor-Id`, which makes the log **attributed, not authenticated** — right-sized for a shared control-room terminal, and explicitly not an audit trail. Real identity would be SSO against the utility's directory, which is why no local password scheme was built to be thrown away later.
 
 ---
 
@@ -291,6 +304,7 @@ This requires each bus's readings to arrive **in order**, which is why `raw.sign
 | `app/notification/`, `app/streaming/`, `app/persistence/`  | the Notification, Streaming, and Persistence services                                |
 | `ui/streamlit_app.py` (reads ticket JSON, fake sine chart) | the **UI**, now fed by the Streaming + Notification services over SSE (real signals) |
 | _(new)_                                                    | **Streaming**, **Notification**, **Persistence** services; **Kafka**; **Postgres**   |
+| _(new)_ `app/assignments/`                                 | the **Assignment service** — operator roster, ticket ownership, work state, activity log (§4.8) |
 
 ---
 
@@ -387,12 +401,14 @@ The event-driven backend is running end-to-end on real infra (Docker Postgres + 
 - **Feature extraction DSP (`app/ml/feature_extractor.py`):** 1-cycle DFT phasors + Fortescue sequence + `_reduce_bus` + `_detect_disturbance`, all unit-tested; §11 `inf`/`nan` guard in place.
 - **Persistence + API:** Postgres via SQLAlchemy async + **Alembic** (`0001_initial`); `POST /faults/diagnose`, `GET /tickets`, `GET /tickets/{incident_id}`, `GET /notifications`, SSE `/notifications/stream` + `/stream/signals`, `/health`, `/ready`.
 - **Ops:** Kafka **topic bootstrap** (`app/kafka/admin.py`) + `.dlq` dead-letter routing on every topic; **`scripts/bootstrap.py`**; **Dockerfile + self-bootstrapping entrypoint** (waits for infra → migrate → build KB → uvicorn); per-domain configs; `httpx.AsyncClient` integration tests.
+- **The live bridge (`app/kafka/handlers/extract.py`).** `raw.signals` now carries 3-phase waveform frames (one cycle per message per bus, `app/ml/waveform.py`) and a 6th consumer group reduces them to `feeder.events`, so a signal becomes a ticket without a replay script in the middle. Two things fell out of building it: the extractor's trigger had to be **latched by the worker** (`cut_window()` fires at "now", so its window always ends in the future — a batch caller does not care, a live one waits forever), and `ingest` had to stop rebuilding its buffer per sample (3.5k → 371k samples/s; real time needs 65k/s for a 34-bus feeder). `tests/test_waveform_pipeline.py` drives waveforms through the real extractor, detector, classifier and coordinator and asserts a valid `FaultTicket` comes out.
 - **Concurrency isolation (`app/kafka/executors.py`).** Everything used to share the one default `asyncio.to_thread` pool (12 workers on an 8-CPU box). Five consumer groups each park a worker inside a blocking `consumer.poll()` essentially permanently, so when ML work piled on top, the streaming consumer's own `poll`/`commit` calls queued behind it, `raw.signals` stopped draining, and **the live signal chart froze whenever events flowed** (tickets and toasts kept arriving — they ride one short HTTP refetch, which survives a starved pool; a 20 Hz SSE feed does not). Now split: `run_kafka()` on a dedicated thread pool for librdkafka calls, `run_ml()` on a **`ProcessPoolExecutor`** so sklearn scoring can't hold the GIL and stall the event loop. Models load inside each worker (`app/ml/scoring.py` — picklable args only) and are warmed at startup so the ~4s cold start doesn't land on the first fault event. Falls back to a thread if the pool can't start.
 - **Fast-path streaming consumer (`run_fast_consumer`).** `raw.signals` no longer uses the pause-and-commit-per-message loop (right for one LLM call per incident, hopeless at 20 readings/second — the documented ~1 msg/s cap). It consumes in batches with timed auto-commit. Trade-off: **at-most-once for this topic only** — a crash can drop a few readings from the live chart, which is transient UI data with a bounded buffer. Everything durable stays on `run_consumer` with explicit commits. Measured before/after: readings/sec through the SSE were **unchanged** during a 24s event burst (0 dropped seconds, 5.1/s either side).
+- **Assignment / ticket ownership (`app/assignments/` + `frontend/src/features/assignments/`).** A roster of operators, one assignment row per incident, and an append-only activity log, on a dedicated `/assignments` page (a five-column drag-and-drop board, a table view for storm-scale volume, and a detail panel whose Diagnosis tab reuses the incidents renderer). Kept off `fault_tickets` so Kafka redelivery cannot reset an operator's work — `tests/test_assignments.py::test_assignment_survives_ticket_redelivery` pins that invariant against a real database. Optimistic concurrency (`version` → `409`) stops two operators dispatching two crews to one fault. No new topic; no auth.
 - **React operator console (`frontend/`).** Replaces the Streamlit browser for day-to-day use. Vite + React 19 + Tailwind v4 + shadcn/Radix, TanStack Query, Zustand. A single map-first screen: full-bleed **offline** Jamaica basemap with substation markers, IEEE13 feeder topology and parish shading, a collapsible incident list, a detail panel, and the overview (stat tiles + live signal + fault types) as a three-detent bottom drawer. See `frontend/README.md` for the map stack and its self-hosted assets.
 
 ### Next 🚧
-1. **Feature-extraction worker (the last stubbed link).** A 6th consumer group on `raw.signals`: ingest each sample into a per-feeder `FeatureExtractor`, window per bus (rolling or sag-triggered), `reduce_to_row()`, publish to `feeder.events`. `detect.py` already scores both models off `feeder.events`, so it stays unchanged. **Blocked on Open Decisions #6/#7** (`raw.signals` → 3-phase waveforms; chart fate).
+1. ~~**Feature-extraction worker**~~ — **BUILT.** The `extraction` consumer group (`app/kafka/handlers/extract.py`) consumes `raw.signals` waveform frames, drives a per-feeder `FeatureExtractor`, and publishes reduced rows to `feeder.events`; `detect.py` was unchanged, as predicted. Open Decisions #6 and #7 are resolved (waveform frames; the chart plots per-cycle RMS). Remaining: **the synthetic waveform producer has no network propagation model**. It faults one bus and leaves the rest at nominal, whereas in the testbed an SLG at b671 disturbs every bus on the feeder (b650 actually carries the most fault current). Detection copes — it only needs "anomalous" — but classification collapses to `OPEN_3PH`, because an isolated bus beside a healthy feeder resembles an open conductor more than a short circuit. See the measured comparison in `scripts/produce_waveforms.py`.
 2. **Deprecate the time-series path** — retire `baseline_detector.py` + old synthetic data/DB (Open Decision #8); repoint or park the streaming chart.
 3. **Feeder-agnostic classifier** (§6.1) so it transfers across feeders.
 4. **Streamlit UI → SSE** (currently reads ticket JSON), and notification email/external channels.

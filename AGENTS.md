@@ -33,7 +33,10 @@ See `docs/System_Architecture.md` for the full target design and the as-built no
 ### As-built event pipeline
 
 ```
-scripts/produce_events.py ─▶ feeder.events ─▶ [detection]  app/ml/fault_detector (IsolationForest)
+scripts/produce_waveforms.py ─▶ raw.signals ─▶ [extraction]  app/kafka/handlers/extract
+                                                   │   FeatureExtractor: 1-cycle DFT → reduced row
+                                                   ▼
+                                             feeder.events ─▶ [detection]  app/ml/fault_detector (IsolationForest)
                                                    │   + app/ml/fault_classifier (RandomForest: type/category/location)
                                                    │  publishes verdict + most-disturbed buses + classification
                                                    ▼
@@ -43,12 +46,15 @@ scripts/produce_events.py ─▶ feeder.events ─▶ [detection]  app/ml/fault_
                                              faulttickets ─┬─▶ [notification]  SSE broadcast + Postgres
                                                            └─▶ [persistence]   Postgres (upsert) → GET /tickets
 
-scripts/produce_signals.py ─▶ raw.signals ─▶ [streaming]  per-bus rolling buffer ─▶ SSE chart
+                    raw.signals ─▶ [streaming]  per-cycle RMS ─▶ SSE chart
+
+(scripts/produce_events.py still replays pre-reduced rows onto feeder.events for
+offline work — it bypasses extraction by design.)
 ```
 
 **Detection-as-trigger:** detection runs *upstream*; the coordinator does NOT run detection. The coordinator's only LLM tool is `kb_retrieve`. Any handler that keeps failing routes the message to a `<topic>.dlq` dead-letter topic so it can't block the stream.
 
-**The one missing link (see TODO):** the live `raw.signals → feeder.events` **feature-extraction worker** isn't built yet — today `produce_events.py` replays pre-reduced rows onto `feeder.events` directly.
+**`raw.signals` carries 3-phase WAVEFORM frames**, not scalar SCADA readings — sequence ratios (I0/I1, I2/I1) need all three phases. One frame = one cycle for one bus (`app/ml/waveform.py`); batching per cycle keeps the topic at ~60 msg/s/bus instead of ~2k. The `extraction` consumer group reduces frames to event rows, so signals now reach tickets end to end.
 
 ---
 
@@ -84,6 +90,12 @@ app/
     schemas.py         FaultTicket / EvidenceWindow / KBCitation / DiagnoseRequest / TopBus
     constants.py       SYSTEM_PROMPT
 
+  assignments/         TICKET OWNERSHIP (operators, work state, activity log)
+    models.py          Operator (roster, NOT accounts) / TicketAssignment / AssignmentEvent
+    router.py          GET|POST /operators · GET /assignments · PATCH /assignments/{id}
+    service.py         assignment reads/writes; the redelivery invariant lives here
+    constants.py       WorkState / Priority / OperatorRole / EventKind enums
+
   faults/config.py     per-domain settings (Azure/LLM + rate-limit/retry/timeout)
   rag/config.py        per-domain settings (embedding model)
   notification/        incident alerts (router, service, models, schemas, sse, constants)
@@ -100,17 +112,25 @@ app/
   alembic/ + alembic.ini   migrations
 
 docker/    Dockerfile + entrypoint.sh (waits for infra → migrate → build KB → uvicorn)
-scripts/   bootstrap.py (topics+models+KB), produce_events.py, produce_events_live.py, produce_signals.py, refresh_kb.py, generate_*, validate_*
+scripts/   bootstrap.py (topics+models+KB), produce_events.py, produce_events_live.py, produce_signals.py, refresh_kb.py, seed_operators.py, generate_*, validate_*
 data/      sop/ (SOP .md)  synthetic/ (LEGACY, deprecating)  generated/ (normal_train, validation)  testbed/ (LARGE — see rules)
-docs/      System_Architecture.md (authoritative), API_Reference.md, Agent_Architecture.md
+docs/      System_Architecture.md (authoritative), API_Reference.md, Agent_Architecture.md, Knowledge_Base_Index.md
 frontend/  React operator console (Vite + React 19 + Tailwind v4 + shadcn/Radix, TanStack Query, Zustand).
-           features/{incidents,map,overview}/ · shared/ · app/{routes,layouts,store}
+           features/{incidents,map,overview,assignments}/ · shared/ · app/{routes,layouts,store}
            Map stack: MapLibre GL + react-map-gl + pmtiles, with a SELF-HOSTED offline
            Jamaica basemap in public/map/ (see frontend/README.md — do not delete those
-           assets, they are the basemap). Incidents is the index route; the old
-           /overview page is gone (it's a bottom drawer on Incidents now).
+           assets, they are the basemap). Incidents is the index route. Overview is
+           its OWN page at /overview — it was briefly a bottom drawer on the
+           map, which stacked a thing you read on a thing you operate.
+           features/assignments/ is the ticket-ownership page at /assignments —
+           a dnd-kit board + a table view + a route-driven detail sheet
+           (/assignments/:incidentId). AssignmentDetailPanel (Work/Diagnosis/
+           Activity) is SHARED: the map's incident panel renders the same
+           component, so a ticket's detail is defined in one place. It fetches
+           by incident id and takes its height from its parent — don't give it
+           viewport-relative sizing or a second copy.
 ui/        streamlit_app.py (reads ticket JSON; not SSE-wired yet)
-tests/     test_api.py (AsyncClient+ASGITransport), test_feature_extractor.py, test_fault_ticket_schema.py, test_health.py
+tests/     test_api.py (AsyncClient+ASGITransport), test_assignments.py (routes + real-DB integration), test_feature_extractor.py, test_fault_ticket_schema.py, test_health.py
 ```
 
 ---
@@ -137,8 +157,15 @@ Source: **https://github.com/zhanymkanov/fastapi-best-practices** (its `README.m
 - **Models:** coordinator → Azure `gpt-5.4-mini`; embeddings → local `bge-small` (offline). If `AZURE_OPENAI_*` is unset/placeholder, `run_fault_diagnosis` returns a **local heuristic ticket** (no LLM) — this is intentional, keep it working.
 - **Detection-as-trigger:** the coordinator never calls a detection tool; it diagnoses the `anomalies.detected` payload (`feeder`, `verdict`, `topBuses`) and only calls `kb_retrieve`.
 - **Idempotency:** `incident_id` keys the ticket; persistence upserts (at-least-once Kafka delivery → overwrite, not duplicate).
-- **Kafka:** five consumer groups for fan-out (`detection`, `streaming`, `coordinator`, `notification`, `persistence`); `run_consumer(group_id, handlers)` is generic. Partition by `feeder`/`bus_id`/`incident_id`.
+- **Never put operator state on `fault_tickets`.** `upsert_ticket` rewrites every column on each redelivery, so assignment/work state stored there is silently reset. It belongs in `ticket_assignments`, which no Kafka handler writes; reads LEFT JOIN, so a missing row *means* unassigned. `tests/test_assignments.py::test_assignment_survives_ticket_redelivery` pins this.
+- **Two status concepts.** `FaultTicket.status` (diagnosed/acknowledged/resolved) is LLM-produced and pipeline-owned. `TicketAssignment.work_state` (unassigned → assigned → in_progress → blocked → resolved → closed) is the operator's. Do not merge them.
+- **Kafka:** six consumer groups for fan-out (`extraction`, `detection`, `streaming`, `coordinator`, `notification`, `persistence`); `run_consumer(group_id, handlers)` is generic. `extraction` and `streaming` both read `raw.signals` on the batched fast consumer (at-most-once: a dropped frame costs samples, not a ticket).
+- **The extraction trigger is latched in the handler**, not in `FeatureExtractor.cut_window()` — that fires at "now", so its window always ends `window_seconds` in the future, which a live worker can never wait out. Use `window_around(t_fire)` for streaming.
+- **`FeatureExtractor.ingest` is on the hot path** (~1.9k samples/s per bus). Buffers are deques pruned from the front; rebuilding the list per sample measured 3.5k samples/s total, which could not sustain two buses live. Partition by `feeder`/`bus_id`/`incident_id`.
 - **Embedding dim change requires a KB rebuild** (`scripts/refresh_kb.py`).
+- **SOP-005..012 are SYNTHETIC references**, generated from standard protection practice and marked as such in their own body text. Not approved utility procedures — don't describe them as JPS's.
+- **Query the KB with descriptions, not codes.** `FAULT_QUERY_TERMS` (`app/faults/constants.py`) expands `SLG`/`LL`/`OPEN_1PH`... before retrieval; a bare code retrieves the wrong SOP. Phrase terms positively — negations like "no ground path" embed as their own opposite. Adding a classifier label without adding query terms is caught by `tests/test_kb_retrieval.py`.
+- **Ticket citations are re-verified**, not trusted: `_restore_citation_snippets` replaces LLM-written snippets with the real KB text by `source_id` and drops unknown ids.
 
 ---
 
@@ -167,13 +194,11 @@ Gotcha: a native host Postgres on `:5432` can shadow the container's — the app
 
 ## TODO — near-term
 
-**Top priority — the last stubbed link:**
-- [ ] **Feature-extraction worker** — a 6th Kafka consumer group on `raw.signals` that feeds each sample into a per-feeder `FeatureExtractor`, windows per bus, `reduce_to_row()`, and publishes the event row to `feeder.events`. Then `detect.py` scores `fault_detector` + `fault_classifier` off it (unchanged). This makes detection **live** instead of `produce_events.py` replaying pre-reduced rows.
-  - **Open decision A:** `raw.signals` must become **3-phase waveforms** (`{t, bus, Va,Vb,Vc,Ia,Ib,Ic}` at ~kHz) — the DSP can't compute `I0/I1`, `I2/I1` from single-magnitude SCADA. Confirm the schema change + add a waveform producer.
-  - **Open decision B:** the live chart currently plots the SCADA `raw.signals`. If it becomes waveforms, plot the waveform (Va/Ia), plot the reduced per-bus features, or park the chart.
+**Recently closed:**
+- [x] **Feature-extraction worker** — the `extraction` consumer group on `raw.signals` (`app/kafka/handlers/extract.py`). Open decisions A and B are resolved: `raw.signals` carries 3-phase waveform frames, and the live chart plots per-cycle RMS.
 
 **Deprecations (planned):**
-- [ ] **Retire `app/ml/baseline_detector.py`** (time-series IsolationForest) + the **old synthetic data/DB** (`data/synthetic/*`, `synthetic_signals.db`). Only `scripts/run_detection_demo.py` still uses them. Dropping this also strands `produce_signals.py` + the streaming chart (see decision B).
+- [ ] **Retire `app/ml/baseline_detector.py`** (time-series IsolationForest) + the **old synthetic data/DB** (`data/synthetic/*`, `synthetic_signals.db`). Only `scripts/run_detection_demo.py` still uses them. `scripts/produce_signals.py` is now superseded by `scripts/produce_waveforms.py` for driving detection, so the streaming chart no longer depends on the legacy path.
 
 **Other gaps:**
 - [ ] **Streamlit UI is not SSE-wired** — it reads ticket JSON files; connect it to `/notifications/stream` and `/stream/signals`.
