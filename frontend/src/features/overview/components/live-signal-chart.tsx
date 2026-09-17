@@ -19,11 +19,17 @@ import {
 } from '@shared/components/ui/select';
 import type { SignalMetric, SignalReading } from '@shared/types';
 import type { SignalConnectionStatus } from '../hooks/use-signal-stream';
+import {
+	formatSignalValue,
+	signalDecimals,
+	signalDomain,
+	type SignalUnit,
+} from '../utils/helpers';
 
 export const SIGNAL_METRICS: {
 	value: SignalMetric;
 	label: string;
-	unit: string;
+	unit: SignalUnit;
 }[] = [
 	{ value: 'Va_rms', label: 'Va (RMS)', unit: 'pu' },
 	{ value: 'Vb_rms', label: 'Vb (RMS)', unit: 'pu' },
@@ -110,6 +116,14 @@ export function LiveSignalChart({
 		[readings, metric]
 	);
 
+	// Held still on a quiet bus, opened up by a fault — see signalDomain for why
+	// recharts' own auto-fit is the wrong tool for a live feed.
+	const domain = useMemo(
+		() => signalDomain(data.map((point) => point.value), active.unit),
+		[data, active.unit]
+	);
+	const decimals = domain ? signalDecimals(domain, active.unit) : undefined;
+
 	return (
 		<section className="border-border/60 bg-card rounded-lg border">
 			<header className="border-border/60 flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
@@ -179,7 +193,7 @@ export function LiveSignalChart({
 							<p className="mt-1 text-xs">
 								Nothing is publishing to{' '}
 								<code className="font-mono">raw.signals</code> yet. Run{' '}
-								<code className="font-mono">scripts/produce_signals.py</code> to
+								<code className="font-mono">scripts/produce_waveforms.py</code> to
 								drive the feed.
 							</p>
 						</div>
@@ -188,7 +202,7 @@ export function LiveSignalChart({
 					<ResponsiveContainer width="100%" height="100%">
 						<LineChart
 							data={data}
-							margin={{ top: 4, right: 8, bottom: 0, left: -12 }}
+							margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
 						>
 							<CartesianGrid
 								strokeDasharray="3 3"
@@ -208,8 +222,9 @@ export function LiveSignalChart({
 								tick={{ fontSize: 11 }}
 								tickLine={false}
 								axisLine={false}
-								width={56}
-								domain={['auto', 'auto']}
+								width={64}
+								domain={domain ?? ['auto', 'auto']}
+								tickFormatter={(value) => formatSignalValue(value, active.unit, decimals)}
 							/>
 							<Tooltip
 								contentStyle={{
@@ -221,7 +236,7 @@ export function LiveSignalChart({
 								}}
 								labelStyle={{ color: 'var(--muted-foreground)' }}
 								formatter={(value) => [
-									`${Number(value ?? 0).toFixed(2)} ${active.unit}`,
+									`${formatSignalValue(value, active.unit, decimals)} ${active.unit}`,
 									active.label,
 								]}
 							/>
