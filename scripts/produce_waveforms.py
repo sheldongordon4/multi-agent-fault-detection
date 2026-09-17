@@ -55,6 +55,7 @@ import argparse
 import asyncio
 import cmath
 import math
+import random
 import sys
 import time
 from pathlib import Path
@@ -400,11 +401,35 @@ async def main() -> None:
     p.add_argument("--seconds", type=float, default=3.0, help="Seconds of waveform to send.")
     p.add_argument(
         "--fault",
-        default="SLG",
-        choices=FAULT_TYPES,
-        help="Fault to inject, or 'none' for a healthy feeder.",
+        default="any",
+        choices=(*FAULT_TYPES, "any"),
+        help=(
+            "Fault to inject. 'any' (default) picks a different one per episode; "
+            "'none' emits a healthy feeder."
+        ),
     )
-    p.add_argument("--fault-bus", default=None, help="Bus to fault (default: a middle bus).")
+    p.add_argument(
+        "--fault-bus",
+        default="any",
+        help="Bus to centre the fault on, or 'any' (default) to vary it per episode.",
+    )
+    p.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        help="Number of fault episodes to emit. 0 runs until you stop it (Ctrl+C).",
+    )
+    p.add_argument(
+        "--gap",
+        type=float,
+        default=8.0,
+        help=(
+            "Healthy seconds between episodes. Must exceed the extraction "
+            "handler's cooldown (2 x window_seconds = 1.0s) or the next fault is "
+            "swallowed as part of the previous incident."
+        ),
+    )
+    p.add_argument("--seed", type=int, default=None, help="Seed the episode randomness.")
     p.add_argument(
         "--fault-start",
         type=float,
@@ -433,55 +458,98 @@ async def main() -> None:
     if not buses:
         raise SystemExit("No buses found in the model's feature columns — train the model first.")
 
-    fault_bus = args.fault_bus or buses[len(buses) // 2]
-    if args.fault != "none" and fault_bus not in buses:
-        raise SystemExit(f"--fault-bus {fault_bus!r} is not monitored; choose from {buses}")
+    if args.fault_bus not in ("any", None) and args.fault_bus not in buses:
+        raise SystemExit(f"--fault-bus {args.fault_bus!r} is not monitored; choose from {buses}")
+    if args.seed is not None:
+        random.seed(args.seed)
+
+    # 'any' means vary it per episode. Kept out of the cycle loop on purpose: a
+    # fault is one feeder-wide event, so the type and centre must hold for the
+    # whole episode or the extractor reduces a window that never happened.
+    injectable = [f for f in FAULT_TYPES if f != "none"]
+
+    def _pick_fault() -> str:
+        return random.choice(injectable) if args.fault == "any" else args.fault
+
+    def _pick_bus() -> str:
+        return random.choice(buses) if args.fault_bus in ("any", None) else args.fault_bus
 
     cycle_seconds = 1.0 / NOMINAL_HZ
     n_cycles = int(args.seconds / cycle_seconds)
-    t0 = time.time()
 
     fault_from = args.fault_start
     fault_to = args.fault_start + args.fault_duration
 
+    forever = args.repeat <= 0
     print(
-        f"feeder={args.feeder} buses={len(buses)} fault={args.fault}"
-        f"{'' if args.fault == 'none' else f' on {fault_bus}'} "
-        f"cycles={n_cycles} ({args.seconds:.1f}s @ {FS:.0f} Hz)"
+        f"feeder={args.feeder} buses={len(buses)} fault={args.fault} bus={args.fault_bus} "
+        f"episodes={'forever' if forever else args.repeat} gap={args.gap:.1f}s "
+        f"({args.seconds:.1f}s each @ {FS:.0f} Hz)"
     )
 
     sent = 0
-    for cycle in range(n_cycles):
-        elapsed = cycle * cycle_seconds
-        faulted_now = args.fault != "none" and fault_from <= elapsed < fault_to
+    episode = 0
+    try:
+        while forever or episode < args.repeat:
+            episode += 1
+            fault = _pick_fault()
+            fault_bus = _pick_bus()
+            if fault == "none":
+                fault_bus = "-"
+            print(f"  [episode {episode}] {fault} centred on {fault_bus}")
 
-        for bus in buses:
-            # The fault profile is applied to EVERY bus, not just --fault-bus.
-            # A feeder fault is a feeder-wide event: the source bus carries the
-            # most current, remote buses see attenuated sequence content, and it
-            # is that whole-feeder pattern the classifier was trained on.
-            # Faulting one bus in isolation is what made every injected fault
-            # come out as OPEN_3PH.
-            frame = _frame(
-                bus,
-                t0 + elapsed,
-                args.fault,
-                faulted=faulted_now,
-                deepest=(bus == fault_bus),
-                recovered=elapsed >= fault_to,
-            )
-            frame["feeder"] = args.feeder
-            # Partition by bus so each bus's frames stay in order (§7).
-            await producer.produce(topics.RAW_SIGNALS, frame, key=bus)
-            sent += 1
+            base = time.time()
+            for cycle in range(n_cycles):
+                elapsed = cycle * cycle_seconds
+                faulted_now = fault != "none" and fault_from <= elapsed < fault_to
 
-        if args.realtime:
-            await asyncio.sleep(cycle_seconds)
+                for bus in buses:
+                    # The fault profile is applied to EVERY bus, not just the
+                    # centre. A feeder fault is a feeder-wide event: the source
+                    # bus carries the most current, remote buses see attenuated
+                    # sequence content, and it is that whole-feeder pattern the
+                    # classifier was trained on. Faulting one bus in isolation is
+                    # what made every injected fault come out as OPEN_3PH.
+                    frame = _frame(
+                        bus,
+                        base + elapsed,
+                        fault,
+                        faulted=faulted_now,
+                        deepest=(bus == fault_bus),
+                        recovered=elapsed >= fault_to,
+                    )
+                    frame["feeder"] = args.feeder
+                    # Partition by bus so each bus's frames stay in order (§7).
+                    await producer.produce(topics.RAW_SIGNALS, frame, key=bus)
+                    sent += 1
+
+                if args.realtime:
+                    await asyncio.sleep(cycle_seconds)
+
+            more = forever or episode < args.repeat
+            if more and args.gap > 0:
+                # Healthy feeder between episodes. Emitted, not slept through:
+                # the live chart should show the feeder recovered rather than
+                # flat-lining, and the extractor's cooldown needs real frames to
+                # age out against its own sample clock.
+                gap_base = time.time()
+                for cycle in range(int(args.gap / cycle_seconds)):
+                    elapsed = cycle * cycle_seconds
+                    for bus in buses:
+                        frame = _frame(bus, gap_base + elapsed, "none", faulted=False,
+                                       deepest=False, recovered=True)
+                        frame["feeder"] = args.feeder
+                        await producer.produce(topics.RAW_SIGNALS, frame, key=bus)
+                        sent += 1
+                    if args.realtime:
+                        await asyncio.sleep(cycle_seconds)
+    except KeyboardInterrupt:
+        print("  stopped.")
 
     # NOTE: app/kafka/producer.produce() flushes on every call, so a large run
     # here is dominated by that round trip rather than by generation. Fine for a
     # dev driver; a real SCADA tap would want a batched producer.
-    print(f"Done. Produced {sent} frames to '{topics.RAW_SIGNALS}'.")
+    print(f"Done. {episode} episode(s), {sent} frames to '{topics.RAW_SIGNALS}'.")
 
 
 if __name__ == "__main__":

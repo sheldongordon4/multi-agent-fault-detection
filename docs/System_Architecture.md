@@ -419,7 +419,22 @@ The event-driven backend is running end-to-end on real infra (Docker Postgres + 
 2. **Feeder-agnostic classifier** (§6.1) so it transfers across feeders. This is now the main ML gap.
 3. **Streamlit UI → SSE** (currently reads ticket JSON), and notification email/external channels.
 4. **Finish the bus namespaces.** Largely closed by the live bridge: `produce_waveforms.py` takes its bus list from the model's own feature columns, so IEEE13 ids (`b632`, `b650`, `b671`, `b675`, `b684`) now flow through `raw.signals`, `feeder.events` and the ticket alike — a ticket and its live chart finally join, and the console no longer shows two namespaces on one screen. What remains is item 1: the legacy `produce_signals.py` is the only thing still emitting `bus_1/2/3`, and it is being retired rather than renamed.
-5. **A real b675 measurement.** The testbed export reports `max_Ia = 0` for b675 under every fault class while the same rows carry `I0/I1 ~ 2.0` when faulted against `~0.0001` when not. A zero phase-A current cannot have a sequence ratio, so the pair is an export artifact rather than a measurement, and the waveform producer has to special-case it. Worth resolving against the source data before the profile is trusted for anything beyond driving the demo.
+5. **The low-current sequence ratios are ill-conditioned but informative — do not "fix" them.** `max_Ia_fault_b675` peaks at **3e-6 A** across all 2,222 rows of `validation_013.csv`, yet `max_I0_I1_fault_b675` reaches **4.75**; `b684` reaches **278** on its 81 low-current rows in the classifier's training file. With `I1 -> 0` these are ratios of noise to noise, and `FeatureExtractor._reduce_bus` already zeroes exactly this case at inference ("low-current guard"). The generated CSVs predate that guard, so the models train on the unguarded values.
+
+   It looks like a straightforward data bug. **It was measured, and it is not.** Applying the extractor's own guard to the training data and retraining both models makes detection materially WORSE on the labelled validation set (222 faults, 2,000 no-fault rows):
+
+   | training data | contamination | false positives | recall | balanced-fault recall |
+   | ------------- | ------------- | --------------- | ------ | --------------------- |
+   | unguarded (current) | 0.01 | 0.8% | **94.1%** | **80.7%** |
+   | guarded | 0.01 | 0.5% | 82.9% | 45.6% |
+   | unguarded (current) | 0.05 | 4.8% | **97.3%** | **89.5%** |
+   | guarded | 0.05 | 4.7% | 91.4% | 75.4% |
+
+   The reason: b675's `I0/I1` runs ~0.002 healthy against ~2.0 faulted. The microamp currents underneath genuinely track feeder state, so the ratio is a real signal carried on a badly conditioned quantity. Zeroing it destroys information. The same applies to `produce_waveforms._phase_currents`, which emits `ZERO_CURRENT_FLOOR_A = 1.5 A` for b675 so the ratios survive the guard — that special case is load-bearing, not a hack.
+
+   **What is genuinely wrong** is separate and worth fixing on its own terms: balanced faults are marginal. At the tuned `contamination=0.01`, LLL and OPEN_2PH score within **0.03** of the decision boundary while SLG and LL sit at 0.12-0.15, and balanced-fault recall is only **80.7%**. Raising contamination to 0.05 lifts it to 89.5% for 4.8% false positives. That is a threshold-tuning decision, not a data cleanup.
+
+   **The transfer risk stands.** These features work because they correlate on *this* export; nothing says a real JPS feeder's near-zero-current buses behave the same way. That is an argument for the feeder-agnostic aggregate features of §6.1, not for guarding the ratios here.
 
 ```
 
