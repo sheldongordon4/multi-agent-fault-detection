@@ -11,7 +11,8 @@ from app.faults.config import settings as faults_settings
 from app.faults.constants import FAULT_QUERY_TERMS, SYSTEM_PROMPT
 from app.faults.customers import customers_affected, impact_share
 from app.faults.schemas import FaultTicket
-from app.rag.retriever import kb_retrieve_impl  # direct KB retrieval for local mode
+from app.rag.retriever import kb_retrieve_impl
+from app.utils import message_text  # direct KB retrieval for local mode
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,13 @@ def _read_detection(detection: dict[str, Any]) -> tuple[str, str, Any, list[dict
     return feeder, severity, score, top_buses, incident_id
 
 
+def _detection_window(detection: dict[str, Any]) -> tuple[str | None, str | None]:
+    """The extraction window this incident was reduced from, if it carried one."""
+    return detection.get("windowStart") or detection.get("window_start"), detection.get(
+        "windowEnd"
+    ) or detection.get("window_end")
+
+
 def _detection_summary(
     feeder: str, severity: str, score: Any, top_buses: list[dict[str, Any]]
 ) -> str:
@@ -84,6 +92,11 @@ def _get_graph():
     return _graph
 
 
+def _now_iso() -> str:
+    """UTC now, second precision, Z-suffixed — the one timestamp format tickets use."""
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
 def _coerce_to_ticket(raw: Any) -> dict[str, Any]:
     """
     Turn the LLM's final message into a validated FaultTicket dict.
@@ -94,7 +107,7 @@ def _coerce_to_ticket(raw: Any) -> dict[str, Any]:
     if isinstance(raw, dict):
         data = raw
     else:
-        text = str(raw)
+        text = message_text(raw)
         start = text.find("{")
         end = text.rfind("}")
         if start == -1 or end == -1:
@@ -179,7 +192,7 @@ def _build_local_fault_ticket(detection: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
-    now = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    now = _now_iso()
     return {
         "ticket_id": f"LOCAL-{incident_id}",
         "scenario": f"feeder:{feeder}",
@@ -217,6 +230,52 @@ def _build_local_fault_ticket(detection: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _pin_server_facts(ticket: dict[str, Any], detection: dict[str, Any]) -> dict[str, Any]:
+    """
+    Overwrite every ticket field the pipeline already knows.
+
+    The LLM fills in the whole schema whether or not it has grounds to. Where a
+    value is a measurement or an identifier, its guess is not a second opinion —
+    it is a wrong answer that looks authoritative. Each of these was observed:
+
+      - `ticket_id`: the model wrote "TICK-IEEE13-001" on EVERY incident, so
+        two distinct faults carried one id. `incident_id` is the idempotency
+        key the whole pipeline is built on (persistence upserts by it), and an
+        id the model invents is not that key.
+      - `severity`: the detector computes it from the anomaly score, and
+        `app/assignments` derives priority and SLA from it. A model that
+        rewrites severity silently re-triages the work queue.
+      - `scenario`: purely `feeder:<id>`, which is in the payload.
+      - `bus_id`: the bus an operator gets dispatched to, and the input to
+        `customers_affected`. Model-chosen, it landed on b675 — whose testbed
+        row reports max_Ia = 0 alongside I0/I1 ~ 2.0, an export artifact the
+        model reads as the strongest ground signature on the feeder. Same
+        fault, 980 customers instead of 6,400.
+      - evidence timestamps: the model dated a 2026 incident to 2023. The real
+        window is measured by the extraction worker and rides on the event.
+
+    Deliberately NOT pinned: `fault_type`, `summary`, `root_cause`,
+    `recommended_actions`. Those are the interpretation the LLM is here to
+    produce.
+    """
+    feeder, severity, _score, top_buses, incident_id = _read_detection(detection)
+
+    ticket["ticket_id"] = incident_id
+    ticket["severity"] = severity
+    ticket["scenario"] = f"feeder:{feeder}"
+    if top_buses:
+        ticket["bus_id"] = top_buses[0].get("bus") or ticket.get("bus_id")
+
+    window_start, window_end = _detection_window(detection)
+    if window_start and window_end:
+        for window in ticket.get("evidence") or []:
+            if isinstance(window, dict):
+                window["start_timestamp"] = window_start
+                window["end_timestamp"] = window_end
+
+    return ticket
+
+
 def _enrich_ticket(ticket: dict[str, Any], detection: dict[str, Any]) -> dict[str, Any]:
     """
     Attach what the pipeline measured, after the ticket has been written.
@@ -250,9 +309,10 @@ def _enrich_ticket(ticket: dict[str, Any], detection: dict[str, Any]) -> dict[st
     if attribution:
         ticket["attribution"] = attribution
 
-    # Read from the ticket, not the detection: the bus the ticket names is the
-    # one an operator will be sent to, even when the coordinator picked a
-    # different bus from the top-buses list than detection ranked first.
+    # Read from the ticket, not the detection. These now agree — _pin_server_facts
+    # sets bus_id from the detection ranking before this runs — but the ticket
+    # stays the source of truth, because the bus the ticket NAMES is the one an
+    # operator is dispatched to, and the count must describe that bus.
     bus_id = ticket.get("bus_id")
     count = customers_affected(bus_id)
     if count is not None:
@@ -380,5 +440,9 @@ def run_fault_diagnosis(detection: dict[str, Any]) -> dict[str, Any]:
             incident_id,
         )
         return _enrich_ticket(_build_local_fault_ticket(detection), detection)
-    ticket.setdefault("ticket_id", incident_id)
+    # Creation time is the server's to state, never the model's: it writes this
+    # field whether or not it knows the time, and what it writes is its
+    # training-era guess — observed as a 2023 date on a ticket raised in 2026.
+    ticket["created_at"] = _now_iso()
+    ticket = _pin_server_facts(ticket, detection)
     return _enrich_ticket(_restore_citation_snippets(ticket), detection)

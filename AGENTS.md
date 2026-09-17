@@ -63,7 +63,7 @@ offline work — it bypasses extraction by design.)
 - **Python 3.11+** (venv currently 3.14), **FastAPI**, **Pydantic v2** + **pydantic-settings**
 - **SQLAlchemy 2.0 (async)** + **asyncpg** + **Alembic** → **Postgres** (persistence)
 - **confluent-kafka** (event bus); **Kafdrop** UI for inspection
-- **LangChain** + **LangGraph** (ReAct agent); coordinator LLM is **any OpenAI-compatible endpoint** — **Google AI Studio** `gemini-3.8-flash` by default
+- **LangChain** + **LangGraph** (ReAct agent); coordinator LLM is **Google AI Studio** `gemini-3.8-flash` by default (native `langchain-google-genai`), or **any OpenAI-compatible endpoint** via `ChatOpenAI`
 - **scikit-learn** IsolationForest (detection); **Streamlit** UI
 
 Minimum versions to honor (per the best-practices AGENTS.md below): FastAPI 0.115, Pydantic 2.7, SQLAlchemy 2.0, Alembic 1.13, httpx 0.27, ruff 0.6.
@@ -85,7 +85,7 @@ app/
   faults/              COORDINATOR domain (diagnosis)
     router.py          POST /faults/diagnose  (response_model=FaultTicket)
     service.py         run_fault_diagnosis(detection) — LLM agent OR local heuristic fallback
-    agent.py           LangGraph ReAct graph (ChatOpenAI @ LLM_ENDPOINT + kb_retrieve)
+    agent.py           LangGraph ReAct graph + build_chat_model() (Google native OR ChatOpenAI) + kb_retrieve
     tools.py           kb_retrieve tool
     schemas.py         FaultTicket / EvidenceWindow / KBCitation / DiagnoseRequest / TopBus
     constants.py       SYSTEM_PROMPT
@@ -159,7 +159,11 @@ Source: **https://github.com/zhanymkanov/fastapi-best-practices** (its `README.m
 
 ## Project-specific conventions
 
-- **Models:** coordinator → whatever `LLM_ENDPOINT` points at (**Google AI Studio `gemini-3.8-flash`** by default); embeddings → local `bge-small` (offline). The agent builds a plain `ChatOpenAI` on a configurable `base_url`, never a provider-specific client, so **switching provider is three .env values and no code**. `AZURE_OPENAI_*` still works as aliases for `LLM_ENDPOINT` / `LLM_API_KEY` / `LLM_MODEL`. If the key is unset/placeholder, `run_fault_diagnosis` returns a **local heuristic ticket** (no LLM) — intentional, keep it working.
+- **Models:** coordinator → `LLM_ENDPOINT` / `LLM_API_KEY` / `LLM_MODEL` (**Google AI Studio `gemini-3.8-flash`** by default); embeddings → local `bge-small` (offline). `AZURE_OPENAI_*` still works as aliases. If the key is unset/placeholder, `run_fault_diagnosis` returns a **local heuristic ticket** (no LLM) — intentional, keep it working.
+- **TWO clients, one config (`agent.build_chat_model`).** `LLM_PROVIDER` (`auto`|`google`|`openai`) selects; `auto` picks Google when the endpoint is `generativelanguage.googleapis.com`. **Google MUST use the native client** — Gemini 3.x attaches an opaque `thought_signature` to every function call and requires it echoed back with the tool result, and the OpenAI chat-completions format has no field to carry it. A single call over the compat layer succeeds; the coordinator's ReAct loop fails on turn 2 with `400 ... missing a thought_signature ... position 2`. Gemini 2.x predates the requirement but is closed to new API projects. **Do not "simplify" this back to one `ChatOpenAI`.** Everything else (Azure, OpenRouter, Groq, vLLM, Ollama) stays on the OpenAI path.
+- **Both the app and `scripts/llm_smoke_test.py` build their client through `build_chat_model`.** The smoke test used to construct its own `ChatOpenAI`, so after the coordinator moved to the native client it silently kept testing the old one and reported PASS on a setup that could not work. A test that builds its own subject is not testing the app.
+- **LLM replies are not always strings.** `ChatGoogleGenerativeAI` returns a LIST of content blocks; `ChatOpenAI` returns a `str`. `str(a_list)` yields a Python repr, so JSON extraction finds braces and parses garbage — and the coordinator falls back to a heuristic ticket with no error. Normalise through `app.utils.message_text`.
+- **The pipeline pins what it knows (`_pin_server_facts`).** The LLM fills the whole schema whether or not it has grounds to, so `ticket_id`, `severity`, `scenario`, `bus_id`, `created_at` and the evidence window are overwritten from the detection payload after validation. Observed: one ticket id (`TICK-IEEE13-001`) on every incident, a 2026 fault dated 2023, and a bus choice that moved `customers_affected` from 6,400 to 980. `fault_type`, `summary`, `root_cause` and `recommended_actions` stay the model's.
 - **Detection-as-trigger:** the coordinator never calls a detection tool; it diagnoses the `anomalies.detected` payload (`feeder`, `verdict`, `topBuses`) and only calls `kb_retrieve`.
 - **Idempotency:** `incident_id` keys the ticket; persistence upserts (at-least-once Kafka delivery → overwrite, not duplicate).
 - **Never put operator state on `fault_tickets`.** `upsert_ticket` rewrites every column on each redelivery, so assignment/work state stored there is silently reset. It belongs in `ticket_assignments`, which no Kafka handler writes; reads LEFT JOIN, so a missing row *means* unassigned. `tests/test_assignments.py::test_assignment_survives_ticket_redelivery` pins this.

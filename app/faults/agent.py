@@ -18,6 +18,7 @@ never requires credentials; it is only constructed when an endpoint is configure
 
 """
 
+from langchain_core.language_models import BaseChatModel
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain_openai import ChatOpenAI
 from langgraph.graph import MessagesState, StateGraph
@@ -42,19 +43,68 @@ _RATE_LIMITER = InMemoryRateLimiter(
 )
 
 
-def _make_llm() -> ChatOpenAI:
+def build_chat_model(
+    *,
+    max_retries: int,
+    max_tokens: int,
+    rate_limiter=_RATE_LIMITER,
+) -> BaseChatModel:
     """
     Chat model for the coordinator (endpoint/key/model from config), rate-limited
     and with bounded retries + a request timeout so a slow/failing call can't hang
     the consumer or retry forever.
+
+    TWO CLIENTS, ONE CONFIG
+    -----------------------
+    Google needs its own client; everyone else gets `ChatOpenAI` on a base_url.
+    That is not a preference, it is a protocol limit:
+
+    Gemini 3.x attaches an opaque `thought_signature` to every function call and
+    requires it echoed back when the tool result is returned, so the model can
+    resume its reasoning. The OpenAI chat-completions format has no field to
+    carry it - its tool calls are stateless (id, name, arguments). So a single
+    call over the compatibility layer SUCCEEDS and a tool LOOP fails on the
+    second request:
+
+        400 INVALID_ARGUMENT - Function call is missing a thought_signature in
+        functionCall parts ... position 2
+
+    This coordinator is a ReAct loop, so it is always multi-turn. Gemini 2.x
+    predates the requirement but is closed to new API projects, so there is no
+    older model to fall back to - the native client is the only route.
+
+    Everything else (Azure, OpenRouter, Groq, a self-hosted vLLM or Ollama)
+    keeps the OpenAI-compatible path, so `LLM_ENDPOINT` stays the whole story
+    for them.
     """
+    if settings.resolved_provider == "google":
+        # Imported lazily: the OpenAI path must not require this package.
+        from langchain_google_genai import ChatGoogleGenerativeAI
+
+        return ChatGoogleGenerativeAI(
+            model=settings.LLM_MODEL,
+            google_api_key=settings.LLM_API_KEY,
+            rate_limiter=rate_limiter,
+            max_retries=max_retries,
+            timeout=settings.LLM_TIMEOUT_SECONDS,
+            max_output_tokens=max_tokens,
+        )
+
     return ChatOpenAI(
         base_url=settings.LLM_ENDPOINT,
         api_key=settings.LLM_API_KEY,
         model=settings.LLM_MODEL,
-        rate_limiter=_RATE_LIMITER,
-        max_retries=settings.LLM_MAX_RETRIES,
+        rate_limiter=rate_limiter,
+        max_retries=max_retries,
         timeout=settings.LLM_TIMEOUT_SECONDS,
+        max_tokens=max_tokens,
+    )
+
+
+def _make_llm() -> BaseChatModel:
+    """The coordinator's own client, built from config."""
+    return build_chat_model(
+        max_retries=settings.LLM_MAX_RETRIES,
         max_tokens=settings.LLM_MAX_OUTPUT_TOKENS,
     )
 

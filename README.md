@@ -48,7 +48,8 @@ detection view and the chart view cannot drift apart.
 
 Python 3.11+ · FastAPI · Pydantic v2 · SQLAlchemy 2.0 async + asyncpg + Alembic →
 Postgres · confluent-kafka (+ Kafdrop) · LangChain / LangGraph ReAct agent · any
-OpenAI-compatible LLM endpoint (Google AI Studio `gemini-3.8-flash` by default)
+LLM endpoint — Google AI Studio `gemini-3.8-flash` by default, or any
+OpenAI-compatible endpoint
 · local `bge-small` embeddings + Chroma
 (RAG) · scikit-learn (detection/classification) · **React 19 + Vite + Tailwind v4 +
 MapLibre GL** (operator console) · Streamlit (legacy ticket browser).
@@ -111,7 +112,7 @@ when you want to skip extraction.
 
 Without `LLM_API_KEY` configured, the Coordinator returns a **local heuristic
 ticket** (no LLM call) — intentional, so the backend pipeline runs offline. The
-endpoint is provider-neutral: see `.env.example` for AI Studio, OpenRouter,
+endpoint is configurable (`LLM_PROVIDER` picks the client): see `.env.example` for AI Studio, OpenRouter,
 Azure and Ollama settings.
 
 The Docker stack also starts the React operator client at `http://localhost:5173`.

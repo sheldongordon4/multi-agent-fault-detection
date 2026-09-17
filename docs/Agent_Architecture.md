@@ -24,6 +24,11 @@ flowchart LR
 - **`agent.py`** — a LangGraph ReAct loop over an OpenAI-protocol chat model
   (Google AI Studio's `gemini-3.8-flash` by default; any OpenAI-compatible
   endpoint works — see `app/faults/config.py`), bound to a **single tool: `kb_retrieve`**
+  — built by `build_chat_model()`, which returns the **native
+  `ChatGoogleGenerativeAI`** for Google and `ChatOpenAI` for everything else.
+  Google needs its own client because Gemini 3.x requires a `thought_signature`
+  echoed back with each tool result and the OpenAI format cannot carry one, so
+  the compat layer fails on the second turn of any tool loop
   (SOP RAG over local `bge-small` embeddings). Client-side rate limiting
   (`InMemoryRateLimiter`), bounded `max_retries`, and a request `timeout` are set
   from `app/faults/config.py`.

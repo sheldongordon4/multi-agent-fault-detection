@@ -29,14 +29,16 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
 from app.faults.config import settings
+from app.utils import message_text
 
 # ---- hard cap on billable calls -------------------------------------------------
-MAX_ENDPOINT_CALLS = 2
+MAX_ENDPOINT_CALLS = 3
 
 # Why this is not 16 any more: reasoning models (Gemini 3.x, o-series) spend
 # output tokens on internal thinking BEFORE emitting any visible content. A
@@ -88,17 +90,21 @@ def _report(resp) -> None:
 
 
 def _make_llm():
-    """Same client the coordinator builds, but retry-free and token-capped."""
-    from langchain_openai import ChatOpenAI
+    """
+    The coordinator's own client factory, with the cost knobs turned down.
 
-    return ChatOpenAI(
-        base_url=settings.LLM_ENDPOINT,
-        api_key=settings.LLM_API_KEY,
-        model=settings.LLM_MODEL,
-        max_retries=0,
-        timeout=settings.LLM_TIMEOUT_SECONDS,
-        max_tokens=MAX_TOKENS,
-    )
+    It calls app.faults.agent.build_chat_model rather than constructing a client
+    here. That is the point: this script previously built its OWN ChatOpenAI,
+    so when the coordinator moved to the native Google client the smoke test
+    silently kept testing the old path and reported on a client the app no
+    longer uses. A test that builds its own subject is not testing the app.
+
+    max_retries=0 matters for the call cap - retries happen INSIDE one invoke(),
+    so they would bypass the counter in _guarded_invoke.
+    """
+    from app.faults.agent import build_chat_model
+
+    return build_chat_model(max_retries=0, max_tokens=MAX_TOKENS, rate_limiter=None)
 
 
 def test_1_connectivity(llm) -> bool:
@@ -111,40 +117,79 @@ def test_1_connectivity(llm) -> bool:
             HumanMessage(content="Say: pong"),
         ],
     )
-    text = (resp.content or "").strip()
+    text = message_text(resp.content).strip()
     print(f"  reply: {text!r}")
     ok = bool(text)
     print(f"  result: {'PASS' if ok else 'FAIL (empty reply)'}")
     return ok
 
 
-def test_2_tool_binding(llm) -> bool:
-    """Call 2/2: the coordinator binds a tool, so confirm tool-calling works too.
-
-    This is the test that matters when switching providers: plenty of endpoints
-    speak the OpenAI chat protocol but handle `tools` differently, and the ReAct
-    loop is useless without it.
-
-    Single .invoke() - we do NOT run the ReAct loop, so this stays one round-trip.
+def test_2_tool_round_trip(llm) -> bool:
     """
-    print("[test 2] tool-binding sanity (single round-trip, no tool loop)")
+    Calls 2 and 3: a REAL two-turn tool loop - request, execute, send back.
+
+    WHY THIS IS NOT ONE ROUND-TRIP ANY MORE
+    ---------------------------------------
+    It used to be, and it passed against a configuration that could not work.
+    A single .invoke() only proves the endpoint ACCEPTS a `tools` payload. The
+    failure that actually matters happens on the SECOND request, when the tool
+    result is sent back alongside the assistant message that asked for it:
+
+        400 INVALID_ARGUMENT - Function call is missing a thought_signature in
+        functionCall parts ... position 2
+
+    Gemini 3.x attaches reasoning state to a function call and wants it echoed
+    back; the OpenAI-compat format has nowhere to put it. A one-turn test never
+    reaches that, so it reported PASS while the coordinator was unusable.
+
+    This is the shape of the ReAct loop in app/faults/agent.py, minus LangGraph:
+    ask -> tool_calls -> run the tool locally -> hand the result back -> answer.
+    """
+    print("[test 2] tool ROUND TRIP (two turns - this is the one that matters)")
     from app.faults.tools import kb_retrieve
 
     llm_with_tools = llm.bind_tools([kb_retrieve])
-    resp = _guarded_invoke(
-        llm_with_tools,
-        [
-            SystemMessage(content="You may call kb_retrieve if useful. Be terse."),
-            HumanMessage(content="Reply OK."),
-        ],
-    )
-    text = (resp.content or "").strip()
-    n_tool_calls = len(getattr(resp, "tool_calls", []) or [])
-    print(f"  reply: {text!r}  (tool_calls requested: {n_tool_calls})")
-    # A valid structured response (content or a tool call) means the endpoint
-    # supports the coordinator's usage.
-    ok = bool(text) or n_tool_calls > 0
-    print(f"  result: {'PASS' if ok else 'FAIL'}")
+    messages = [
+        SystemMessage(
+            content=(
+                "You answer using the kb_retrieve tool. Call it first, then "
+                "reply with the source_id you found. Be terse."
+            )
+        ),
+        HumanMessage(
+            content="Which SOP covers a single line-to-ground fault on a distribution feeder?"
+        ),
+    ]
+
+    # --- turn 1: the model should ask for the tool ---
+    first = _guarded_invoke(llm_with_tools, messages)
+    tool_calls = getattr(first, "tool_calls", []) or []
+    print(f"  turn 1: tool_calls requested = {len(tool_calls)}")
+    if not tool_calls:
+        print("  result: FAIL (model never called the tool - nothing to round-trip)")
+        return False
+
+    # --- run the tool locally, exactly as ToolNode would ---
+    messages.append(first)
+    for call in tool_calls:
+        try:
+            result = kb_retrieve.invoke(call["args"])
+        except Exception as exc:  # noqa: BLE001 - the KB is not what we're testing
+            result = f"tool error: {exc}"
+        messages.append(
+            ToolMessage(
+                content=json.dumps(result, default=str)[:2000],
+                tool_call_id=call["id"],
+            )
+        )
+    print(f"  ran {len(tool_calls)} tool call(s) locally, sending results back ...")
+
+    # --- turn 2: THE request that fails when signatures are dropped ---
+    second = _guarded_invoke(llm_with_tools, messages)
+    text = message_text(second.content).strip()
+    print(f"  turn 2 reply: {text[:120]!r}")
+    ok = bool(text)
+    print(f"  result: {'PASS' if ok else 'FAIL (empty answer after tool result)'}")
     return ok
 
 
@@ -176,7 +221,7 @@ def main() -> int:
     llm = _make_llm()
     results = [
         test_1_connectivity(llm),
-        test_2_tool_binding(llm),
+        test_2_tool_round_trip(llm),
     ]
 
     print("-" * 48)
