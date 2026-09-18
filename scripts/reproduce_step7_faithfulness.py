@@ -7,7 +7,8 @@ Produces:
     - Context Precision and Context Recall (TF-IDF retrieval, same as Table 6)
     - Faithfulness Score: fraction of generated claims grounded in retrieved SOPs
     - Hallucination Rate: 1 - Faithfulness Score
-    - Full per-scenario results saved to results/faithfulness_evaluation.json
+    - Full per-scenario results saved to results/faithfulness_evaluation_<N>.json
+      (N = next free number; earlier runs are never overwritten)
 
 Paper section:  5.8 (extends Table 6 with faithfulness metrics)
 
@@ -703,9 +704,14 @@ def main() -> None:
         f_t  = f"{sum(judged) / len(judged):.4f}" if judged else "   n/a"
         print(f"  {ft:<10}: CP={cp_t:.4f}  CR={cr_t:.4f}  Faithfulness={f_t}  n={len(rs)}")
 
-    # Save full results
-    out_path = RESULTS_DIR / "faithfulness_evaluation.json"
+    # Save full results to the next free numbered file so repeated runs
+    # (the generator is stochastic) are kept side by side, never overwritten.
+    run_number = 1
+    while (RESULTS_DIR / f"faithfulness_evaluation_{run_number}.json").exists():
+        run_number += 1
+    out_path = RESULTS_DIR / f"faithfulness_evaluation_{run_number}.json"
     output = {
+        "run_number": run_number,
         "run_timestamp": datetime.now(timezone.utc).isoformat(),
         "azure_endpoint": AZURE_ENDPOINT if use_llm else "not_configured",
         "azure_deployment": AZURE_DEPLOYMENT if use_llm else "not_used",
