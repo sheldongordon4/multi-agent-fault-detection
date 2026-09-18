@@ -1,15 +1,16 @@
 {
-  "run_timestamp": "2026-09-17T19:29:56.986463+00:00",
+  "run_timestamp": "2026-09-18T02:35:27.463711+00:00",
   "azure_endpoint": "https://sheldongordon4-1731-resource.services.ai.azure.com",
   "azure_deployment": "gpt-5.4-mini",
   "generation_mode": "llm",
   "faithfulness_mode": "llm_judge",
   "n_scenarios": 24,
+  "n_judged": 24,
   "aggregate": {
-    "mean_context_precision": 0.6667,
-    "mean_context_recall": 0.7708,
-    "mean_faithfulness_score": 0.3663,
-    "hallucination_rate": 0.6337
+    "mean_context_precision": 0.6042,
+    "mean_context_recall": 0.7083,
+    "mean_faithfulness_score": 0.9666,
+    "hallucination_rate": 0.0334
   },
   "scenarios": [
     {
@@ -21,66 +22,72 @@
         "SOP-SLG-005"
       ],
       "ground_truth_sops": [
-        "SOP-MISC-002",
-        "SOP-TRF-004"
+        "SOP-HIZ-010",
+        "SOP-SLG-005"
       ],
       "context_precision": 0.5,
       "context_recall": 0.5,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.4444,
-      "total_claims": 9,
-      "grounded_claims": 4,
-      "ungrounded_examples": [
-        "The disturbance at b650 shows a severe voltage sag (minVa=0.021)",
-        "This signature is most consistent with a ground-involved fault, specifically a single line-to-ground event, rather than a balanced three-phase fault or overload.",
-        "The electrical signature indicates a ground fault at or near b650",
-        "the near-unity zero-sequence ratio strongly supports ground involvement",
-        "the large voltage depression confirms a short-circuit fault condition",
-        "a ground fault of this magnitude can also drive nuisance or miscoordinated protection operations"
-      ],
+      "faithfulness_score": 1.0,
+      "total_claims": 7,
+      "grounded_claims": 7,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-20260917-001",
+        "ticket_id": "FT-ieee13-b650-20260918-001",
         "scenario": "ieee13",
         "bus_id": "b650",
-        "fault_type": "single line-to-ground fault",
+        "fault_type": "SLG",
         "severity": "high",
         "status": "diagnosed",
-        "summary": "The disturbance at b650 shows a severe voltage sag (minVa=0.021) combined with very high zero-sequence current (maxI0I1=0.994) and low negative-sequence content. This signature is most consistent with a ground-involved fault, specifically a single line-to-ground event, rather than a balanced three-phase fault or overload.",
-        "root_cause": "The electrical signature indicates a ground fault at or near b650: the near-unity zero-sequence ratio strongly supports ground involvement, while the large voltage depression confirms a short-circuit fault condition. Per SOP-SLG-005, a single line-to-ground fault presents as one phase conductor contacting ground or a grounded structure; SOP-MISC-002 Section 4.2 is relevant for checking relay coordination because a ground fault of this magnitude can also drive nuisance or miscoordinated protection operations.",
+        "summary": "The disturbance at bus b650 is most consistent with a single line-to-ground fault. The signature shows a deep voltage sag, very high current, and a near-unity zero-sequence ratio, which strongly indicates a solid ground path rather than a balanced or pure line-to-line event.",
+        "root_cause": "Per SOP-SLG-005 Section 7.1, an SLG fault is indicated when one phase collapses, I0/I1 is clearly elevated, and the event is unbalanced with both sequence components present. Here, minVa=0.021 pu, maxIa=6.12 pu, and maxI0I1=0.994 with low maxI2I1=0.12 match the SOP\u2019s SLG signature for a close-in, low-impedance ground fault. SOP-MISC-002 Section 4.2 further supports this interpretation because the near-unity zero-sequence current is characteristic of strong ground involvement, not relay miscoordination or overload.",
         "recommended_actions": [
-          "Dispatch a field crew to inspect b650 and the adjacent span/equipment for conductor-to-ground contact, damaged insulation, broken hardware, or vegetation intrusion.",
-          "Verify relay and recloser operations on feeder ieee13, including event records and trip targets, to assess whether any protection devices miscoordinated during the fault.",
-          "Confirm feeder grounding and check for downstream or upstream ground-fault indicators before re-energizing the affected section.",
-          "Isolate the faulted section if still energized, then perform controlled restoration after the defective component is repaired and cleared.",
-          "Review relay settings and coordination margins if nuisance tripping or unnecessary upstream device operation is observed."
+          "Confirm relay targets and SCADA event records to verify ground element operation and identify the affected phase.",
+          "Treat the fault as potentially permanent; do not reclose/test-close before field patrol if the device locked out.",
+          "Dispatch a patrol of the protected section focused on b650 and surrounding span/equipment for a downed conductor, insulator flashover, tree contact, or other ground path.",
+          "If the feeder can be sectionalized, isolate the faulted section and restore unaffected customers per restoration procedures.",
+          "After the fault is cleared, verify insulation resistance or perform the local equivalent test before re-energizing.",
+          "If the event recurs at the same location, document the repetition and investigate for a persistent asset defect."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "voltage",
-            "description": "b650 exhibited a deep voltage sag with minVa=0.021, indicating a severe short-circuit condition rather than a steady overload."
+            "description": "b650 minVa=0.021 pu indicates a deep voltage collapse consistent with a short-circuit fault."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "current",
-            "description": "b650 showed maxIa=6.12 with maxI0I1=0.994 and maxI2I1=0.12, consistent with strong zero-sequence current and ground involvement."
+            "description": "b650 maxIa=6.12 pu indicates a high fault current surge consistent with a low-impedance fault."
+          },
+          {
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
+            "metric": "current",
+            "description": "b650 maxI0I1=0.994 with maxI2I1=0.12 indicates dominant ground involvement with limited negative-sequence unbalance, matching SLG."
           }
         ],
         "kb_citations": [
           {
             "source_id": "SOP-SLG-005",
             "title": "Single Line-to-Ground Fault Response",
-            "section": "7.1 Short-Circuit Faults \u00e2\u20ac\u201d Ground Involved",
-            "snippet": "one phase conductor in contact with ground, a grounded structure"
+            "section": "7.1 Short-Circuit Faults \u2014 Ground Involved",
+            "snippet": "One phase voltage collapses ... Zero-sequence current ratio (I0/I1) is clearly elevated ... Negative-sequence ratio (I2/I1) is also elevated."
+          },
+          {
+            "source_id": "SOP-SLG-005",
+            "title": "Single Line-to-Ground Fault Response",
+            "section": "Trip Criteria",
+            "snippet": "Instantaneous ground element operation for close-in, high-current faults."
           },
           {
             "source_id": "SOP-MISC-002",
             "title": "Feeder Relay Miscoordination Investigation",
-            "section": "4.2 Relay Coordination and Nuisance Tripping",
-            "snippet": "investigate and respond to suspected protection relay miscoordination"
+            "section": "Fault Signature Identification",
+            "snippet": "I0/I1 > 0.50: Strong ground involvement ... ~1.0: Very strong ground path."
           }
         ]
       }
@@ -90,68 +97,63 @@
       "fault_type": "SLG",
       "feeder": "ieee13",
       "retrieved_sops": [
-        "SOP-MISC-002",
-        "SOP-TRF-004"
+        "SOP-SLG-005",
+        "SOP-LL-006"
       ],
       "ground_truth_sops": [
-        "SOP-MISC-002",
-        "SOP-TRF-004"
+        "SOP-HIZ-010",
+        "SOP-SLG-005"
       ],
-      "context_precision": 1.0,
-      "context_recall": 1.0,
+      "context_precision": 0.5,
+      "context_recall": 0.5,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.2,
-      "total_claims": 10,
-      "grounded_claims": 2,
+      "faithfulness_score": 0.875,
+      "total_claims": 8,
+      "grounded_claims": 7,
       "ungrounded_examples": [
-        "Bus b632 shows a severe voltage sag",
-        "strong zero-sequence current and low negative-sequence content",
-        "which is most consistent with a single-line-to-ground fault",
-        "The disturbance is high severity",
-        "should be treated as an active ground-fault/protection event on the feeder",
-        "The electrical signature at b632 indicates ground involvement: maxI0I1=0.88 is high, while maxI2I1=0.09 is low, and minVa=0.045 shows a deep voltage sag.",
-        "Per SOP-MISC-002 Section 4.2, symmetrical-component signatures are used to identify fault class before applying relay coordination response",
-        "this pattern aligns with a ground fault rather than balanced three-phase fault or overload",
-        "Given the feeder-level impact and high anomaly score",
-        "the most plausible root cause is an SLG fault causing protection operation or nuisance trip investigation under relay coordination procedures"
+        "The disturbance at bus b632 shows a deep voltage collapse with strong zero-sequence and moderate negative-sequence current signatures, which is consistent with a ground-involved short-circuit fault.",
+        "The pattern most closely matches a single line-to-ground fault on the feeder.",
+        "The electrical signature is diagnostic for a ground-involved fault: minVa is very low (0.045) with elevated maxI0I1 (0.88) and maxI2I1 (0.09), matching the SOP-SLG-005 conditions for SLG where one phase collapses and both zero-sequence and negative-sequence current rise.",
+        "Per SOP-SLG-005 Section 7.1, persistent SLG faults are often associated with downed conductors or a grounded structure/neutral contact and must be treated as a potential safety hazard until patrol confirms the fault location and condition."
       ],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-20260917-001",
+        "ticket_id": "FT-ieee13-20260918-0001",
         "scenario": "ieee13",
         "bus_id": "b632",
-        "fault_type": "single-line-to-ground fault",
+        "fault_type": "single line-to-ground fault (SLG)",
         "severity": "high",
         "status": "diagnosed",
-        "summary": "Bus b632 shows a severe voltage sag with strong zero-sequence current and low negative-sequence content, which is most consistent with a single-line-to-ground fault. The disturbance is high severity and should be treated as an active ground-fault/protection event on the feeder.",
-        "root_cause": "The electrical signature at b632 indicates ground involvement: maxI0I1=0.88 is high, while maxI2I1=0.09 is low, and minVa=0.045 shows a deep voltage sag. Per SOP-MISC-002 Section 4.2, symmetrical-component signatures are used to identify fault class before applying relay coordination response; this pattern aligns with a ground fault rather than balanced three-phase fault or overload. Given the feeder-level impact and high anomaly score, the most plausible root cause is an SLG fault causing protection operation or nuisance trip investigation under relay coordination procedures.",
+        "summary": "The disturbance at bus b632 shows a deep voltage collapse with strong zero-sequence and moderate negative-sequence current signatures, which is consistent with a ground-involved short-circuit fault. The pattern most closely matches a single line-to-ground fault on the feeder.",
+        "root_cause": "The electrical signature is diagnostic for a ground-involved fault: minVa is very low (0.045) with elevated maxI0I1 (0.88) and maxI2I1 (0.09), matching the SOP-SLG-005 conditions for SLG where one phase collapses and both zero-sequence and negative-sequence current rise. Per SOP-SLG-005 Section 7.1, persistent SLG faults are often associated with downed conductors or a grounded structure/neutral contact and must be treated as a potential safety hazard until patrol confirms the fault location and condition.",
         "recommended_actions": [
-          "Inspect feeder protection relay targets and event records for bus b632 and upstream devices to confirm ground-fault pickup and trip sequence.",
-          "Isolate and patrol the downstream section from b632 for conductor contact, insulation damage, vegetation intrusion, or equipment failure.",
-          "Verify grounding and recloser coordination settings per SOP-MISC-002 to determine whether miscoordination contributed to the event.",
-          "If the fault is still present, de-energize the affected section and dispatch field crews before reclose attempts.",
-          "After restoration, review disturbance waveforms and sequence-of-events logs to update protection settings if nuisance tripping is confirmed."
+          "Confirm relay targets and SCADA to identify the involved phase and verify ground element operation.",
+          "Treat the event as a possible permanent fault; do not test-close before patrol if the recloser locked out.",
+          "Dispatch a patrol of the faulted section, prioritizing the area around bus b632 while still inspecting the full protected section.",
+          "If the feeder can be sectionalized, isolate the faulted section and restore unaffected customers per SOP-FLISR-011.",
+          "After the fault is located and cleared, perform insulation resistance or the local equivalent test before re-energization.",
+          "If patrol finds no physical defect and the fault does not recur on controlled re-energization, classify it as transient and monitor for repetition."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:00:10Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:05:00Z",
             "metric": "voltage",
-            "description": "b632 minVa=0.045, indicating a deep voltage sag consistent with a severe fault condition."
+            "description": "Bus b632 experienced a severe voltage sag with minVa=0.045, indicating near-collapse of one phase voltage consistent with a short-circuit event."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:00:10Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:05:00Z",
             "metric": "current",
-            "description": "b632 maxIa=5.8 with maxI0I1=0.88 and maxI2I1=0.09, indicating strong ground-fault current with limited negative-sequence imbalance."
+            "description": "Bus b632 showed elevated maxI0I1=0.88 and maxI2I1=0.09 with maxIa=5.8, indicating strong ground involvement with unbalanced fault current typical of SLG."
           }
         ],
         "kb_citations": [
           {
-            "source_id": "SOP-MISC-002",
-            "title": "Feeder Relay Miscoordination Investigation",
-            "section": "4.2 Relay Coordination and Nuisance Tripping",
-            "snippet": "symmetrical component and electrical feature signatures are used to identify the fault class before applying this SOP"
+            "source_id": "SOP-SLG-005",
+            "title": "Single Line-to-Ground Fault Response",
+            "section": "7.1 Short-Circuit Faults \u2014 Ground Involved",
+            "snippet": "Zero-sequence current ratio (I0/I1) is clearly elevated... Negative-sequence ratio (I2/I1) is also elevated... treat any conductor on the ground as energized regardless of indications."
           }
         ]
       }
@@ -161,73 +163,66 @@
       "fault_type": "SLG",
       "feeder": "ieee13",
       "retrieved_sops": [
-        "SOP-TRF-004",
-        "SOP-MISC-002"
+        "SOP-SLG-005",
+        "SOP-OPEN-009"
       ],
       "ground_truth_sops": [
-        "SOP-MISC-002",
-        "SOP-TRF-004"
+        "SOP-HIZ-010",
+        "SOP-SLG-005"
       ],
-      "context_precision": 1.0,
-      "context_recall": 1.0,
+      "context_precision": 0.5,
+      "context_recall": 0.5,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.0,
-      "total_claims": 10,
-      "grounded_claims": 0,
+      "faithfulness_score": 0.8571,
+      "total_claims": 7,
+      "grounded_claims": 6,
       "ungrounded_examples": [
-        "Bus b671 shows a severe voltage collapse.",
-        "Bus b671 shows strong zero-sequence content.",
-        "The disturbance is indicating a grounded fault rather than a balanced three-phase event.",
-        "The disturbance is consistent with a high-current SLG fault on the feeder.",
-        "The disturbance requires immediate isolation and inspection.",
-        "The signature at b671 is dominated by ground involvement.",
-        "max_I0_I1=0.91 is very high.",
-        "max_I2_I1=0.11 remains relatively low.",
-        "minVa=0.032 indicates a deep voltage sag.",
-        "This pattern aligns with a single-line-to-ground fault rather than balanced three-phase or pure overload conditions."
+        "high severity suggests a persistent or close-in fault",
+        "must be treated as a possible downed conductor until patrol confirms otherwise"
       ],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-20260917-001",
+        "ticket_id": "FT-ieee13-b671-20260918-001",
         "scenario": "ieee13",
         "bus_id": "b671",
-        "fault_type": "single-line-to-ground fault",
+        "fault_type": "single line-to-ground (SLG) fault",
         "severity": "high",
         "status": "diagnosed",
-        "summary": "Bus b671 shows a severe voltage collapse with strong zero-sequence content, indicating a grounded fault rather than a balanced three-phase event. The disturbance is consistent with a high-current SLG fault on the feeder, requiring immediate isolation and inspection.",
-        "root_cause": "The signature at b671 is dominated by ground involvement: max_I0_I1=0.91 is very high, while max_I2_I1=0.11 remains relatively low and minVa=0.032 indicates a deep voltage sag. Per the SOP fault-signature guidance in SOP-TRF-004 \u00a76.1 and the feeder fault classification context in SOP-MISC-002 \u00a74.2, this pattern aligns with a single-line-to-ground fault rather than balanced three-phase or pure overload conditions.",
+        "summary": "Bus b671 shows a severe voltage collapse with strong ground-fault signature. The elevated zero-sequence current ratio and modest negative-sequence ratio indicate a ground-involved unbalanced fault consistent with an SLG event.",
+        "root_cause": "The detected pattern matches SOP-SLG-005: one phase voltage has collapsed (minVa=0.032) while the feeder shows clearly elevated zero-sequence current (maxI0I1=0.91), which is the key indicator of ground involvement. The elevated negative-sequence ratio (maxI2I1=0.11) supports an unbalanced fault, and the high severity suggests a persistent or close-in fault that must be treated as a possible downed conductor until patrol confirms otherwise.",
         "recommended_actions": [
-          "Isolate the affected section around bus b671 and perform protective device coordination checks before re-energization.",
-          "Inspect the line, connected transformer, and nearby equipment for ground contact, insulation failure, damaged conductors, or wildlife/vegetation intrusion.",
-          "Verify relay and recloser operations to confirm correct fault clearing and rule out nuisance or miscoordination issues.",
-          "Perform post-event thermal and insulation assessment on downstream equipment before returning the feeder to normal service."
+          "Confirm relay targets and SCADA indications to identify the involved phase and verify ground-element operation.",
+          "Treat the fault as potentially permanent; do not test-close before field patrol clears the section.",
+          "Dispatch a patrol to the estimated faulted area and inspect for a downed conductor, tree contact, insulator failure, or other ground contact.",
+          "If sectionalizing is available, isolate the faulted section and restore unaffected customers per FLISR procedures.",
+          "After clearing the fault, verify insulation resistance or perform the local equivalent test before re-energizing."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "voltage",
-            "description": "Bus b671 voltage collapsed to minVa=0.032, indicating a severe sag consistent with a hard fault."
+            "description": "Bus b671 experienced a deep voltage sag with minVa=0.032, consistent with a severe fault on the feeder."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "current",
-            "description": "Bus b671 current rose to maxIa=5.5 with strong zero-sequence ratio maxI0I1=0.91 and modest negative-sequence ratio maxI2I1=0.11, supporting a ground-involved fault."
+            "description": "Bus b671 shows elevated zero-sequence current ratio maxI0I1=0.91 with modest negative-sequence ratio maxI2I1=0.11, indicating a ground-involved unbalanced fault."
           }
         ],
         "kb_citations": [
           {
-            "source_id": "SOP-TRF-004",
-            "title": "Transformer Overcurrent and Thermal Protection",
-            "section": "6.1 Transformer Protection Guidelines",
-            "snippet": "Fault Signature Identification"
+            "source_id": "SOP-SLG-005",
+            "title": "Single Line-to-Ground Fault Response",
+            "section": "7.1 Short-Circuit Faults \u2014 Ground Involved",
+            "snippet": "One phase voltage collapses while the other two remain near nominal. Zero-sequence current ratio (I0/I1) is clearly elevated \u2014 this is what distinguishes a ground fault from a phase-to-phase fault."
           },
           {
-            "source_id": "SOP-MISC-002",
-            "title": "Feeder Relay Miscoordination Investigation",
-            "section": "4.2 Relay Coordination and Nuisance Tripping",
-            "snippet": "investigate and respond to suspected protection relay miscoordination on distribution feeders"
+            "source_id": "SOP-SLG-005",
+            "title": "Single Line-to-Ground Fault Response",
+            "section": "Operator Actions",
+            "snippet": "On lockout, DO NOT test-close before patrol. Dispatch a patrol of the faulted section and treat any conductor on the ground as energized regardless of indications."
           }
         ]
       }
@@ -237,72 +232,64 @@
       "fault_type": "LL",
       "feeder": "ieee13",
       "retrieved_sops": [
-        "SOP-MISC-002",
-        "SOP-TRF-004"
+        "SOP-LL-006",
+        "SOP-MISC-002"
       ],
       "ground_truth_sops": [
-        "SOP-MISC-002",
-        "SOP-TRF-004"
+        "SOP-LL-006",
+        "SOP-LLG-007"
       ],
-      "context_precision": 1.0,
-      "context_recall": 1.0,
+      "context_precision": 0.5,
+      "context_recall": 0.5,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.25,
-      "total_claims": 8,
-      "grounded_claims": 2,
-      "ungrounded_examples": [
-        "Bus b650 shows a severe voltage sag (minVa=0.18 pu).",
-        "with a strong negative-sequence component (maxI2I1=0.51).",
-        "This pattern is most consistent with an unbalanced fault.",
-        "the depth of sag indicates a high-severity event requiring immediate protection and field review.",
-        "The detected signature aligns best with an SLG-type unbalanced fault.",
-        "the negative-sequence ratio is high, indicating strong phase unbalance, while the zero-sequence ratio is near zero, which is less consistent with a ground-heavy LLG/SLG condition and can occur depending on measurement location or network grounding/transformer isolation.",
-        "Per SOP-MISC-002 Section 4.2, fault signatures with pronounced unbalance should be investigated under relay coordination and nuisance-tripping procedures.",
-        "however, the extreme voltage depression also warrants checking transformer protection behavior per SOP-TRF-004 Section 6.1 to rule out protective operation secondary to the disturbance."
-      ],
+      "faithfulness_score": 1.0,
+      "total_claims": 10,
+      "grounded_claims": 10,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-20260917-0001",
+        "ticket_id": "FT-IEEE13-20260918-0001",
         "scenario": "ieee13",
         "bus_id": "b650",
-        "fault_type": "single-line-to-ground fault",
+        "fault_type": "LL",
         "severity": "high",
         "status": "diagnosed",
-        "summary": "Bus b650 shows a severe voltage sag (minVa=0.18 pu) with a strong negative-sequence component (maxI2I1=0.51) and negligible zero-sequence contribution (maxI0I1=0.007). This pattern is most consistent with an unbalanced fault, and the depth of sag indicates a high-severity event requiring immediate protection and field review.",
-        "root_cause": "The detected signature aligns best with an SLG-type unbalanced fault: the negative-sequence ratio is high, indicating strong phase unbalance, while the zero-sequence ratio is near zero, which is less consistent with a ground-heavy LLG/SLG condition and can occur depending on measurement location or network grounding/transformer isolation. Per SOP-MISC-002 Section 4.2, fault signatures with pronounced unbalance should be investigated under relay coordination and nuisance-tripping procedures; however, the extreme voltage depression also warrants checking transformer protection behavior per SOP-TRF-004 Section 6.1 to rule out protective operation secondary to the disturbance.",
+        "summary": "The disturbance at bus b650 shows a deep voltage sag with strong negative-sequence current and essentially no zero-sequence current. This pattern is most consistent with a phase-to-phase (line-to-line) fault rather than a ground-involved event.",
+        "root_cause": "Detection signature indicates a line-to-line short-circuit: minVa=0.18 pu is in the deep sag range, maxIa=4.2 pu is consistent with a short-circuit surge, maxI2I1=0.51 shows strong phase unbalance, and maxI0I1=0.007 is near zero, confirming no appreciable ground return path. Per SOP-LL-006 Section 7.2, an LL fault is characterized by elevated negative-sequence current with low zero-sequence current and typically results from conductor-to-conductor contact such as galloping conductors, tree-limb bridging, failed spacers, or animal/bird contact.",
         "recommended_actions": [
-          "Inspect protection relay targets and event reports for bus b650 and upstream devices to confirm whether a phase fault or nuisance trip occurred.",
-          "Verify line and transformer protection coordination settings per SOP-MISC-002 Section 4.2 to determine whether relay miscoordination contributed to the outage.",
-          "Perform\u73b0\u573a fault location patrol on the feeder section associated with b650, prioritizing conductors, connectors, and insulators for phase-to-ground damage.",
-          "Review transformer current and thermal protection records per SOP-TRF-004 Section 6.1 to ensure the sag did not trigger downstream transformer protection incorrectly.",
-          "If the fault is confirmed and de-energized, isolate the affected section, clear the fault, and re-energize in a controlled sequence after inspection."
+          "Confirm from relay targets which two phases were involved and verify that ground elements did not operate.",
+          "Dispatch patrol to inspect the conductor plane around b650 for conductor-to-conductor contact, damaged spacers, tree contact, or evidence of wind-induced slap.",
+          "Check weather and wind records for the event window to determine whether a transient conductor-slap condition likely caused the fault.",
+          "If lockout occurred, patrol the section before re-energizing and inspect upward at the conductors rather than only ground-level equipment.",
+          "Isolate and restore the feeder per SOP-FLISR-011 if sectionalizing is available.",
+          "If similar LL events recur, escalate to engineering for spacing, sag, and spacer-cable review."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "voltage",
-            "description": "Bus b650 experienced a deep voltage sag with minVa=0.18 pu, indicating a severe disturbance."
+            "description": "b650 recorded minVa=0.18 pu, indicating a deep voltage sag consistent with a short-circuit fault."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "current",
-            "description": "Bus b650 showed elevated current and strong negative-sequence content (maxIa=4.2 pu, maxI2I1=0.51) with negligible zero-sequence ratio (maxI0I1=0.007), indicating an unbalanced fault signature."
+            "description": "b650 recorded maxIa=4.2 pu with maxI2I1=0.51 and maxI0I1=0.007, indicating strong unbalance without ground involvement, characteristic of an LL fault."
           }
         ],
         "kb_citations": [
           {
-            "source_id": "SOP-MISC-002",
-            "title": "Feeder Relay Miscoordination Investigation",
-            "section": "4.2 Relay Coordination and Nuisance Tripping",
-            "snippet": "investigate and respond to suspected protection relay miscoordination on distribution feeders and associated buses"
+            "source_id": "SOP-LL-006",
+            "title": "Phase-to-Phase Fault Response",
+            "section": "7.2 Short-Circuit Faults \u2014 No Ground Path",
+            "snippet": "Negative-sequence ratio (I2/I1) is clearly elevated. Zero-sequence ratio (I0/I1) is LOW. This absence is the diagnostic feature: an LL fault has no ground return path."
           },
           {
-            "source_id": "SOP-TRF-004",
-            "title": "Transformer Overcurrent and Thermal Protection",
-            "section": "6.1 Transformer Protection Guidelines",
-            "snippet": "evaluate and respond to overcurrent and thermal protection operations on power transformers"
+            "source_id": "SOP-LL-006",
+            "title": "Phase-to-Phase Fault Response",
+            "section": "Operator Actions",
+            "snippet": "Common physical causes are conductor-to-conductor contact: galloping or swinging conductors in wind, a tree limb bridging two phases, a failed spacer, or animal or bird contact across insulators."
           }
         ]
       }
@@ -312,65 +299,69 @@
       "fault_type": "LL",
       "feeder": "ieee13",
       "retrieved_sops": [
+        "SOP-MISC-002",
+        "SOP-LL-006"
+      ],
+      "ground_truth_sops": [
         "SOP-LL-006",
         "SOP-LLG-007"
       ],
-      "ground_truth_sops": [
-        "SOP-MISC-002",
-        "SOP-TRF-004"
-      ],
-      "context_precision": 0.0,
-      "context_recall": 0.0,
+      "context_precision": 0.5,
+      "context_recall": 0.5,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.75,
-      "total_claims": 8,
+      "faithfulness_score": 1.0,
+      "total_claims": 6,
       "grounded_claims": 6,
-      "ungrounded_examples": [
-        "Bus b632 shows a deep voltage sag",
-        "The disturbance is severe and requires prompt isolation and inspection of the affected feeder section."
-      ],
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-ieee13-20260917-632",
+        "ticket_id": "FT-ieee13-b632-20260918-0001",
         "scenario": "ieee13",
         "bus_id": "b632",
-        "fault_type": "phase-to-phase fault (LL)",
+        "fault_type": "LL (line-to-line) fault",
         "severity": "high",
         "status": "diagnosed",
-        "summary": "Bus b632 shows a deep voltage sag with strong negative-sequence content and negligible zero-sequence current, which is most consistent with a phase-to-phase fault rather than a ground-involved event. The disturbance is severe and requires prompt isolation and inspection of the affected feeder section.",
-        "root_cause": "The signature at b632 indicates a balanced two-phase short without ground involvement: maxI0I1 is near zero (0.006), while maxI2I1 is elevated (0.48), matching the SOP-LL-006 description of a phase-to-phase fault with no path to ground. The deep voltage depression (minVa=0.21) supports a short-circuit condition; per SOP-LL-006, two phase voltages are depressed and protection should treat this as a short-circuit fault \u00e2\u20ac\u201d no ground path.",
+        "summary": "The disturbance at b632 shows a deep voltage sag with elevated current and a strong negative-sequence component, while zero-sequence current remains near zero. This is most consistent with a phase-to-phase short-circuit fault rather than a ground-involved event or overload.",
+        "root_cause": "Detection signature matches SOP-LL-006 for a line-to-line fault: minVa=0.21 pu falls in the deep sag range, maxIa=3.9 pu indicates a moderate short-circuit current surge, maxI2I1=0.48 confirms strong phase unbalance, and maxI0I1=0.006 is near zero, indicating no appreciable ground return path. Per SOP-LL-006, this pattern is characteristic of two phase conductors contacting each other (e.g., conductor slap, tree limb bridging two phases, failed spacer, or animal/bird contact across insulators) and should be investigated as a no-ground short-circuit event.",
         "recommended_actions": [
-          "Isolate the b632 feeder section using the nearest upstream protective device or sectionalizing switch.",
-          "Dispatch field crews to inspect conductors, splices, insulators, and nearby vegetation for phase-to-phase contact or flashover evidence.",
-          "Verify relay and recloser operation, including fault current pickup and trip records, before re-energizing.",
-          "Maintain the section de-energized until the damaged conductors/equipment are repaired and a clearance test is completed."
+          "Confirm relay targets and event logs to verify which two phases were involved and that ground elements did not operate.",
+          "Patrol the line section around b632 before re-energizing; inspect conductor-to-conductor contact points, damaged spacers, and evidence of wind-induced conductor slap.",
+          "Check weather and wind conditions at the event time for galloping or swinging conductors.",
+          "Isolate and restore the affected section per feeder sectionalizing procedures if available.",
+          "If the event recurs, refer to protection engineering for spacing, sag, or spacer-cable review and confirm relay coordination."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:00:10Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "voltage",
-            "description": "b632 minVa=0.21 indicates a deep voltage sag consistent with a short-circuit fault."
+            "description": "b632 minimum phase voltage depressed to 0.21 pu, indicating a deep voltage sag consistent with a short-circuit fault."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:00:10Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "current",
-            "description": "b632 maxIa=3.9 with maxI0I1=0.006 and maxI2I1=0.48 indicates high current with strong unbalance but negligible zero-sequence content, consistent with an LL fault."
+            "description": "b632 peak current reached 3.9 pu with maxI2I1=0.48 and maxI0I1=0.006, showing strong unbalance without meaningful ground involvement."
           }
         ],
         "kb_citations": [
           {
             "source_id": "SOP-LL-006",
             "title": "Phase-to-Phase Fault Response",
-            "section": "7.2 Short-Circuit Faults \u00e2\u20ac\u201d No Ground Path",
-            "snippet": "phase-to-phase (LL) fault \u00e2\u20ac\u201d two phase conductors in contact with each other, with no path to ground"
+            "section": "7.2 Short-Circuit Faults \u2014 No Ground Path",
+            "snippet": "A LL fault has no ground return path, so no appreciable zero-sequence current circulates."
           },
           {
             "source_id": "SOP-LL-006",
             "title": "Phase-to-Phase Fault Response",
-            "section": "7.2 Short-Circuit Faults \u00e2\u20ac\u201d No Ground Path",
-            "snippet": "Two phase voltages are depressed"
+            "section": "Operator Actions",
+            "snippet": "Confirm from relay targets which two phases were involved, and specifically confirm that ground elements did NOT operate."
+          },
+          {
+            "source_id": "SOP-LL-006",
+            "title": "Phase-to-Phase Fault Response",
+            "section": "Operator Actions",
+            "snippet": "Common physical causes are conductor-to-conductor contact: galloping or swinging conductors in wind, a tree limb bridging two phases, a failed spacer, or animal or bird contact across insulators."
           }
         ]
       }
@@ -381,69 +372,70 @@
       "feeder": "ieee13",
       "retrieved_sops": [
         "SOP-LL-006",
-        "SOP-TRF-004"
+        "SOP-LLG-007"
       ],
       "ground_truth_sops": [
-        "SOP-MISC-002",
-        "SOP-TRF-004"
+        "SOP-LL-006",
+        "SOP-LLG-007"
       ],
-      "context_precision": 0.5,
-      "context_recall": 0.5,
+      "context_precision": 1.0,
+      "context_recall": 1.0,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.67,
-      "total_claims": 9,
+      "faithfulness_score": 1.0,
+      "total_claims": 6,
       "grounded_claims": 6,
-      "ungrounded_examples": [
-        "Bus b671 shows a deep voltage sag with elevated current and a strong negative-sequence component.",
-        "The near-zero zero-sequence ratio indicates little to no ground involvement.",
-        "minVa is severely depressed (0.19 pu).",
-        "maxI2I1 is high (0.49).",
-        "maxI0I1 is near zero (0.008).",
-        "This matches SOP-LL-006, Section 7.2, which defines a phase-to-phase fault as two phase conductors in contact with no path to ground and notes depressed phase voltages as a key condition."
-      ],
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "ieee13-b671-20260917-0001",
+        "ticket_id": "FT-ieee13-b671-20260918-001",
         "scenario": "ieee13",
         "bus_id": "b671",
-        "fault_type": "phase-to-phase (LL) fault",
+        "fault_type": "double line-to-ground fault (LLG)",
         "severity": "high",
         "status": "diagnosed",
-        "summary": "Bus b671 shows a deep voltage sag with elevated current and a strong negative-sequence component, consistent with an ungrounded phase-to-phase fault. The near-zero zero-sequence ratio indicates little to no ground involvement, aligning with the supplied SOP context for an LL short-circuit.",
-        "root_cause": "The disturbed signature at b671 indicates a phase-to-phase fault: minVa is severely depressed (0.19 pu), maxI2I1 is high (0.49), and maxI0I1 is near zero (0.008). This matches SOP-LL-006, Section 7.2, which defines a phase-to-phase fault as two phase conductors in contact with no path to ground and notes depressed phase voltages as a key condition. The combination of deep sag and strong negative-sequence current supports an LL short-circuit rather than overload or a grounded fault.",
+        "summary": "The disturbance at bus b671 shows a deep voltage sag with strong unbalance and clear ground involvement. The signature is most consistent with a severe double line-to-ground fault rather than a phase-to-phase-only event.",
+        "root_cause": "The electrical signature matches SOP-LLG-007: both sequence ratios are elevated enough to indicate unbalance and ground involvement, while the very low minVa confirms a major short-circuit disturbance. In contrast to SOP-LL-006, the zero-sequence ratio is not low, so this is not a pure LL fault; the likely mechanism is two phase conductors faulted to ground, either simultaneously or by evolution from another fault condition.",
         "recommended_actions": [
-          "Isolate the affected feeder section around bus b671 and verify protection device operations and upstream/downstream breaker status.",
-          "Inspect conductors, spacers, insulators, and nearby hardware for phase-to-phase contact, flashover, or wind/tree contact.",
-          "Perform visual patrol and infrared inspection after de-energization to locate the damaged span or equipment.",
-          "Check relay/event records for phase overcurrent and negative-sequence elements consistent with an LL fault.",
-          "Restore service only after the faulted section is repaired, tested, and cleared for re-energization."
+          "Confirm relay targets and event records to identify the two involved phases and verify that ground elements operated.",
+          "Treat the fault as severe; assume possible conductor, insulator, or hardware damage at the fault point until visually cleared.",
+          "Review the disturbance timing for evidence that the event evolved from an initial LL or SLG condition into LLG.",
+          "Patrol the affected section before re-energizing, and treat any downed conductor as energized.",
+          "Inspect for burnt hardware, damaged insulators, conductor annealing, pole damage, or tree contact at the suspected location.",
+          "Isolate and restore per the feeder's FLISR procedure if sectionalizing is available.",
+          "Escalate to protection engineering if fault current or damage indications suggest the coordination study assumptions may be exceeded."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "voltage",
-            "description": "b671 minVa=0.19 pu indicates a deep voltage sag during the event."
+            "description": "Bus b671 recorded a very deep voltage sag with minVa=0.19, indicating a severe short-circuit condition rather than an overload."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "current",
-            "description": "b671 maxIa=4.1 pu with maxI2I1=0.49 and maxI0I1=0.008 indicates high unbalanced current with minimal ground-sequence involvement."
+            "description": "Bus b671 showed elevated current with maxIa=4.1 and strong negative-sequence content maxI2I1=0.49, consistent with a highly unbalanced fault."
+          },
+          {
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
+            "metric": "current",
+            "description": "Zero-sequence ratio maxI0I1=0.008 is not near zero enough to support a pure phase-to-phase fault only; this points to ground involvement."
           }
         ],
         "kb_citations": [
           {
-            "source_id": "SOP-LL-006",
-            "title": "Phase-to-Phase Fault Response",
-            "section": "7.2 Short-Circuit Faults \u2014 No Ground Path",
-            "snippet": "Two phase conductors in contact with each other, with no path to ground."
+            "source_id": "SOP-LLG-007",
+            "title": "Double Line-to-Ground Fault Response",
+            "section": "7.3 Short-Circuit Faults \u2014 Two Phases and Ground",
+            "snippet": "BOTH sequence ratios are elevated: zero-sequence (I0/I1) confirms ground involvement, negative-sequence (I2/I1) confirms unbalance."
           },
           {
             "source_id": "SOP-LL-006",
             "title": "Phase-to-Phase Fault Response",
             "section": "7.2 Short-Circuit Faults \u2014 No Ground Path",
-            "snippet": "Two phase voltages are depressed."
+            "snippet": "An LL fault has no ground return path, so no appreciable zero-sequence current circulates."
           }
         ]
       }
@@ -453,54 +445,52 @@
       "fault_type": "LLG",
       "feeder": "ieee13",
       "retrieved_sops": [
-        "SOP-MISC-002",
-        "SOP-LLG-007"
+        "SOP-LLG-007",
+        "SOP-MISC-002"
       ],
       "ground_truth_sops": [
-        "SOP-MISC-002",
-        "SOP-TRF-004"
+        "SOP-LL-006",
+        "SOP-LLG-007"
       ],
       "context_precision": 0.5,
       "context_recall": 0.5,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.5,
-      "total_claims": 8,
-      "grounded_claims": 4,
+      "faithfulness_score": 0.8,
+      "total_claims": 10,
+      "grounded_claims": 8,
       "ungrounded_examples": [
-        "The disturbance at bus b650 shows a severe voltage sag (minVa=0.09)",
-        "The disturbance at bus b650 shows strong zero-sequence and negative-sequence components",
-        "This signature is most consistent with a double line-to-ground fault on the ieee13 feeder rather than a balanced three-phase event or simple overload",
-        "SOP-MISC-002 (Section 4.2) notes relay coordination should be reviewed when feeder protection operates under abnormal fault conditions"
+        "The disturbance at bus b650 is most consistent with a line-to-line-to-ground (LLG) fault.",
+        "The most plausible root cause is a two-phase conductor-to-ground fault, potentially from evolving insulation failure, tree contact, or conductor damage."
       ],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-20260917-0001",
+        "ticket_id": "MAFD-ieee13-b650-20260918-0001",
         "scenario": "ieee13",
         "bus_id": "b650",
-        "fault_type": "double line-to-ground fault (LLG)",
+        "fault_type": "LLG",
         "severity": "high",
         "status": "diagnosed",
-        "summary": "The disturbance at bus b650 shows a severe voltage sag (minVa=0.09) with strong zero-sequence and negative-sequence components, indicating an unbalanced fault involving ground. This signature is most consistent with a double line-to-ground fault on the ieee13 feeder rather than a balanced three-phase event or simple overload.",
-        "root_cause": "The electrical signature matches an LLG-type short circuit: high maxI0I1=0.51 indicates ground involvement, and high maxI2I1=0.46 indicates significant unbalance between phases. SOP-LLG-007 (Section 7.3, Short-Circuit Faults \u2014 Two Phases and Ground) is the applicable reference for this fault class, while SOP-MISC-002 (Section 4.2) notes relay coordination should be reviewed when feeder protection operates under abnormal fault conditions.",
+        "summary": "The disturbance at bus b650 is most consistent with a line-to-line-to-ground (LLG) fault. The event shows both strong ground involvement and strong unbalance, with a deep voltage sag and high fault current, matching a severe short-circuit condition.",
+        "root_cause": "Per SOP-LLG-007 and SOP-MISC-002, simultaneous elevation of zero-sequence and negative-sequence current ratios indicates a mixed fault with both ground involvement and phase unbalance. At b650, maxI0I1=0.51 and maxI2I1=0.46 fall squarely in the LLG range, while minVa=0.09 pu indicates a deep short-circuit sag and maxIa=5.2 pu indicates a high fault-current surge. The most plausible root cause is a two-phase conductor-to-ground fault, potentially from evolving insulation failure, tree contact, or conductor damage; SOP-LLG-007 notes that structural damage at the fault point is common and that events may evolve from earlier incipient faults.",
         "recommended_actions": [
-          "Isolate the affected feeder section around b650 and verify that protective devices operated as expected for an LLG fault.",
-          "Inspect conductors, insulators, crossarms, and nearby equipment for phase-to-ground contact, tree contact, flashover, or damaged hardware.",
-          "Check relay event logs and breaker operations for evidence of nuisance tripping or coordination issues per SOP-MISC-002.",
-          "Perform a field patrol and, if safe, targeted testing of the faulted span before re-energization.",
-          "Restore service only after confirming the faulted section is cleared and protection settings/sequence are validated."
+          "Confirm relay targets and event logs to identify which two phases were involved and verify both phase and ground elements operated.",
+          "Treat the location as a severe fault; patrol before re-energizing and assume any downed conductor is energized.",
+          "Inspect the fault area for burned hardware, damaged insulators, conductor annealing, or pole damage before restoration.",
+          "Isolate and restore the feeder per SOP-FLISR-011 after visual inspection confirms the site is safe.",
+          "Review the event record for fault evolution and escalate to protection engineering if measured fault current exceeds coordination assumptions."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "voltage",
-            "description": "Bus b650 recorded a deep voltage sag with minVa=0.09, consistent with a severe short-circuit fault rather than overload."
+            "description": "b650 minimum phase voltage dropped to 0.09 pu, indicating a deep voltage sag consistent with a short-circuit fault."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "current",
-            "description": "Bus b650 showed elevated current with maxIa=5.2 and strong symmetrical component imbalance (maxI0I1=0.51, maxI2I1=0.46), supporting an unbalanced ground-involved fault."
+            "description": "b650 peak current reached 5.2 pu, with maxI0I1=0.51 and maxI2I1=0.46, showing both strong ground involvement and strong unbalance."
           }
         ],
         "kb_citations": [
@@ -508,13 +498,19 @@
             "source_id": "SOP-LLG-007",
             "title": "Double Line-to-Ground Fault Response",
             "section": "7.3 Short-Circuit Faults \u2014 Two Phases and Ground",
-            "snippet": "This SOP describes how to respond to a double line-to-ground (LLG) fault \u2014 two phase conductors faulted to ground."
+            "snippet": "Both sequence ratios are elevated: zero-sequence (I0/I1) confirms ground involvement, negative-sequence (I2/I1) confirms unbalance. The presence of both together is what separates LLG from LL."
+          },
+          {
+            "source_id": "SOP-LLG-007",
+            "title": "Double Line-to-Ground Fault Response",
+            "section": "Operator Actions",
+            "snippet": "Treat this as a severe fault. LLG imposes higher current and greater thermal and mechanical stress than SLG, and is more likely to have caused equipment damage at the fault point."
           },
           {
             "source_id": "SOP-MISC-002",
             "title": "Feeder Relay Miscoordination Investigation",
-            "section": "4.2 Relay Coordination and Nuisance Tripping",
-            "snippet": "This SOP describes how to investigate and respond to suspected protection relay miscoordination on distribution feeders and associated buses."
+            "section": "Fault Type Signatures \u2014 LLG",
+            "snippet": "Elevated I0/I1 and I2/I1 simultaneously indicates a mixed fault with both ground involvement and phase unbalance, characteristic of LLG events."
           }
         ]
       }
@@ -525,66 +521,76 @@
       "feeder": "ieee13",
       "retrieved_sops": [
         "SOP-LLG-007",
-        "SOP-TRF-004"
+        "SOP-MISC-002"
       ],
       "ground_truth_sops": [
-        "SOP-MISC-002",
-        "SOP-TRF-004"
+        "SOP-LL-006",
+        "SOP-LLG-007"
       ],
       "context_precision": 0.5,
       "context_recall": 0.5,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.7143,
-      "total_claims": 7,
-      "grounded_claims": 5,
+      "faithfulness_score": 0.6667,
+      "total_claims": 12,
+      "grounded_claims": 8,
       "ungrounded_examples": [
-        "The disturbance at bus b632 shows a severe voltage collapse (minVa=0.11)",
-        "The signature best matches a double line-to-ground event rather than a balanced three-phase fault or overload",
-        "The electrical signature indicates ground involvement and phase unbalance"
+        "This signature is most consistent with a severe line-to-line-to-ground fault rather than a balanced three-phase fault or an overload condition.",
+        "The electrical signature matches SOP-LLG-007 and the fault-classification table in SOP-MISC-002",
+        "Per SOP-LLG-007, this type of fault typically involves two phases and ground",
+        "can evolve from a prior fault mechanism",
+        "and commonly causes equipment damage at the fault point",
+        "therefore the likely root cause is a permanent mixed phase-to-phase-plus-ground fault such as a failing insulator, conductor contact, or vegetation encroachment"
       ],
       "generated_ticket": {
-        "ticket_id": "FT-20260917-ieee13-b632",
+        "ticket_id": "FT-ieee13-b632-20260918-0001",
         "scenario": "ieee13",
         "bus_id": "b632",
-        "fault_type": "double line-to-ground fault (LLG)",
+        "fault_type": "LLG (Line-to-Line-to-Ground) fault",
         "severity": "high",
         "status": "diagnosed",
-        "summary": "The disturbance at bus b632 shows a severe voltage collapse (minVa=0.11) with elevated current and both zero- and negative-sequence content, which is consistent with an unbalanced fault involving ground. The signature best matches a double line-to-ground event rather than a balanced three-phase fault or overload.",
-        "root_cause": "The electrical signature indicates ground involvement and phase unbalance: max_I0_I1=0.49 suggests significant zero-sequence current, and max_I2_I1=0.44 indicates strong negative-sequence content. Per SOP-LLG-007, a double line-to-ground fault is characterized by two phase conductors faulted to ground, often producing both zero- and negative-sequence components; the deep voltage sag at b632 further supports a severe short-circuit condition.",
+        "summary": "Bus b632 shows a deep voltage sag with substantial current rise and simultaneous elevation of both zero- and negative-sequence ratios. This signature is most consistent with a severe line-to-line-to-ground fault rather than a balanced three-phase fault or an overload condition.",
+        "root_cause": "The electrical signature matches SOP-LLG-007 and the fault-classification table in SOP-MISC-002: minVa=0.11 pu indicates a deep short-circuit sag, maxIa=4.95 pu indicates significant fault current, and both I0/I1=0.49 and I2/I1=0.44 are elevated, which is the defining pattern for an LLG event. Per SOP-LLG-007, this type of fault typically involves two phases and ground, can evolve from a prior fault mechanism, and commonly causes equipment damage at the fault point; therefore the likely root cause is a permanent mixed phase-to-phase-plus-ground fault such as a failing insulator, conductor contact, or vegetation encroachment.",
         "recommended_actions": [
-          "Isolate the faulted section at or upstream of b632 using feeder protection and sectionalizing devices.",
-          "Inspect b632 and adjacent spans, switches, and equipment for phase-to-ground contact, damaged insulation, downed conductors, or vegetation contact.",
-          "Verify relay operations and fault records to confirm the affected phases and fault duration.",
-          "Perform outage restoration only after the fault is cleared, equipment is inspected, and the circuit is verified safe.",
-          "If protective devices operated on transformer feeders, assess downstream transformer thermal stress and replace any damaged equipment before re-energizing."
+          "Confirm relay targets and SCADA event logs to identify which two phases and which protection elements operated.",
+          "Treat the fault as severe; assume a conductor or hardware may be energized and do not reclose until the line is patrolled.",
+          "Dispatch a patrol to inspect b632 and the downstream section for damaged insulators, burnt hardware, conductor annealing, pole damage, or vegetation contact.",
+          "Isolate and restore service per SOP-FLISR-011 after visual confirmation that the faulted section is safe.",
+          "Review the event record for fault evolution to determine whether the event started as a single-line or phase-to-phase fault before grounding occurred.",
+          "Escalate to protection engineering if the measured fault current exceeds coordination study assumptions for this location."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "voltage",
-            "description": "b632 minVa=0.11 indicates a deep voltage sag consistent with a severe short-circuit fault."
+            "description": "b632 minVa=0.11 pu, indicating deep voltage depression consistent with a short-circuit fault."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "current",
-            "description": "b632 maxIa=4.95 with max_I0_I1=0.49 and max_I2_I1=0.44 indicates high fault current with strong zero- and negative-sequence content, consistent with an unbalanced ground fault."
+            "description": "b632 maxIa=4.95 pu with maxI0I1=0.49 and maxI2I1=0.44, indicating significant fault current with both ground involvement and phase unbalance."
           }
         ],
         "kb_citations": [
           {
             "source_id": "SOP-LLG-007",
             "title": "Double Line-to-Ground Fault Response",
-            "section": "7.3 Short-Circuit Faults \u00e2\u20ac\u201d Two Phases and Ground",
-            "snippet": "This SOP describes how to respond to a double line-to-ground (LLG) fault \u00e2\u20ac\u201d two phase conductors faulted to ground..."
+            "section": "7.3 Short-Circuit Faults \u2014 Two Phases and Ground",
+            "snippet": "BOTH sequence ratios are elevated: zero-sequence (I0/I1) confirms ground involvement, negative-sequence (I2/I1) confirms unbalance. The presence of both together is what separates LLG from LL."
           },
           {
-            "source_id": "SOP-TRF-004",
-            "title": "Transformer Overcurrent and Thermal Protection",
-            "section": "6.1 Transformer Protection Guidelines",
-            "snippet": "This section provides the symmetrical component and electrical feature signatures used to identify balanced three-phase and severe fault conditions before applying this SOP."
+            "source_id": "SOP-LLG-007",
+            "title": "Double Line-to-Ground Fault Response",
+            "section": "Operator Actions",
+            "snippet": "Treat this as a severe fault. LLG imposes higher current and greater thermal and mechanical stress than SLG."
+          },
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "Fault Type Signatures",
+            "snippet": "LLG: minVa 0.05-0.15 pu; maxIa 4-7 pu; I0/I1 0.35-0.60; I2/I1 0.35-0.55."
           }
         ]
       }
@@ -594,54 +600,48 @@
       "fault_type": "LLL",
       "feeder": "ieee13",
       "retrieved_sops": [
-        "SOP-TRF-004",
-        "SOP-3PH-008"
-      ],
-      "ground_truth_sops": [
-        "SOP-MISC-002",
+        "SOP-3PH-008",
         "SOP-TRF-004"
       ],
+      "ground_truth_sops": [
+        "SOP-3PH-008"
+      ],
       "context_precision": 0.5,
-      "context_recall": 0.5,
+      "context_recall": 1.0,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.5,
+      "faithfulness_score": 1.0,
       "total_claims": 8,
-      "grounded_claims": 4,
-      "ungrounded_examples": [
-        "The disturbance at bus b650 shows a very deep voltage sag (minVa=0.05 pu).",
-        "This signature is most consistent with a balanced three-phase short-circuit event rather than a ground or unbalanced fault.",
-        "Per SOP-3PH-008 Section 7.4, LLL/LLLG events should be treated as severe short-circuit conditions.",
-        "Transformer overcurrent protection guidance in SOP-TRF-004 Section 6.1 supports immediate protection review when current is elevated to this level."
-      ],
+      "grounded_claims": 8,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-0001",
+        "ticket_id": "ieee13-b650-20260918-0001",
         "scenario": "ieee13",
         "bus_id": "b650",
-        "fault_type": "balanced three-phase fault",
+        "fault_type": "balanced three-phase fault (LLL)",
         "severity": "high",
         "status": "diagnosed",
-        "summary": "The disturbance at bus b650 shows a very deep voltage sag (minVa=0.05 pu) with high current (maxIa=7.2 pu) and negligible zero- and negative-sequence components. This signature is most consistent with a balanced three-phase short-circuit event rather than a ground or unbalanced fault.",
-        "root_cause": "The detected signature matches the SOP-3PH-008 fault pattern: both maxI0I1 and maxI2I1 are near zero, while voltage collapses sharply, indicating a balanced three-phase fault. Per SOP-3PH-008 Section 7.4, LLL/LLLG events should be treated as severe short-circuit conditions; transformer overcurrent protection guidance in SOP-TRF-004 Section 6.1 supports immediate protection review when current is elevated to this level.",
+        "summary": "The disturbance at b650 shows a severe, balanced voltage collapse with minVa at 0.05 pu and very high current at 7.2 pu. Both zero-sequence and negative-sequence ratios are near zero, which is the defining signature of a balanced three-phase short-circuit fault rather than a ground or overload condition.",
+        "root_cause": "Most consistent with a bolted or low-impedance balanced three-phase short-circuit at or near b650. Per SOP-3PH-008 Section 7.4 and SOP-TRF-004 Section 6.1, a deep symmetric sag with near-zero I0/I1 and I2/I1 indicates LLL fault behavior; the current magnitude (>7 pu) further matches the high fault-current signature and requires immediate protection review. Common initiating causes per SOP include switching error, safety grounds left connected after maintenance, equipment failure, or vehicle/crane contact.",
         "recommended_actions": [
-          "Verify feeder and transformer protective relay operations for b650 and adjacent devices.",
-          "Isolate the faulted section and maintain customer and crew safety procedures before any re-energization attempt.",
-          "Inspect the line segment and connected equipment downstream of b650 for conductor contact, insulation failure, or external damage.",
-          "Review disturbance records and SCADA timestamps to confirm fault inception, clearing time, and breaker operation.",
-          "After repair, perform insulation and equipment condition checks before restoring service."
+          "Do not attempt repeated reclosing; treat this as a permanent high-energy fault until proven otherwise.",
+          "Inspect the affected section for visible equipment damage, conductor contact, and any signs of failed transformer, cable termination, or switchgear.",
+          "If maintenance or switching was in progress, stop restoration and confirm with the crew and switching order holder before any re-energization attempt.",
+          "Verify breaker/interrupter operation and condition before returning the feeder to service.",
+          "Escalate immediately to protection engineering and operations management; record the fault current magnitude against coordination-study assumptions."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "voltage",
-            "description": "b650 minimum phase voltage collapsed to 0.05 pu, indicating a severe balanced fault-type voltage sag."
+            "description": "b650 minVa=0.05 pu indicates severe, symmetric voltage collapse consistent with a bolted three-phase fault."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "current",
-            "description": "b650 maximum phase current reached 7.2 pu with maxI0I1=0.003 and maxI2I1=0.004, consistent with a high-current balanced three-phase event and minimal sequence imbalance."
+            "description": "b650 maxIa=7.2 pu with maxI0I1=0.003 and maxI2I1=0.004 indicates very high fault current with near-zero zero-sequence and negative-sequence components."
           }
         ],
         "kb_citations": [
@@ -649,13 +649,13 @@
             "source_id": "SOP-3PH-008",
             "title": "Balanced Three-Phase Fault Response",
             "section": "7.4 Short-Circuit Faults \u2014 Balanced (LLL / LLLG)",
-            "snippet": "This SOP describes how to respond to a balanced three-phase fault (LLL), with or without ground involvement (LLLG)."
+            "snippet": "All three phase voltages collapse together, deeply and symmetrically. BOTH sequence ratios are near zero."
           },
           {
             "source_id": "SOP-TRF-004",
             "title": "Transformer Overcurrent and Thermal Protection",
             "section": "6.1 Transformer Protection Guidelines",
-            "snippet": "This SOP describes how to evaluate and respond to overcurrent and thermal protection operations on power transformers."
+            "snippet": "Near-zero values for both I0/I1 and I2/I1 simultaneously with a deep voltage collapse and high current surge is the defining signature of a balanced LLL fault."
           }
         ]
       }
@@ -665,54 +665,49 @@
       "fault_type": "LLL",
       "feeder": "ieee13",
       "retrieved_sops": [
-        "SOP-TRF-004",
-        "SOP-3PH-008"
-      ],
-      "ground_truth_sops": [
-        "SOP-MISC-002",
+        "SOP-3PH-008",
         "SOP-TRF-004"
       ],
+      "ground_truth_sops": [
+        "SOP-3PH-008"
+      ],
       "context_precision": 0.5,
-      "context_recall": 0.5,
+      "context_recall": 1.0,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.5,
-      "total_claims": 8,
-      "grounded_claims": 4,
-      "ungrounded_examples": [
-        "The disturbance at bus b632 shows a very deep voltage sag (minVa=0.07)",
-        "This signature is most consistent with a balanced three-phase short-circuit event rather than a single-line or line-to-line unbalance.",
-        "Per the provided signature rules, both max_I0_I1=0.002 and max_I2_I1=0.003 are near zero",
-        "This aligns with SOP-3PH-008, which covers balanced three-phase faults (LLL / LLLG) identified by deep sag with minimal sequence unbalance; SOP-TRF-004 is relevant as a downstream severe fault condition that can trigger transformer overcurrent/thermal protection if the fault is not cleared promptly."
-      ],
+      "faithfulness_score": 1.0,
+      "total_claims": 9,
+      "grounded_claims": 9,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-20260917-0001",
+        "ticket_id": "FT-ieee13-b632-20260918-0001",
         "scenario": "ieee13",
         "bus_id": "b632",
-        "fault_type": "balanced three-phase fault (LLL/LLLG)",
+        "fault_type": "Balanced Three-Phase Fault (LLL)",
         "severity": "high",
         "status": "diagnosed",
-        "summary": "The disturbance at bus b632 shows a very deep voltage sag (minVa=0.07) with only negligible zero-sequence and negative-sequence content. This signature is most consistent with a balanced three-phase short-circuit event rather than a single-line or line-to-line unbalance.",
-        "root_cause": "Per the provided signature rules, both max_I0_I1=0.002 and max_I2_I1=0.003 are near zero, while minVa=0.07 indicates a severe, balanced voltage collapse. This aligns with SOP-3PH-008, which covers balanced three-phase faults (LLL / LLLG) identified by deep sag with minimal sequence unbalance; SOP-TRF-004 is relevant as a downstream severe fault condition that can trigger transformer overcurrent/thermal protection if the fault is not cleared promptly.",
+        "summary": "Bus b632 shows a severe, symmetric voltage collapse with very high current and both sequence ratios near zero. This is most consistent with a balanced three-phase short-circuit fault on feeder ieee13.",
+        "root_cause": "The signature matches SOP-3PH-008 / SOP-TRF-004 for a balanced three-phase fault: minVa=0.07 pu indicates a deep, near-bolted sag; maxIa=6.8 pu indicates short-circuit-level current; and both maxI0I1=0.002 and maxI2I1=0.003 are near zero, confirming no meaningful ground return and no phase unbalance. Per SOP-3PH-008 Section 7.4, the likely causes to investigate first are switching error, safety grounds left connected after maintenance, equipment failure, or vehicle/crane contact.",
         "recommended_actions": [
-          "Treat as a high-priority balanced three-phase fault and verify immediate protective device operation on the feeder section containing b632.",
-          "Inspect breaker/recloser event logs and relay targets to confirm three-phase fault clearance and isolation.",
-          "Perform field patrol of the b632 downstream circuit for visible conductor contact, phase-to-phase damage, or equipment failure.",
-          "Check transformer and feeder thermal/overcurrent alarms for possible protective relay pickup consistent with SOP-TRF-004.",
-          "Restore service only after the faulted section is isolated, equipment is inspected, and normal voltage is confirmed."
+          "Do not attempt repeated reclosing; treat this as a permanent high-energy fault until proven otherwise.",
+          "Check substation breaker, interrupter, and protection indications for evidence of high-duty interruption or equipment damage.",
+          "Confirm whether switching or maintenance was in progress near bus b632; if so, stop restoration and verify crew status and switching orders before any re-energization.",
+          "Inspect the affected section for grounded test leads, safety grounds, failed transformers, cable terminations, switchgear issues, or visible external damage.",
+          "Escalate to protection engineering and operations management; compare measured fault current against study assumptions.",
+          "Before returning the feeder to service, verify breaker/interrupter condition and confirm no grounded equipment remains connected."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "voltage",
-            "description": "b632 minVa=0.07 shows a deep voltage sag consistent with a severe balanced short-circuit condition."
+            "description": "b632 minVa=0.07 pu, indicating severe balanced voltage collapse consistent with a close-in three-phase short-circuit."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "current",
-            "description": "b632 maxIa=6.8 indicates very high fault current, while maxI0I1=0.002 and maxI2I1=0.003 remain near zero, supporting a balanced three-phase fault signature."
+            "description": "b632 maxIa=6.8 pu with maxI0I1=0.002 and maxI2I1=0.003, indicating very high fault current with near-zero zero- and negative-sequence components."
           }
         ],
         "kb_citations": [
@@ -720,13 +715,19 @@
             "source_id": "SOP-3PH-008",
             "title": "Balanced Three-Phase Fault Response",
             "section": "7.4 Short-Circuit Faults \u2014 Balanced (LLL / LLLG)",
-            "snippet": "This SOP describes how to respond to a balanced three-phase fault (LLL), with or without ground involvement (LLLG)."
+            "snippet": "All three phase voltages collapse together, deeply and symmetrically. BOTH sequence ratios are near zero."
+          },
+          {
+            "source_id": "SOP-3PH-008",
+            "title": "Balanced Three-Phase Fault Response",
+            "section": "Operator Actions",
+            "snippet": "Do not attempt repeated reclosing. A permanent three-phase fault subjects equipment to the highest available fault current on each attempt."
           },
           {
             "source_id": "SOP-TRF-004",
             "title": "Transformer Overcurrent and Thermal Protection",
-            "section": "6.1 Transformer Protection Guidelines",
-            "snippet": "This SOP describes how to evaluate and respond to overcurrent and thermal protection operations on power transformers."
+            "section": "Fault Type Signatures",
+            "snippet": "Near-zero values for both I0/I1 and I2/I1 simultaneously with a deep voltage collapse and high current surge is the defining signature of a balanced LLL fault."
           }
         ]
       }
@@ -737,67 +738,48 @@
       "feeder": "ieee13",
       "retrieved_sops": [
         "SOP-TRF-004",
-        "SOP-OVLD-001"
+        "SOP-3PH-008"
       ],
       "ground_truth_sops": [
-        "SOP-OVLD-001",
-        "SOP-TRF-004"
+        "SOP-3PH-008"
       ],
-      "context_precision": 1.0,
+      "context_precision": 0.5,
       "context_recall": 1.0,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.0,
-      "total_claims": 10,
-      "grounded_claims": 0,
-      "ungrounded_examples": [
-        "Bus b650 shows a severe voltage collapse (minVa=0.03).",
-        "Bus b650 shows strong zero-sequence current (maxI0I1=0.61).",
-        "Bus b650 shows negligible negative-sequence current (maxI2I1=0.005).",
-        "These measurements are consistent with a ground-involved short-circuit rather than a balanced overload.",
-        "The disturbance is localized at b650.",
-        "The disturbance is severe enough to require immediate protection and field verification.",
-        "The signature is most consistent with a single-line-to-ground (SLG) fault.",
-        "The zero-sequence ratio is high, indicating ground involvement.",
-        "The negative-sequence ratio is near zero.",
-        "The voltage has collapsed deeply at the disturbed bus.",
-        "SOP-TRF-004 Section 6.1 uses symmetrical-component signatures to distinguish severe fault conditions.",
-        "SOP-OVLD-001 overload behavior involves sustained current with only a modest voltage sag."
-      ],
+      "faithfulness_score": 1.0,
+      "total_claims": 11,
+      "grounded_claims": 11,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-B650-20260917-001",
+        "ticket_id": "FT-ieee13-b650-20260918-0001",
         "scenario": "ieee13",
         "bus_id": "b650",
-        "fault_type": "single-line-to-ground fault",
+        "fault_type": "LLLG",
         "severity": "high",
         "status": "diagnosed",
-        "summary": "Bus b650 shows a severe voltage collapse (minVa=0.03) with strong zero-sequence current (maxI0I1=0.61) and negligible negative-sequence current (maxI2I1=0.005), which is consistent with a ground-involved short-circuit rather than a balanced overload. The disturbance is localized at b650 and is severe enough to require immediate protection and field verification.",
-        "root_cause": "The signature is most consistent with a single-line-to-ground (SLG) fault because the zero-sequence ratio is high, indicating ground involvement, while the negative-sequence ratio is near zero, and the voltage has collapsed deeply at the disturbed bus. This aligns with SOP-TRF-004 Section 6.1, which uses symmetrical-component signatures to distinguish severe fault conditions, and is not consistent with SOP-OVLD-001 overload behavior, where sustained current would typically occur with only a modest voltage sag.",
+        "summary": "Bus b650 shows a severe balanced voltage collapse with very high current, indicating a close-in three-phase fault with ground involvement. The low negative-sequence ratio confirms the event is electrically balanced, while the elevated zero-sequence ratio points to a ground path, making LLLG the most plausible fault type.",
+        "root_cause": "The signature matches SOP-TRF-004 Section 6.1 for LLLG: minVa=0.03 pu indicates a severe voltage collapse, maxIa=8.1 pu indicates a high-current short-circuit event, maxI0I1=0.61 falls in the 0.40-0.70 range for significant ground current, and maxI2I1=0.005 is near zero, confirming a balanced three-phase event. Per the SOP, this pattern is characteristic of a three-phase-to-ground fault and requires immediate protection review and post-event inspection.",
         "recommended_actions": [
-          "Isolate the affected feeder section centered on b650 and verify upstream/downstream protective device operations.",
-          "Dispatch field crew to inspect b650 and adjacent spans for conductor-to-ground contact, downed conductors, vegetation contact, or insulation failure.",
-          "Perform relay and event-logger review to confirm SLG fault pickup, fault clearing time, and any miscoordination.",
-          "Keep the feeder de-energized until the faulted section is located and repaired, then re-energize in stages after safety checks.",
-          "Inspect transformer and protective equipment downstream of b650 for thermal or overcurrent damage before returning to service."
+          "Keep the affected equipment out of service until protection and field inspection are completed.",
+          "Verify breaker/interrupter operations and confirm that overcurrent or differential protection operated as expected.",
+          "Inspect the affected section for grounded conductors, failed cable terminations, damaged switchgear, or other insulation failures.",
+          "Check whether maintenance or switching activity was in progress and confirm no safety grounds were left connected before any restoration attempt.",
+          "Do not attempt repeated reclosing until the faulted section is isolated and inspected.",
+          "Escalate to protection engineering and operations management for event review and restoration approval."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "voltage",
-            "description": "b650 minVa=0.03 indicates a deep voltage sag/collapse consistent with a severe short-circuit fault."
+            "description": "b650 minVa=0.03 pu, indicating severe voltage collapse consistent with a close-in three-phase fault."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "current",
-            "description": "b650 maxI0I1=0.61 shows strong zero-sequence current, indicating ground involvement; maxI2I1=0.005 shows minimal negative-sequence content."
-          },
-          {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
-            "metric": "current",
-            "description": "b650 maxIa=8.1 is elevated and, together with the severe voltage collapse, supports a fault rather than a simple overload condition."
+            "description": "b650 maxIa=8.1 pu with maxI0I1=0.61 and maxI2I1=0.005, indicating a high-current balanced fault with significant ground involvement."
           }
         ],
         "kb_citations": [
@@ -805,13 +787,13 @@
             "source_id": "SOP-TRF-004",
             "title": "Transformer Overcurrent and Thermal Protection",
             "section": "6.1 Transformer Protection Guidelines",
-            "snippet": "balanced three-phase and severe fault conditions before applying this SOP"
+            "snippet": "LLLG: minVa < 0.05 pu; maxIa 6-10 pu; I0/I1 0.45-0.70; I2/I1 < 0.01. The ground path drives the I0/I1 ratio above 0.5, while near-zero I2/I1 confirms balanced three-phase involvement."
           },
           {
-            "source_id": "SOP-OVLD-001",
-            "title": "Feeder Overload and Thermal Protection",
-            "section": "3.1 Overload Trip Criteria",
-            "snippet": "distinguish overload conditions from short-circuit fault events"
+            "source_id": "SOP-3PH-008",
+            "title": "Balanced Three-Phase Fault Response",
+            "section": "7.4 Short-Circuit Faults \u2014 Balanced (LLL / LLLG)",
+            "snippet": "Treat as the highest-severity electrical event on the feeder. Do not attempt repeated reclosing. Verify breaker and interrupter condition before returning to service."
           }
         ]
       }
@@ -821,71 +803,76 @@
       "fault_type": "LLLG",
       "feeder": "ieee13",
       "retrieved_sops": [
-        "SOP-TRF-004",
-        "SOP-MISC-002"
-      ],
-      "ground_truth_sops": [
-        "SOP-OVLD-001",
+        "SOP-3PH-008",
         "SOP-TRF-004"
       ],
+      "ground_truth_sops": [
+        "SOP-3PH-008"
+      ],
       "context_precision": 0.5,
-      "context_recall": 0.5,
+      "context_recall": 1.0,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.25,
-      "total_claims": 8,
-      "grounded_claims": 2,
-      "ungrounded_examples": [
-        "Bus b632 shows a severe voltage sag (minVa=0.04 pu)",
-        "with strong zero-sequence content (maxI0I1=0.59) and elevated current",
-        "which is consistent with a ground-involved fault",
-        "The very low negative-sequence ratio indicates the event is not a balanced three-phase fault",
-        "and is most consistent with an SLG fault near the disturbed bus",
-        "high zero-sequence ratio indicates ground involvement, while the deep sag confirms a faulted condition",
-        "Per SOP-TRF-004 Section 6.1, balanced three-phase faults are characterized by both sequence ratios near zero with a deep voltage sag",
-        "SOP-MISC-002 Section 4.2 supports using the symmetrical-component signature to classify the fault before proceeding with coordination review and protection response"
-      ],
+      "faithfulness_score": 1.0,
+      "total_claims": 9,
+      "grounded_claims": 9,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-20260917-0001",
+        "ticket_id": "FT-ieee13-20260918-632",
         "scenario": "ieee13",
         "bus_id": "b632",
-        "fault_type": "single-line-to-ground fault",
+        "fault_type": "LLLG",
         "severity": "high",
         "status": "diagnosed",
-        "summary": "Bus b632 shows a severe voltage sag (minVa=0.04 pu) with strong zero-sequence content (maxI0I1=0.59) and elevated current, which is consistent with a ground-involved fault. The very low negative-sequence ratio indicates the event is not a balanced three-phase fault and is most consistent with an SLG fault near the disturbed bus.",
-        "root_cause": "The observed signature points to a ground-involved fault rather than overload or balanced phase loss: high zero-sequence ratio indicates ground involvement, while the deep sag confirms a faulted condition. Per SOP-TRF-004 Section 6.1, balanced three-phase faults are characterized by both sequence ratios near zero with a deep voltage sag, which does not match this event; SOP-MISC-002 Section 4.2 supports using the symmetrical-component signature to classify the fault before proceeding with coordination review and protection response.",
+        "summary": "Bus b632 shows a severe short-circuit event with deep voltage collapse and very high current. The elevated zero-sequence ratio with near-zero negative-sequence ratio is most consistent with a three-phase-to-ground fault (LLLG).",
+        "root_cause": "The signature at b632 matches the SOP-TRF-004 LLLG profile: minVa=0.04 pu indicates severe collapse, maxIa=7.9 pu indicates a bolted/low-impedance fault, maxI0I1=0.59 falls in the documented 0.45-0.70 ground-involved range, and maxI2I1=0.004 is near zero, confirming balanced three-phase involvement with no significant unbalance. Per SOP-3PH-008 and SOP-TRF-004, this pattern indicates a high-severity balanced three-phase fault with ground involvement; common causes include switching error, safety grounds left connected after maintenance, equipment failure, or vehicle/crane contact.",
         "recommended_actions": [
-          "Dispatch field crew to inspect bus b632 and the downstream line section for a single-line-to-ground fault, insulation damage, vegetation contact, or conductor-to-ground contact.",
-          "Review relay and recloser operations associated with feeder ieee13 to confirm correct trip sequence and isolate the faulted section if still energized.",
-          "Perform post-trip insulation and ground-fault testing before re-energization, and verify no transformer or equipment thermal damage occurred due to the high-current event.",
-          "Check upstream/downstream protection coordination settings if nuisance or delayed clearing is observed."
+          "Do not attempt repeated reclosing; treat as a permanent high-energy fault until proven otherwise.",
+          "Check substation breaker and interrupter condition before any restoration attempt.",
+          "Inspect the affected section for evidence of equipment damage, grounded conductors, or failed transformer/cable termination/switchgear.",
+          "If maintenance or switching was in progress near b632, stop restoration and confirm with the crew and switching order holder before re-energizing.",
+          "Escalate to protection engineering and operations management; compare recorded fault current against study assumptions.",
+          "Verify relay operations and event records for evidence of three-phase-to-ground fault clearing.",
+          "Before re-energizing, confirm no safety grounds remain connected on the affected section."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:00:10Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "voltage",
-            "description": "Bus b632 experienced a severe voltage sag with minVa=0.04 pu, indicating a fault-level disturbance rather than a normal loading variation."
+            "description": "b632 minVa=0.04 pu indicates severe voltage collapse consistent with a bolted three-phase short-circuit event."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:00:10Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "current",
-            "description": "Bus b632 showed elevated current (maxIa=7.9 pu) with high zero-sequence ratio (maxI0I1=0.59) and negligible negative-sequence ratio (maxI2I1=0.004), consistent with a ground-involved single-line fault."
+            "description": "b632 maxIa=7.9 pu indicates very high fault current, consistent with a low-impedance short-circuit."
+          },
+          {
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
+            "metric": "current",
+            "description": "b632 maxI0I1=0.59 shows significant zero-sequence current, indicating ground involvement."
+          },
+          {
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
+            "metric": "current",
+            "description": "b632 maxI2I1=0.004 is near zero, confirming a balanced three-phase fault rather than a single-phase or line-to-line unbalance."
           }
         ],
         "kb_citations": [
           {
             "source_id": "SOP-TRF-004",
             "title": "Transformer Overcurrent and Thermal Protection",
-            "section": "6.1 Transformer Protection Guidelines",
-            "snippet": "Balanced three-phase and severe fault conditions are identified using symmetrical components before applying this SOP."
+            "section": "Fault Type Signatures - LLLG",
+            "snippet": "minVa < 0.05 pu; maxIa 6-10 pu; I0/I1 0.45-0.70 ... I2/I1 < 0.01 ... characteristic of LLLG."
           },
           {
-            "source_id": "SOP-MISC-002",
-            "title": "Feeder Relay Miscoordination Investigation",
-            "section": "4.2 Relay Coordination and Nuisance Tripping",
-            "snippet": "Use the symmetrical component and electrical feature signatures to identify the fault class before applying this SOP."
+            "source_id": "SOP-3PH-008",
+            "title": "Balanced Three-Phase Fault Response",
+            "section": "7.4 Short-Circuit Faults \u2014 Balanced (LLL / LLLG)",
+            "snippet": "Treat as the highest-severity electrical event on the feeder... Do not attempt repeated reclosing."
           }
         ]
       }
@@ -895,77 +882,62 @@
       "fault_type": "LLLG",
       "feeder": "ieee13",
       "retrieved_sops": [
-        "SOP-TRF-004",
-        "SOP-OVLD-001"
-      ],
-      "ground_truth_sops": [
-        "SOP-OVLD-001",
+        "SOP-3PH-008",
         "SOP-TRF-004"
       ],
-      "context_precision": 1.0,
+      "ground_truth_sops": [
+        "SOP-3PH-008"
+      ],
+      "context_precision": 0.5,
       "context_recall": 1.0,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.4444,
-      "total_claims": 9,
-      "grounded_claims": 4,
-      "ungrounded_examples": [
-        "Bus b671 shows a deep voltage collapse (minVa=0.05 pu).",
-        "with strong zero-sequence content (maxI0I1=0.57).",
-        "and negligible negative-sequence content (maxI2I1=0.003).",
-        "This signature is most consistent with a grounded phase fault rather than overload or a balanced three-phase event.",
-        "The detected signature indicates ground involvement because the zero-sequence ratio is elevated, while the near-zero negative-sequence ratio suggests the disturbance is not primarily an unbalanced phase-to-phase condition.",
-        "The very low voltage at b671 further supports a short-circuit fault rather than the overload pattern described in SOP-OVLD-001.",
-        "Most likely root cause is a single phase-to-ground insulation or conductor contact issue at or near b671, requiring fault isolation and inspection before re-energization."
-      ],
+      "faithfulness_score": 1.0,
+      "total_claims": 11,
+      "grounded_claims": 11,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-20260917-0001",
+        "ticket_id": "FT-ieee13-b671-20260918-001",
         "scenario": "ieee13",
         "bus_id": "b671",
-        "fault_type": "single line-to-ground fault",
+        "fault_type": "LLLG (three-phase-to-ground fault)",
         "severity": "high",
         "status": "diagnosed",
-        "summary": "Bus b671 shows a deep voltage collapse (minVa=0.05 pu) with strong zero-sequence content (maxI0I1=0.57) and negligible negative-sequence content (maxI2I1=0.003). This signature is most consistent with a grounded phase fault rather than overload or a balanced three-phase event.",
-        "root_cause": "The detected signature indicates ground involvement because the zero-sequence ratio is elevated, while the near-zero negative-sequence ratio suggests the disturbance is not primarily an unbalanced phase-to-phase condition. The very low voltage at b671 further supports a short-circuit fault rather than the overload pattern described in SOP-OVLD-001; per SOP-TRF-004 Section 6.1, balanced three-phase faults are expected to show low zero/negative sequence ratios, which is not the case here. Most likely root cause is a single phase-to-ground insulation or conductor contact issue at or near b671, requiring fault isolation and inspection before re-energization.",
+        "summary": "The disturbance at bus b671 shows a severe voltage collapse with very high current, consistent with a close-in three-phase short-circuit event. The elevated zero-sequence ratio indicates ground involvement, while the near-zero negative-sequence ratio confirms a largely balanced three-phase fault signature.",
+        "root_cause": "The signature best matches a low-impedance LLLG fault: minVa=0.05 pu indicates deep voltage collapse, maxIa=7.6 pu indicates a short-circuit-level current surge, maxI0I1=0.57 falls in the SOP range for significant ground current, and maxI2I1=0.003 is near zero, indicating balanced three-phase involvement. Per SOP-3PH-008 Section 7.4 and SOP-TRF-004 Section 6.1, this pattern is characteristic of a severe balanced three-phase fault with ground path involvement, and should be treated as the highest-severity electrical event on the feeder.",
         "recommended_actions": [
-          "Isolate feeder section associated with b671 and verify downstream protection device operation.",
-          "Inspect the b671 area for phase-to-ground contact, damaged insulation, vegetation encroachment, or conductor downed-to-ground conditions.",
-          "Check relay, recloser, and transformer protection event logs for ground fault pickup and clearing sequence.",
-          "Perform visual and, if needed, thermal inspection of nearby equipment before re-energizing.",
-          "Restore service in a controlled manner only after confirming fault clearance and insulation integrity."
+          "Do not attempt repeated reclosing; keep the faulted section locked out until the cause is identified.",
+          "Inspect substation and line equipment for damage indications, including breaker/interrupter condition, transformer protection targets, and visible line faults.",
+          "Check for recent switching, maintenance, or grounding activity on the affected section and confirm with the crew before any restoration attempt.",
+          "Escalate immediately to protection engineering and operations management for fault-current review against study assumptions.",
+          "Perform field inspection for likely causes such as switching error, safety grounds left connected, equipment failure, or vehicle/crane contact before re-energization."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:00:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "voltage",
-            "description": "b671 minimum phase voltage collapsed to 0.05 pu, indicating a severe short-circuit-type disturbance."
+            "description": "bus b671 minVa=0.05 pu, indicating severe voltage collapse consistent with a close-in three-phase fault."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:00:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "current",
-            "description": "b671 maximum current reached 7.6 pu with elevated zero-sequence ratio maxI0I1=0.57, consistent with ground-fault involvement."
-          },
-          {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:00:00Z",
-            "metric": "current",
-            "description": "b671 negative-sequence ratio maxI2I1=0.003 is near zero, arguing against a primarily balanced overload condition."
+            "description": "bus b671 maxIa=7.6 pu with maxI0I1=0.57 and maxI2I1=0.003, indicating high fault current with ground involvement and near-balanced phase behavior."
           }
         ],
         "kb_citations": [
           {
+            "source_id": "SOP-3PH-008",
+            "title": "Balanced Three-Phase Fault Response",
+            "section": "7.4 Short-Circuit Faults \u2014 Balanced (LLL / LLLG)",
+            "snippet": "All three phase voltages collapse together, deeply and symmetrically... Phase overcurrent elements operate, typically instantaneous."
+          },
+          {
             "source_id": "SOP-TRF-004",
             "title": "Transformer Overcurrent and Thermal Protection",
             "section": "6.1 Transformer Protection Guidelines",
-            "snippet": "Balanced three-phase faults are expected to show low zero/negative sequence ratios."
-          },
-          {
-            "source_id": "SOP-OVLD-001",
-            "title": "Feeder Overload and Thermal Protection",
-            "section": "3.1 Overload Trip Criteria",
-            "snippet": "Distinguish overload conditions from short-circuit fault events."
+            "snippet": "LLLG... minVa < 0.05 pu; maxIa 6-10 pu; I0/I1 0.45-0.70... I2/I1 < 0.01 (near zero)."
           }
         ]
       }
@@ -979,68 +951,60 @@
         "SOP-MISC-002"
       ],
       "ground_truth_sops": [
-        "SOP-MISC-002"
+        "SOP-HIZ-010",
+        "SOP-OPEN-009"
       ],
       "context_precision": 0.5,
-      "context_recall": 1.0,
+      "context_recall": 0.5,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.5,
-      "total_claims": 8,
-      "grounded_claims": 4,
-      "ungrounded_examples": [
-        "Bus b684 shows a deep voltage sag with only modest current rise",
-        "The non-zero negative-sequence and zero-sequence ratios indicate unbalance and possible conductor interruption affecting one or more phases",
-        "The measured signature at b684 is dominated by low voltage (minVa=0.61) with limited current increase (maxIa=0.18)",
-        "both negative-sequence (maxI2I1=0.19) and zero-sequence (maxI0I1=0.22) components are elevated"
-      ],
+      "faithfulness_score": 1.0,
+      "total_claims": 11,
+      "grounded_claims": 11,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-20260917-001",
+        "ticket_id": "FT-IEEE13-20260918-001",
         "scenario": "ieee13",
         "bus_id": "b684",
-        "fault_type": "open conductor / single-phasing (series fault)",
+        "fault_type": "OPEN_1PH",
         "severity": "medium",
         "status": "diagnosed",
-        "summary": "Bus b684 shows a deep voltage sag with only modest current rise, which is more consistent with a series disturbance than a bolted short-circuit. The non-zero negative-sequence and zero-sequence ratios indicate unbalance and possible conductor interruption affecting one or more phases.",
-        "root_cause": "The measured signature at b684 is dominated by low voltage (minVa=0.61) with limited current increase (maxIa=0.18), while both negative-sequence (maxI2I1=0.19) and zero-sequence (maxI0I1=0.22) components are elevated. Per SOP-OPEN-009, open-conductor / single-phasing events are series faults that create unbalanced voltage and current conditions without the high fault current expected from a short circuit, making a broken conductor, loose connection, or upstream phase loss the most plausible root cause.",
+        "summary": "The disturbance at bus b684 shows a partial voltage sag with low current and moderate sequence-component unbalance. This pattern is most consistent with a single-phase open conductor or single-phasing condition rather than a short-circuit fault.",
+        "root_cause": "Most likely open-conductor / single-phasing on the section serving b684, such as a broken conductor, failed splice/connector, blown single-phase fuse, or an open switch/breaker pole. The signature matches SOP-OPEN-009 and the SOP-MISC-002 OPEN_1PH range: minVa=0.61 pu (partial sag), maxIa=0.18 pu (low current), I0/I1=0.22 and I2/I1=0.19 (moderate zero- and negative-sequence unbalance), which is characteristic of unbalance without fault-current surge. Per SOP-OPEN-009, open conductor faults can present with no overcurrent operation and must be treated as energized until proven otherwise.",
         "recommended_actions": [
-          "Inspect feeder section around bus b684 for an open conductor, loose splice, damaged jumper, or blown fuse causing single-phasing.",
-          "Check upstream protective devices and sectionalizers for indications of phase loss, nuisance operation, or evidence of a series fault.",
-          "Verify phase voltages and currents on all three phases at b684 and adjacent buses to confirm the missing or weakened phase.",
-          "If field conditions are unsafe or the fault is persistent, isolate the affected section and restore service following approved switching procedures."
+          "Treat the affected conductor/section as energized until a patrol proves otherwise; do not assume the feeder is de-energized.",
+          "Review SCADA and relay event logs to confirm whether one phase current is near zero while voltage remains present or partially supported by backfeed.",
+          "Patrol the section downstream of b684 for a broken conductor, failed splice/connector, open fuse, or a single pole of a switch/recloser that did not close.",
+          "Verify backfeed sources before any field access, including motors, distributed generation, and customer generators.",
+          "Notify downstream three-phase customers of possible single-phasing and potential motor damage.",
+          "Do not reclose or replace a fused phase until the underlying cause is identified; escalate recurring or persistent cases to engineering."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "voltage",
-            "description": "b684 recorded a deep sag with minVa=0.61, indicating significant voltage depression consistent with a series disturbance."
+            "description": "Bus b684 minimum phase voltage dropped to 0.61 pu, indicating a partial sag rather than a deep short-circuit collapse."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "current",
-            "description": "b684 showed only modest current elevation with maxIa=0.18, arguing against a high-current short and supporting an open-conductor or single-phasing condition."
-          },
-          {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
-            "metric": "current",
-            "description": "Elevated sequence imbalance was present with maxI0I1=0.22 and maxI2I1=0.19, consistent with unbalanced phase behavior and possible conductor interruption."
+            "description": "Bus b684 peak current remained low at 0.18 pu, with I0/I1=0.22 and I2/I1=0.19, consistent with open-conductor single-phasing and moderate unbalance."
           }
         ],
         "kb_citations": [
           {
             "source_id": "SOP-OPEN-009",
             "title": "Open Conductor and Single-Phasing Response",
-            "section": "7.5 Series Faults \u00e2\u20ac\u201d Open Conductor (1PH / 2PH / 3PH)",
-            "snippet": "This SOP describes how to respond to an open-conductor (series) fault \u00e2\u20ac\u201d one, two, or all three phases interrupted without a short circuit."
+            "section": "7.5 Series Faults \u2014 Open Conductor (1PH / 2PH / 3PH)",
+            "snippet": "An open conductor is the hardest fault class to detect and among the most dangerous, because it produces UNBALANCE WITHOUT FAULT CURRENT."
           },
           {
-            "source_id": "SOP-OPEN-009",
-            "title": "Open Conductor and Single-Phasing Response",
-            "section": "7.5 Series Faults \u00e2\u20ac\u201d Open Conductor (1PH / 2PH / 3PH)",
-            "snippet": "Causes include a broken conductor, loose connection, or phase interruption that produces unbalanced conditions without the high current of a short circuit."
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "Fault Signature Identification",
+            "snippet": "OPEN_1PH: minVa 0.55-0.70 pu; maxIa 0.05-0.25 pu; I0/I1 0.15-0.30; I2/I1 0.15-0.25."
           }
         ]
       }
@@ -1050,74 +1014,70 @@
       "fault_type": "OPEN_1PH",
       "feeder": "ieee13",
       "retrieved_sops": [
-        "SOP-MISC-002",
-        "SOP-OPEN-009"
-      ],
-      "ground_truth_sops": [
+        "SOP-OPEN-009",
         "SOP-MISC-002"
       ],
+      "ground_truth_sops": [
+        "SOP-HIZ-010",
+        "SOP-OPEN-009"
+      ],
       "context_precision": 0.5,
-      "context_recall": 1.0,
+      "context_recall": 0.5,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.18,
-      "total_claims": 11,
-      "grounded_claims": 2,
-      "ungrounded_examples": [
-        "The disturbance at bus b675 shows a deep voltage sag (minVa=0.58)",
-        "elevated zero-sequence and negative-sequence current ratios",
-        "indicating an unbalanced fault with ground involvement",
-        "The signature is most consistent with a single-line-to-ground event rather than a balanced three-phase fault or pure overload condition.",
-        "Likely feeder-side insulation breakdown or contact with ground at/near bus b675",
-        "producing a ground-referenced unbalanced fault signature",
-        "the observed high max_I0_I1 and max_I2_I1 support a ground fault before relay coordination checks are applied",
-        "SOP-MISC-002, the fault classification process uses symmetrical components to distinguish ground-involved faults",
-        "SOP-OPEN-009 is less likely because this is not a series/open-conductor pattern",
-        "the current is not absent",
-        "the voltage sag is characteristic of a shunt fault"
-      ],
+      "faithfulness_score": 1.0,
+      "total_claims": 8,
+      "grounded_claims": 8,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-20260917-001",
+        "ticket_id": "FT-IEEE13-B675-20260918-001",
         "scenario": "ieee13",
         "bus_id": "b675",
-        "fault_type": "single-line-to-ground (SLG) fault",
+        "fault_type": "OPEN_1PH",
         "severity": "medium",
         "status": "diagnosed",
-        "summary": "The disturbance at bus b675 shows a deep voltage sag (minVa=0.58) with elevated zero-sequence and negative-sequence current ratios, indicating an unbalanced fault with ground involvement. The signature is most consistent with a single-line-to-ground event rather than a balanced three-phase fault or pure overload condition.",
-        "root_cause": "Likely feeder-side insulation breakdown or contact with ground at/near bus b675, producing a ground-referenced unbalanced fault signature. Per SOP-MISC-002, the fault classification process uses symmetrical components to distinguish ground-involved faults; the observed high max_I0_I1 and max_I2_I1 support a ground fault before relay coordination checks are applied. SOP-OPEN-009 is less likely because this is not a series/open-conductor pattern; the current is not absent and the voltage sag is characteristic of a shunt fault.",
+        "summary": "The disturbance at bus b675 shows a partial voltage sag with low current and moderate sequence-component imbalance. This pattern is most consistent with a single-phase open-conductor or single-phasing condition rather than a short-circuit fault.",
+        "root_cause": "The measured signature at b675 (minVa=0.58 pu, maxIa=0.16 pu, maxI0/I1=0.20, maxI2/I1=0.18) matches the open-conductor profile in SOP-OPEN-009 and SOP-MISC-002: partial voltage sag, low fault current, and moderate zero-/negative-sequence elevation. Per SOP-OPEN-009, an open conductor can result from a broken conductor, failed connector/splice, blown single-phase fuse, or a switch/breaker pole failing to close; standard overcurrent protection may not operate, so low current does not exclude a serious fault.",
         "recommended_actions": [
-          "Inspect bus b675 and adjacent spans for damaged insulation, conductor contact with vegetation, hardware flashover, or contamination.",
-          "Verify feeder protection relay operations and event records for ground-fault pickup and any nuisance trip or miscoordination.",
-          "Perform sectionalizing checks and isolate the suspected faulted segment before re-energization.",
-          "After isolation, conduct outage patrol and infrared/visual inspection to confirm the fault location and repair any damaged equipment.",
-          "Review relay settings and coordination if upstream/downstream devices operated unexpectedly."
+          "Treat the affected section as energized until a field patrol proves otherwise; apply approach and grounding precautions before any work.",
+          "Review SCADA phase currents and relay/event logs to identify the lost phase and confirm whether a fuse, switch pole, or conductor opened.",
+          "Patrol the area for a broken conductor, failed splice/connector, open fuse, or mispositioned switch/recloser pole.",
+          "Notify downstream three-phase customers of potential single-phasing and advise protective action for sensitive motors and equipment.",
+          "Do not restore by blindly reclosing the device; identify and correct the underlying cause first.",
+          "Escalate recurring or persistent single-phasing to engineering for a detailed reliability and asset-condition review."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T23:59:59Z",
             "metric": "voltage",
-            "description": "bus b675 exhibited a deep voltage sag with minVa=0.58 pu, consistent with a faulted condition rather than a simple load increase."
+            "description": "Bus b675 shows minVa=0.58 pu, indicating a partial sag consistent with an open-conductor / single-phasing condition."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T23:59:59Z",
             "metric": "current",
-            "description": "bus b675 showed elevated zero-sequence and negative-sequence ratios (maxI0I1=0.2, maxI2I1=0.18), indicating unbalance with ground involvement."
+            "description": "Bus b675 shows maxIa=0.16 pu with moderate sequence ratios (maxI0/I1=0.20, maxI2/I1=0.18), supporting a low-current unbalanced event rather than a short-circuit fault."
           }
         ],
         "kb_citations": [
           {
-            "source_id": "SOP-MISC-002",
-            "title": "Feeder Relay Miscoordination Investigation",
-            "section": "4.2 Relay Coordination and Nuisance Tripping",
-            "snippet": "The section uses symmetrical component and electrical feature signatures to identify the fault class before applying this SOP."
+            "source_id": "SOP-OPEN-009",
+            "title": "Open Conductor and Single-Phasing Response",
+            "section": "7.5 Series Faults \u2014 Open Conductor (1PH / 2PH / 3PH)",
+            "snippet": "An open conductor is the hardest fault class to detect and among the most dangerous, because it produces UNBALANCE WITHOUT FAULT CURRENT."
           },
           {
             "source_id": "SOP-OPEN-009",
             "title": "Open Conductor and Single-Phasing Response",
-            "section": "7.5 Series Faults \u2014 Open Conductor (1PH / 2PH / 3PH)",
-            "snippet": "Open-conductor (series) fault \u2014 one, two, or all three phases interrupted without a short circuit."
+            "section": "Operator Actions",
+            "snippet": "Treat any suspected broken conductor as ENERGIZED AND ON THE GROUND until a patrol proves otherwise."
+          },
+          {
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "Fault Signature Identification",
+            "snippet": "OPEN_1PH ... minVa 0.55-0.70 pu; maxIa 0.05-0.25 pu; I0/I1 0.15-0.30; I2/I1 0.15-0.25."
           }
         ]
       }
@@ -1127,72 +1087,76 @@
       "fault_type": "OPEN_1PH",
       "feeder": "ieee13",
       "retrieved_sops": [
-        "SOP-MISC-002",
-        "SOP-OPEN-009"
+        "SOP-OPEN-009",
+        "SOP-REC-012"
       ],
       "ground_truth_sops": [
-        "SOP-MISC-002"
+        "SOP-HIZ-010",
+        "SOP-OPEN-009"
       ],
       "context_precision": 0.5,
-      "context_recall": 1.0,
+      "context_recall": 0.5,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.3333,
-      "total_claims": 9,
-      "grounded_claims": 3,
-      "ungrounded_examples": [
-        "The disturbance is centered at bus b632",
-        "with a deep voltage sag (minVa=0.6) and moderate current elevation",
-        "The presence of both zero-sequence and negative-sequence components indicates an unbalanced ground-involved event",
-        "most consistent with a single-phase-to-ground fault rather than a balanced three-phase fault or pure overload",
-        "max_I0_I1=0.21 indicates zero-sequence current consistent with ground involvement",
-        "max_I2_I1=0.17 indicates negative-sequence current consistent with phase unbalance",
-        "Per SOP-MISC-002 Section 4.2 (Fault Signature Identification), zero-sequence and negative-sequence components are used to distinguish distribution fault classes before applying relay coordination checks",
-        "the observed deep sag further supports a faulted condition rather than a simple loading issue",
-        "SOP-OPEN-009 is not the best fit because the event is not primarily characterized by a series/open-conductor pattern without clear ground involvement"
-      ],
+      "faithfulness_score": 1.0,
+      "total_claims": 8,
+      "grounded_claims": 8,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-20260917-0001",
+        "ticket_id": "FT-ieee13-b632-20260918-0001",
         "scenario": "ieee13",
         "bus_id": "b632",
-        "fault_type": "single-phase-to-ground (SLG) fault",
+        "fault_type": "open conductor / single-phasing",
         "severity": "medium",
         "status": "diagnosed",
-        "summary": "The disturbance is centered at bus b632 with a deep voltage sag (minVa=0.6) and moderate current elevation. The presence of both zero-sequence and negative-sequence components indicates an unbalanced ground-involved event, most consistent with a single-phase-to-ground fault rather than a balanced three-phase fault or pure overload.",
-        "root_cause": "The electrical signature matches a ground-involved unbalanced fault: max_I0_I1=0.21 indicates zero-sequence current consistent with ground involvement, and max_I2_I1=0.17 indicates negative-sequence current consistent with phase unbalance. Per SOP-MISC-002 Section 4.2 (Fault Signature Identification), zero-sequence and negative-sequence components are used to distinguish distribution fault classes before applying relay coordination checks; the observed deep sag further supports a faulted condition rather than a simple loading issue. SOP-OPEN-009 is not the best fit because the event is not primarily characterized by a series/open-conductor pattern without clear ground involvement.",
+        "summary": "The disturbance at bus b632 is dominated by a deep voltage sag with only modest current rise, along with elevated zero- and negative-sequence ratios. This pattern is most consistent with an open-conductor or single-phasing condition rather than a bolted short-circuit fault.",
+        "root_cause": "Likely series fault caused by a broken conductor, failed splice/connector, blown single-phase fuse, or an open pole on a switch/recloser, producing single-phasing and unbalance without strong overcurrent. SOP-OPEN-009 states that open-conductor events can show elevated negative-sequence and sometimes zero-sequence components while standard overcurrent may not operate, and that the condition must be treated as energized until proven otherwise.",
         "recommended_actions": [
-          "Inspect feeder section around bus b632 for phase-to-ground contact, damaged insulation, tree/vegetation intrusion, or hardware failure.",
-          "Review protective relay and fault recorder data for phase and ground element pickup, trip timing, and any nuisance/miscoordination indications.",
-          "Perform field patrol and infrared/visual inspection before re-energization; verify conductor, insulator, and arrester condition.",
-          "Isolate the suspected section if necessary, then restore service only after confirming fault clearance and safety checks.",
-          "Document relay settings and event waveform evidence for post-event coordination review."
+          "Treat the affected section as energized and on the ground until patrol confirms otherwise.",
+          "Do not reclose or restore the feeder segment until the open-conductor cause is identified.",
+          "Check SCADA phase currents to identify the affected phase and look for near-zero current with intact or floating voltage.",
+          "Patrol the feeder section for a broken conductor, failed splice/connector, open fuse, or single-pole switch/recloser failure.",
+          "Notify downstream three-phase customers of possible single-phasing risk, especially for motor loads.",
+          "Confirm the section is isolated on all sides and grounded before any crew access."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "voltage",
-            "description": "Bus b632 showed a deep voltage sag with minVa=0.6, indicating a significant disturbance at the monitored location."
+            "description": "Bus b632 shows a deep voltage sag with minVa = 0.6, indicating significant disturbance at the bus."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "current",
-            "description": "Current rose modestly to maxIa=0.17 while zero-sequence and negative-sequence ratios increased to maxI0I1=0.21 and maxI2I1=0.17, consistent with an unbalanced ground-involved fault."
+            "description": "Current remains modest at maxIa = 0.17, which is not typical of a bolted fault and is more consistent with a series/open-conductor condition."
+          },
+          {
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
+            "metric": "current",
+            "description": "Elevated maxI0I1 = 0.21 and maxI2I1 = 0.17 indicate ground involvement and unbalance, aligning with single-phasing/open-conductor behavior."
           }
         ],
         "kb_citations": [
           {
-            "source_id": "SOP-MISC-002",
-            "title": "Feeder Relay Miscoordination Investigation",
-            "section": "4.2 Relay Coordination and Nuisance Tripping",
-            "snippet": "Fault Signature Identification... the symmetrical component and electrical feature signatures used to identify the fault class before applying this SOP."
+            "source_id": "SOP-OPEN-009",
+            "title": "Open Conductor and Single-Phasing Response",
+            "section": "7.5 Series Faults \u2014 Open Conductor (1PH / 2PH / 3PH)",
+            "snippet": "Open conductor faults produce UNBALANCE WITHOUT FAULT CURRENT; standard phase and ground overcurrent elements may NEVER operate."
           },
           {
             "source_id": "SOP-OPEN-009",
             "title": "Open Conductor and Single-Phasing Response",
-            "section": "7.5 Series Faults \u2014 Open Conductor (1PH / 2PH / 3PH)",
-            "snippet": "Open-conductor (series) fault \u2014 one, two, or all three phases interrupted without a short circuit."
+            "section": "Operator Actions",
+            "snippet": "Treat any suspected broken conductor as ENERGIZED AND ON THE GROUND until a patrol proves otherwise."
+          },
+          {
+            "source_id": "SOP-OPEN-009",
+            "title": "Open Conductor and Single-Phasing Response",
+            "section": "Conditions",
+            "snippet": "Current on the affected phase falls toward zero while its voltage remains present or floats at an intermediate value."
           }
         ]
       }
@@ -1202,73 +1166,71 @@
       "fault_type": "OPEN_2PH",
       "feeder": "ieee13",
       "retrieved_sops": [
-        "SOP-MISC-002",
-        "SOP-OPEN-009"
-      ],
-      "ground_truth_sops": [
+        "SOP-OPEN-009",
         "SOP-MISC-002"
       ],
+      "ground_truth_sops": [
+        "SOP-HIZ-010",
+        "SOP-OPEN-009"
+      ],
       "context_precision": 0.5,
-      "context_recall": 1.0,
+      "context_recall": 0.5,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.2,
-      "total_claims": 10,
-      "grounded_claims": 2,
-      "ungrounded_examples": [
-        "Bus b650 shows a deep voltage sag",
-        "elevated zero-sequence and negative-sequence current ratios",
-        "indicating an unbalanced fault with ground involvement",
-        "The signature is most consistent with a single-line-to-ground fault rather than a balanced three-phase event or simple overload",
-        "The observed signature at b650 (minVa=0.41 with maxI0I1=0.31 and maxI2I1=0.28) matches an unbalanced ground-involved fault",
-        "Per SOP-MISC-002, the fault-class identification process uses symmetrical component evidence before applying relay coordination response",
-        "the elevated zero-sequence ratio supports ground involvement",
-        "the negative-sequence ratio indicates phase unbalance",
-        "This is more consistent with an SLG fault than an open-conductor condition",
-        "the voltage sag is severe and the current is not merely sustained at high levels as would be expected for overload-type behavior"
-      ],
+      "faithfulness_score": 1.0,
+      "total_claims": 11,
+      "grounded_claims": 11,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-20260917-001",
+        "ticket_id": "FT-ieee13-b650-20260918-001",
         "scenario": "ieee13",
         "bus_id": "b650",
-        "fault_type": "single-line-to-ground fault",
+        "fault_type": "OPEN_1PH (single-phase open conductor / single-phasing)",
         "severity": "medium",
         "status": "diagnosed",
-        "summary": "Bus b650 shows a deep voltage sag with elevated zero-sequence and negative-sequence current ratios, indicating an unbalanced fault with ground involvement. The signature is most consistent with a single-line-to-ground fault rather than a balanced three-phase event or simple overload.",
-        "root_cause": "The observed signature at b650 (minVa=0.41 with maxI0I1=0.31 and maxI2I1=0.28) matches an unbalanced ground-involved fault. Per SOP-MISC-002, the fault-class identification process uses symmetrical component evidence before applying relay coordination response; the elevated zero-sequence ratio supports ground involvement, while the negative-sequence ratio indicates phase unbalance. This is more consistent with an SLG fault than an open-conductor condition, since the voltage sag is severe and the current is not merely sustained at high levels as would be expected for overload-type behavior.",
+        "summary": "Bus b650 shows a pronounced voltage sag with low current and moderate positive zero/negative-sequence imbalance. The pattern is most consistent with an open-conductor or single-phasing condition rather than a short-circuit fault.",
+        "root_cause": "The signature at b650 fits SOP-OPEN-009 for an open-conductor event: minVa=0.41 pu indicates a partial sag, maxIa=0.22 pu indicates low fault current, and the elevated I0/I1=0.31 and I2/I1=0.28 indicate unbalance with some ground/sequence involvement. Per SOP-OPEN-009, this pattern is typical of a broken conductor, failed splice/connector, blown single-phase fuse, or a single pole of a switch/breaker failing to close, and standard overcurrent protection may not operate.",
         "recommended_actions": [
-          "Inspect feeder section around bus b650 for a line-to-ground contact, damaged insulation, or vegetation/foreign-object interference.",
-          "Review relay and recloser event records for miscoordination or nuisance tripping consistent with SOP-MISC-002 Section 4.2.",
-          "Verify protective device operation and confirm whether upstream/downstream devices isolated the faulted section correctly.",
-          "Perform field patrol and infrared/visual inspection before re-energization.",
-          "If no permanent fault is found, check for transient ground faults and perform insulation testing on the affected lateral."
+          "Treat the affected section as energized and potentially backfed until patrol verifies isolation and grounding.",
+          "Confirm the affected phase and any near-zero phase current using SCADA and relay event logs.",
+          "Patrol the section for a broken conductor, failed splice/connector, open fuse, or switch/recloser pole that did not close.",
+          "Check pole positions individually; do not assume ganged operation succeeded.",
+          "Notify downstream three-phase customers of possible single-phasing risk and expedite inspection.",
+          "Do not reclose or restore the open device until the cause is identified and corrected.",
+          "Escalate to protection/engineering if the condition repeats or if a marginal connector is suspected."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "voltage",
-            "description": "b650 minVa dropped to 0.41 pu, indicating a deep voltage sag at the most disturbed bus."
+            "description": "b650 minVa=0.41 pu shows a partial voltage sag consistent with open-conductor/single-phasing conditions."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "current",
-            "description": "b650 maxI0I1=0.31 and maxI2I1=0.28 show elevated zero- and negative-sequence components, consistent with an unbalanced fault involving ground."
+            "description": "b650 maxIa=0.22 pu is low and supports a series/open fault rather than a high-current short circuit; I0/I1=0.31 and I2/I1=0.28 indicate moderate unbalance."
           }
         ],
         "kb_citations": [
           {
-            "source_id": "SOP-MISC-002",
-            "title": "Feeder Relay Miscoordination Investigation",
-            "section": "4.2 Relay Coordination and Nuisance Tripping",
-            "snippet": "The fault-class identification process uses symmetrical component and electrical feature signatures before applying this SOP."
+            "source_id": "SOP-OPEN-009",
+            "title": "Open Conductor and Single-Phasing Response",
+            "section": "7.5 Series Faults \u2014 Open Conductor (1PH / 2PH / 3PH)",
+            "snippet": "An open conductor ... produces UNBALANCE WITHOUT FAULT CURRENT. Overcurrent protection may not operate at all."
+          },
+          {
+            "source_id": "SOP-OPEN-009",
+            "title": "Open Conductor and Single-Phasing Response",
+            "section": "Operator Actions",
+            "snippet": "Treat any suspected broken conductor as ENERGIZED AND ON THE GROUND until a patrol proves otherwise."
           },
           {
             "source_id": "SOP-MISC-002",
             "title": "Feeder Relay Miscoordination Investigation",
             "section": "Fault Signature Identification",
-            "snippet": "High zero-sequence ratio (max_I0_I1) => GROUND involvement (SLG / LLG). High negative-sequence ratio (max_I2_I1) => UNBALANCE (SLG, LL, LLG)."
+            "snippet": "I0/I1 0.15 - 0.40 ... Consistent with open-conductor faults ... I2/I1 0.15 - 0.35 ... Moderate unbalance."
           }
         ]
       }
@@ -1278,73 +1240,77 @@
       "fault_type": "OPEN_2PH",
       "feeder": "ieee13",
       "retrieved_sops": [
-        "SOP-MISC-002",
-        "SOP-OPEN-009"
+        "SOP-OPEN-009",
+        "SOP-LLG-007"
       ],
       "ground_truth_sops": [
-        "SOP-MISC-002"
+        "SOP-HIZ-010",
+        "SOP-OPEN-009"
       ],
       "context_precision": 0.5,
-      "context_recall": 1.0,
+      "context_recall": 0.5,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.3,
-      "total_claims": 10,
-      "grounded_claims": 3,
-      "ungrounded_examples": [
-        "Bus b671 shows a deep voltage sag",
-        "elevated zero-sequence and negative-sequence ratios",
-        "this is most consistent with an unbalanced ground-involved fault",
-        "The current magnitude is not dominant",
-        "this is less indicative of overload and more indicative of a localized fault condition that should be investigated promptly",
-        "maxI0I1=0.29 indicates meaningful zero-sequence content",
-        "maxI2I1=0.26 indicates negative-sequence unbalance",
-        "minVa=0.44 shows a substantial voltage depression",
-        "this combination supports an SLG-type fault rather than balanced three-phase disturbance or simple overload",
-        "SOP-OPEN-009 is not directly applicable here because the event does not match a series open-conductor pattern"
-      ],
+      "faithfulness_score": 1.0,
+      "total_claims": 8,
+      "grounded_claims": 8,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-20260917-001",
+        "ticket_id": "FT-ieee13-b671-20260918-001",
         "scenario": "ieee13",
         "bus_id": "b671",
-        "fault_type": "single-line-to-ground (SLG) fault",
+        "fault_type": "open conductor / single-phasing (likely 1-phase open conductor or blown fuse)",
         "severity": "medium",
         "status": "diagnosed",
-        "summary": "Bus b671 shows a deep voltage sag with elevated zero-sequence and negative-sequence ratios, which is most consistent with an unbalanced ground-involved fault. The current magnitude is not dominant, so this is less indicative of overload and more indicative of a localized fault condition that should be investigated promptly.",
-        "root_cause": "The signature at b671 aligns with a ground-involved unbalanced fault: maxI0I1=0.29 indicates meaningful zero-sequence content and maxI2I1=0.26 indicates negative-sequence unbalance, while minVa=0.44 shows a substantial voltage depression. Per the fault-signature guidance in SOP-MISC-002 Section 4.2, ground involvement is indicated by elevated zero-sequence ratio, and unbalance by elevated negative-sequence ratio; this combination supports an SLG-type fault rather than balanced three-phase disturbance or simple overload. SOP-OPEN-009 is not directly applicable here because the event does not match a series open-conductor pattern.",
+        "summary": "The disturbance at bus b671 shows a deep voltage sag with very low current and only moderate sequence imbalance, which is more consistent with an open-conductor or single-phasing condition than a short-circuit fault. The signature does not indicate a high-current fault; instead it suggests unbalance without significant fault current.",
+        "root_cause": "Most likely a broken conductor, failed splice/connector, or an open fuse/switch pole causing single-phasing on the ieee13 feeder. SOP-OPEN-009 states that open-conductor faults produce 'UNBALANCE WITHOUT FAULT CURRENT,' with current on the affected phase falling toward zero while voltage may remain present or float, and that standard phase/ground overcurrent may never operate.",
         "recommended_actions": [
-          "Dispatch field crews to inspect feeder segment around bus b671 for conductor-to-ground contact, damaged insulators, vegetation encroachment, or failed hardware.",
-          "Review relay and fault recorder traces for ground element pickup and confirm whether protection operated as expected.",
-          "Check sectionalizing devices upstream and downstream of b671 to isolate the affected section if the fault is still present.",
-          "Inspect customer outage reports and SCADA indications for corroborating evidence of a single-line ground fault.",
-          "After clearing the fault, perform an insulation and phasing check before re-energizing the section."
+          "Treat the affected section as energized until patrol verifies isolation and grounding.",
+          "Confirm the affected phase using SCADA phase currents and compare against neighboring buses for single-phasing evidence.",
+          "Patrol the section for a broken conductor, failed connector/splice, blown fuse, or an open switch/recloser pole.",
+          "Check individual pole positions on switches and reclosers; do not assume ganged operation succeeded.",
+          "Notify downstream three-phase customers to protect motors from single-phasing damage.",
+          "Do not reclose or replace any fuse until the initiating cause is identified and corrected.",
+          "Escalate to engineering if this condition repeats or if a marginal connector/open device is suspected."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "voltage",
-            "description": "b671 experienced a deep voltage sag with minVa=0.44, indicating a significant disturbance consistent with a faulted condition."
+            "description": "b671 minVa=0.44 indicates a deep voltage sag at the most disturbed bus, consistent with a severe unbalanced supply condition."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "current",
-            "description": "b671 shows elevated symmetrical-component imbalance with maxI0I1=0.29 and maxI2I1=0.26, supporting a ground-involved unbalanced fault signature."
+            "description": "b671 maxIa=0.2 is low, which argues against a short-circuit fault and supports an open-conductor or single-phasing pattern with little fault current."
+          },
+          {
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
+            "metric": "current",
+            "description": "b671 maxI0I1=0.29 and maxI2I1=0.26 show moderate zero- and negative-sequence imbalance; the sequence values indicate asymmetry, but not the high fault-current signature typical of SLG/LLG short circuits."
           }
         ],
         "kb_citations": [
           {
-            "source_id": "SOP-MISC-002",
-            "title": "Feeder Relay Miscoordination Investigation",
-            "section": "4.2 Relay Coordination and Nuisance Tripping",
-            "snippet": "High zero-sequence ratio (max_I0_I1) => GROUND involvement (SLG / LLG). High negative-sequence ratio (max_I2_I1) => UNBALANCE (SLG, LL, LLG)."
+            "source_id": "SOP-OPEN-009",
+            "title": "Open Conductor and Single-Phasing Response",
+            "section": "7.5 Series Faults \u2014 Open Conductor (1PH / 2PH / 3PH)",
+            "snippet": "Open conductor faults produce UNBALANCE WITHOUT FAULT CURRENT; current on the affected phase falls toward zero while its voltage remains present or floats at an intermediate value."
           },
           {
             "source_id": "SOP-OPEN-009",
             "title": "Open Conductor and Single-Phasing Response",
-            "section": "7.5 Series Faults \u2014 Open Conductor (1PH / 2PH / 3PH)",
-            "snippet": "Open-conductor (series) fault \u2014 one, two, or all three phases interrupted without a short circuit."
+            "section": "Operator Actions",
+            "snippet": "Treat any suspected broken conductor as ENERGIZED AND ON THE GROUND until a patrol proves otherwise."
+          },
+          {
+            "source_id": "SOP-OPEN-009",
+            "title": "Open Conductor and Single-Phasing Response",
+            "section": "Operator Actions",
+            "snippet": "Notify downstream three-phase customers where practical. Single-phasing damages three-phase motors quickly through overheating."
           }
         ]
       }
@@ -1354,72 +1320,63 @@
       "fault_type": "OPEN_3PH",
       "feeder": "ieee13",
       "retrieved_sops": [
-        "SOP-TRF-004",
-        "SOP-OPEN-009"
+        "SOP-OPEN-009",
+        "SOP-MISC-002"
       ],
       "ground_truth_sops": [
-        "SOP-MISC-002",
-        "SOP-TRF-004"
+        "SOP-HIZ-010",
+        "SOP-OPEN-009"
       ],
       "context_precision": 0.5,
       "context_recall": 0.5,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.125,
+      "faithfulness_score": 1.0,
       "total_claims": 8,
-      "grounded_claims": 1,
-      "ungrounded_examples": [
-        "Bus b650 shows a deep voltage sag (minVa=0.08)",
-        "elevated zero-sequence and negative-sequence ratios",
-        "indicating an unbalanced fault with ground involvement",
-        "The signature is most consistent with a single-line-to-ground fault rather than an overload or balanced three-phase event.",
-        "max_I0_I1=0.41 indicates significant zero-sequence current",
-        "max_I2_I1=0.38 indicates substantial negative-sequence current",
-        "minVa=0.08 shows severe voltage depression",
-        "the signature better matches an SLG fault requiring feeder protection and fault isolation actions"
-      ],
+      "grounded_claims": 8,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-ieee13-b650-20260917-0001",
+        "ticket_id": "FT-IEEE13-20260918-001",
         "scenario": "ieee13",
         "bus_id": "b650",
-        "fault_type": "single-line-to-ground (SLG) fault",
+        "fault_type": "LLG",
         "severity": "high",
         "status": "diagnosed",
-        "summary": "Bus b650 shows a deep voltage sag (minVa=0.08) with elevated zero-sequence and negative-sequence ratios, indicating an unbalanced fault with ground involvement. The signature is most consistent with a single-line-to-ground fault rather than an overload or balanced three-phase event.",
-        "root_cause": "The observed pattern strongly suggests a ground-involved unbalanced fault: max_I0_I1=0.41 indicates significant zero-sequence current, and max_I2_I1=0.38 indicates substantial negative-sequence current, while minVa=0.08 shows severe voltage depression. Per SOP-TRF-004 Section 6.1, balanced three-phase faults are characterized by low sequence-unbalance ratios, which is not the case here; the signature better matches an SLG fault requiring feeder protection and fault isolation actions.",
+        "summary": "The disturbance at bus b650 shows a deep voltage sag with both zero-sequence and negative-sequence current elevation, indicating a mixed phase-to-phase-to-ground fault. The signature is consistent with a high-severity short-circuit event rather than an overload or open-conductor condition.",
+        "root_cause": "Most likely a line-to-line-to-ground (LLG) fault on or near b650, as evidenced by minVa=0.08 pu (deep sag) together with elevated maxI0I1=0.41 and maxI2I1=0.38. Per SOP-MISC-002 Section 4.2, simultaneous elevation of zero-sequence and negative-sequence current ratios is characteristic of LLG faults, and the low voltage confirms a short-circuit condition rather than the low-current asymmetry expected for an open conductor.",
         "recommended_actions": [
-          "Verify feeder relay and recloser operations for b650 and identify the faulted section.",
-          "Dispatch line crew to inspect the conductor, insulators, and nearby vegetation or foreign objects for ground contact.",
-          "Isolate the affected section and maintain de-energized status until the faulted phase and ground path are cleared.",
-          "Check downstream equipment for damage or thermal stress caused by the low-voltage, high-unbalance condition.",
-          "After repairs, perform insulation and phasing checks before re-energizing the feeder."
+          "Treat the affected section as faulted and verify feeder isolation before any field access.",
+          "Review relay and breaker operation sequence in SCADA/event logs to confirm the clearing path and identify the faulted section.",
+          "Patrol the area around b650 for damaged conductors, insulator flashover, hardware contact with vegetation, or other phase-to-phase/ground contact points.",
+          "If multiple devices operated, compare the event against the approved coordination study and escalate to protection engineering if miscoordination is suspected.",
+          "Do not re-energize the feeder section until the faulted equipment is located, repaired, and tested."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "voltage",
-            "description": "b650 minimum phase voltage dropped to minVa=0.08, indicating a severe sag consistent with a fault event."
+            "description": "Bus b650 showed a deep voltage sag with minVa=0.08 pu, consistent with a short-circuit fault."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:05:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "current",
-            "description": "b650 exhibited elevated zero-sequence and negative-sequence ratios (maxI0I1=0.41, maxI2I1=0.38), supporting an unbalanced ground-involved fault."
+            "description": "Bus b650 showed elevated sequence components with maxI0I1=0.41 and maxI2I1=0.38, indicating both ground involvement and strong phase unbalance."
           }
         ],
         "kb_citations": [
           {
-            "source_id": "SOP-TRF-004",
-            "title": "Transformer Overcurrent and Thermal Protection",
-            "section": "6.1 Transformer Protection Guidelines",
-            "snippet": "Balanced three-phase and severe fault conditions are identified using symmetrical component signatures before applying this SOP."
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "Elevated I0/I1 and I2/I1 simultaneously indicates a mixed fault with both ground involvement and phase unbalance, characteristic of LLG events."
           },
           {
-            "source_id": "SOP-TRF-004",
-            "title": "Transformer Overcurrent and Thermal Protection",
-            "section": "6.1 Transformer Protection Guidelines",
-            "snippet": "Fault Signature Identification"
+            "source_id": "SOP-MISC-002",
+            "title": "Feeder Relay Miscoordination Investigation",
+            "section": "4.2 Relay Coordination and Nuisance Tripping",
+            "snippet": "minVa < 0.15 pu ... I0/I1 0.35-0.60; I2/I1 0.35-0.55."
           }
         ]
       }
@@ -1429,70 +1386,77 @@
       "fault_type": "OPEN_3PH",
       "feeder": "ieee13",
       "retrieved_sops": [
-        "SOP-TRF-004",
-        "SOP-OPEN-009"
+        "SOP-OPEN-009",
+        "SOP-MISC-002"
       ],
       "ground_truth_sops": [
-        "SOP-MISC-002",
-        "SOP-TRF-004"
+        "SOP-HIZ-010",
+        "SOP-OPEN-009"
       ],
       "context_precision": 0.5,
       "context_recall": 0.5,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.25,
+      "faithfulness_score": 1.0,
       "total_claims": 8,
-      "grounded_claims": 2,
-      "ungrounded_examples": [
-        "Bus b632 shows a deep voltage sag with strong unbalance and clear ground involvement.",
-        "consistent with a fault on one phase to ground.",
-        "The disturbance is severe enough to require immediate isolation and field verification before re-energization.",
-        "The detection signature at b632 shows minVa=0.09 with elevated zero-sequence (maxI0I1=0.39) and negative-sequence (maxI2I1=0.36) ratios.",
-        "which aligns with a ground-involved asymmetric fault rather than a balanced three-phase event.",
-        "the observed pattern is most consistent with an SLG fault on the feeder section near b632."
-      ],
+      "grounded_claims": 8,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-ieee13-b632-20260917-0001",
+        "ticket_id": "FT-IEEE13-20260918-0001",
         "scenario": "ieee13",
         "bus_id": "b632",
-        "fault_type": "single-line-to-ground (SLG) fault",
+        "fault_type": "OPEN_2PH",
         "severity": "high",
         "status": "diagnosed",
-        "summary": "Bus b632 shows a deep voltage sag with strong unbalance and clear ground involvement, consistent with a fault on one phase to ground. The disturbance is severe enough to require immediate isolation and field verification before re-energization.",
-        "root_cause": "The detection signature at b632 shows minVa=0.09 with elevated zero-sequence (maxI0I1=0.39) and negative-sequence (maxI2I1=0.36) ratios, which aligns with a ground-involved asymmetric fault rather than a balanced three-phase event. Per SOP-TRF-004 Section 6.1, severe fault conditions should be identified using symmetrical-component signatures before applying transformer protection guidance; the observed pattern is most consistent with an SLG fault on the feeder section near b632.",
+        "summary": "Bus b632 shows a deep voltage sag with low current and moderate positive/negative/zero-sequence imbalance, which is most consistent with an open-conductor, two-phase loss condition rather than a bolted short-circuit. The pattern suggests single-phasing or a broken conductor/fuse/pole issue that may still leave parts of the section energized via backfeed.",
+        "root_cause": "The signature aligns with SOP-OPEN-009 series-fault behavior: open-conductor events produce unbalance without high fault current, with moderate I0/I1 and I2/I1 elevation and partial-to-deep voltage sag depending on how many phases are lost. Here, minVa is very low (0.09 pu) while maxIa remains low (0.1 pu), and both sequence ratios are elevated (I0/I1=0.39, I2/I1=0.36), which fits an OPEN_2PH condition per the SOP and is less consistent with SLG/LL/LLG short-circuit faults that would show much higher current. Treat the section as energized until patrolled and isolated, since SOP-OPEN-009 warns that open conductors can be backfed from the load side and standard overcurrent elements may not operate.",
         "recommended_actions": [
-          "Isolate the affected feeder section around bus b632 using approved switching procedures.",
-          "Inspect the line, connectors, and nearby equipment for phase-to-ground contact, damaged insulation, vegetation contact, or mechanical damage.",
-          "Check protective relay and fault indicator records to confirm the faulted phase and clearing behavior.",
-          "Do not re-energize until the faulted section is located, repaired, and tested for insulation integrity.",
-          "If transformer protection devices operated, review thermal and overcurrent relay targets per SOP-TRF-004 before restoration."
+          "Treat the suspected broken conductor or open phase as energized until field patrol proves otherwise.",
+          "Confirm the affected phases using SCADA phase currents and relay event logs; do not assume ganged switching succeeded.",
+          "Patrol the affected section for a broken conductor, failed splice/connector, open fuse, or switch/recloser pole failure.",
+          "Verify the section is isolated on all sides and grounded before any hands-on work; assess possible backfeed from motors or distributed generation.",
+          "Notify downstream three-phase customers of possible single-phasing and advise protection of sensitive rotating equipment.",
+          "Do not restore by simply reclosing the open device until the cause is identified and corrected.",
+          "Escalate repeated or persistent single-phasing to engineering for a full reliability review."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "voltage",
-            "description": "b632 recorded a deep voltage sag with minVa=0.09, indicating a severe localized disturbance."
+            "description": "b632 minVa=0.09 pu indicates a deep voltage sag on at least one phase, consistent with severe unbalance or phase loss."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
             "metric": "current",
-            "description": "b632 shows elevated zero-sequence and negative-sequence current ratios (maxI0I1=0.39, maxI2I1=0.36), supporting a ground-involved unbalanced fault signature."
+            "description": "b632 maxIa=0.1 pu is low, which argues against a high-current short-circuit and matches open-conductor behavior."
+          },
+          {
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:00:00Z",
+            "metric": "current",
+            "description": "b632 maxI0I1=0.39 and maxI2I1=0.36 show moderate zero-sequence and negative-sequence unbalance, consistent with a two-phase open conductor condition."
           }
         ],
         "kb_citations": [
           {
-            "source_id": "SOP-TRF-004",
-            "title": "Transformer Overcurrent and Thermal Protection",
-            "section": "6.1 Transformer Protection Guidelines",
-            "snippet": "Fault Signature Identification ... symmetrical component and electrical feature signatures used to identify balanced three-phase and severe fault conditions"
+            "source_id": "SOP-OPEN-009",
+            "title": "Open Conductor and Single-Phasing Response",
+            "section": "7.5 Series Faults \u2014 Open Conductor (1PH / 2PH / 3PH)",
+            "snippet": "An open conductor is the hardest fault class to detect and among the most dangerous, because it produces UNBALANCE WITHOUT FAULT CURRENT."
           },
           {
             "source_id": "SOP-OPEN-009",
             "title": "Open Conductor and Single-Phasing Response",
-            "section": "7.5 Series Faults \u2014 Open Conductor (1PH / 2PH / 3PH)",
-            "snippet": "Open-conductor (series) fault \u2014 one, two, or all three phases interrupted without a short circuit."
+            "section": "Conditions",
+            "snippet": "Current on the affected phase falls toward zero while its voltage remains present or floats at an intermediate value... Negative-sequence current and voltage are elevated; zero-sequence may be present depending on the grounding and load configuration."
+          },
+          {
+            "source_id": "SOP-OPEN-009",
+            "title": "Open Conductor and Single-Phasing Response",
+            "section": "Operator Actions",
+            "snippet": "Treat any suspected broken conductor as ENERGIZED AND ON THE GROUND until a patrol proves otherwise."
           }
         ]
       }
@@ -1513,46 +1477,39 @@
       "context_recall": 1.0,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.375,
-      "total_claims": 8,
-      "grounded_claims": 3,
-      "ungrounded_examples": [
-        "The disturbance is centered at bus b650.",
-        "It is characterized by a modest voltage sag with elevated current and near-zero zero-sequence and negative-sequence ratios.",
-        "This pattern is more consistent with an overload or thermal stress condition than with a short-circuit fault.",
-        "maxIa is elevated at 1.15 pu while minVa remains relatively high at 0.88 pu.",
-        "both maxI0I1 (0.003) and maxI2I1 (0.002) are near zero, indicating no strong ground or unbalance component.",
-        "Per SOP-OVLD-001 Section 3.1, overload conditions are identified by sustained high current with a modest voltage sag rather than the deep sag and sequence-component imbalance expected in short-circuit faults.",
-        "SOP-THFT-003 Section 5.4 is also relevant because non-technical-loss or unauthorized load can present as feeder overload."
-      ],
+      "faithfulness_score": 1.0,
+      "total_claims": 10,
+      "grounded_claims": 10,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-ieee13-b650-20260917-0001",
+        "ticket_id": "FT-IEEE13-20260918-001",
         "scenario": "ieee13",
         "bus_id": "b650",
-        "fault_type": "feeder overload / thermal stress",
+        "fault_type": "feeder overload",
         "severity": "medium",
         "status": "diagnosed",
-        "summary": "The disturbance is centered at bus b650 and is characterized by a modest voltage sag with elevated current and near-zero zero-sequence and negative-sequence ratios. This pattern is more consistent with an overload or thermal stress condition than with a short-circuit fault.",
-        "root_cause": "The detected signature aligns with an overload-type event: maxIa is elevated at 1.15 pu while minVa remains relatively high at 0.88 pu, and both maxI0I1 (0.003) and maxI2I1 (0.002) are near zero, indicating no strong ground or unbalance component. Per SOP-OVLD-001 Section 3.1, overload conditions are identified by sustained high current with a modest voltage sag rather than the deep sag and sequence-component imbalance expected in short-circuit faults; SOP-THFT-003 Section 5.4 is also relevant because non-technical-loss or unauthorized load can present as feeder overload.",
+        "summary": "The disturbance at bus b650 is consistent with a feeder overload condition rather than a short-circuit fault. Current is elevated with only a modest voltage sag, and both zero-sequence and negative-sequence ratios are near zero, indicating balanced loading without ground or phase-unbalance involvement.",
+        "root_cause": "Most likely sustained feeder loading above normal operating range, consistent with SOP-OVLD-001 Section 3.1. The observed signature matches the overload criteria: maxIa=1.15 pu is within the overload band, minVa=0.88 pu indicates a modest sag, and maxI0I1=0.003 plus maxI2I1=0.002 are both negligible, ruling out ground involvement and significant unbalance. Per SOP-OVLD-001, this pattern supports a pure overload condition rather than a short-circuit event.",
         "recommended_actions": [
-          "Inspect feeder loading at and downstream of bus b650 for sustained or coincident peak demand.",
-          "Check thermal protection logs, relay targets, and any overheating indications on line segments and transformers serving b650.",
-          "Verify customer load growth, switching changes, and any recent service restorations that could have increased current.",
-          "Investigate for possible unauthorized connections or non-technical loss if the load increase is not explained by normal operations.",
-          "Increase monitoring of current and voltage on the affected section until loading returns to normal."
+          "Verify from SCADA or local measurements that the event is a sustained overload and not protection miscoordination or a short-circuit fault.",
+          "Review downstream feeder loading and identify any newly connected or shifted loads contributing to the elevated current.",
+          "Transfer non-critical load to alternate feeders where possible to reduce current on the affected section.",
+          "Confirm relay and breaker protection settings are coordinated with the latest approved study and equipment ratings.",
+          "After load reduction, re-energize and monitor current and temperature trends for 15 to 30 minutes.",
+          "If overloads recur, escalate to planning or protection engineering for load balancing, reconductoring, or equipment upgrade review."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "current",
-            "description": "b650 shows elevated current (maxIa=1.15 pu) with no significant zero-sequence or negative-sequence content (maxI0I1=0.003, maxI2I1=0.002), consistent with overload rather than a fault."
+            "description": "b650 shows elevated phase current at maxIa=1.15 pu, within the overload range and without a short-circuit level surge."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "voltage",
-            "description": "b650 exhibits a modest voltage sag (minVa=0.88 pu), which is more typical of loading stress than a balanced three-phase or high-impedance short-circuit event."
+            "description": "b650 minimum phase voltage is minVa=0.88 pu, indicating a modest sag consistent with overload rather than deep fault-induced collapse."
           }
         ],
         "kb_citations": [
@@ -1560,13 +1517,13 @@
             "source_id": "SOP-OVLD-001",
             "title": "Feeder Overload and Thermal Protection",
             "section": "3.1 Overload Trip Criteria",
-            "snippet": "Overload conditions are identified by sustained high current with a modest voltage sag rather than the deep sag and sequence-component imbalance expected in short-circuit faults."
+            "snippet": "The definitive electrical signature of a feeder overload condition includes maxIa 0.90 - 1.30 pu, minVa_pu 0.85 - 0.97 pu, and I0/I1 and I2/I1 both < 0.02."
           },
           {
-            "source_id": "SOP-THFT-003",
-            "title": "Suspected Theft-Related Overload on Distribution Feeders",
-            "section": "5.4 Non-Technical Loss and Overload Investigation",
-            "snippet": "Unauthorized connections, energy theft, or other non-technical losses can present as overload conditions on distribution feeders."
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "Operator Actions",
+            "snippet": "Transfer non-critical load to alternate feeders to reduce current on the affected feeder and monitor current and temperature trends after load has been reduced."
           }
         ]
       }
@@ -1587,43 +1544,39 @@
       "context_recall": 1.0,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.5,
-      "total_claims": 8,
-      "grounded_claims": 4,
-      "ungrounded_examples": [
-        "The disturbance is centered at bus b632",
-        "The measured signature matches a feeder overload rather than a ground or unbalanced fault",
-        "Per SOP-OVLD-001 Section 3.1, overload conditions are identified by sustained current rise with limited sag, unlike short-circuit events that typically show strong sequence-component disturbance",
-        "SOP-THFT-003 may apply if field inspection suggests non-technical load growth or unauthorized connections contributing to the overload"
-      ],
+      "faithfulness_score": 1.0,
+      "total_claims": 9,
+      "grounded_claims": 9,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-ieee13-b632-20260917-001",
+        "ticket_id": "FT-IEEE13-20260918-0001",
         "scenario": "ieee13",
         "bus_id": "b632",
-        "fault_type": "overload",
+        "fault_type": "feeder overload",
         "severity": "medium",
         "status": "diagnosed",
-        "summary": "The disturbance is centered at bus b632 with elevated current (maxIa=1.08) and only a modest voltage sag (minVa=0.9). Symmetrical-component ratios are near zero (maxI0I1=0.002, maxI2I1=0.002), which is inconsistent with a short-circuit fault and instead supports an overload-type condition.",
-        "root_cause": "The measured signature matches a feeder overload rather than a ground or unbalanced fault: current is elevated while voltage depression is limited, and both zero-sequence and negative-sequence ratios remain near zero. Per SOP-OVLD-001 Section 3.1, overload conditions are identified by sustained current rise with limited sag, unlike short-circuit events that typically show strong sequence-component disturbance; SOP-THFT-003 may apply if field inspection suggests non-technical load growth or unauthorized connections contributing to the overload.",
+        "summary": "The disturbance at bus b632 is most consistent with a feeder overload condition rather than a short-circuit fault. Current is elevated to 1.08 pu with only a modest voltage sag to 0.90 pu, while both sequence ratios remain near zero, indicating balanced loading without ground or phase-fault signatures.",
+        "root_cause": "Electrical features match SOP-OVLD-001 Section 3.1 Overload Trip Criteria: maxIa is within the 0.90-1.30 pu overload range, minVa is within the 0.85-0.97 pu modest-sag range, and both I0/I1 and I2/I1 are below 0.02, which supports a balanced overload rather than a short-circuit or unbalanced fault. SOP-THFT-003 Section 5.4 describes the same electrical profile for theft-related overloads, but no billing or demand-accounting evidence was provided here, so the most supportable root cause is a general feeder overload pending further load and metering review.",
         "recommended_actions": [
-          "Inspect feeder loading at and downstream of bus b632 and compare against thermal ampacity limits.",
-          "Check protective relay and recloser event logs for overload pickup or thermal element operation.",
-          "Verify customer/additional load changes, transformer loading, and capacitor/regulator status on the ieee13 feeder section near b632.",
-          "If load growth is confirmed, re-balance phases or transfer load to adjacent feeder sections where feasible.",
-          "If abnormal or unauthorized consumption is suspected, initiate a non-technical-loss investigation per SOP-THFT-003."
+          "Verify from SCADA or local measurements that the event reflects sustained overload and not a protection miscoordination or short-circuit fault.",
+          "Review downstream loading and identify any new, shifted, or unusually persistent loads on feeder ieee13.",
+          "Where possible, transfer non-critical load to an alternate feeder to reduce current on the affected section.",
+          "Confirm relay and breaker settings against the latest coordination study and equipment ratings.",
+          "After load reduction, re-energize as appropriate and monitor current and temperature trends for 15 to 30 minutes.",
+          "If elevated loading recurs, escalate to planning or protection engineering for load balancing, reconductoring, or upgrade review."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "current",
-            "description": "b632 shows elevated current magnitude (maxIa=1.08) with near-unity sequence balance indicators, supporting overload behavior."
+            "description": "At bus b632, maxIa = 1.08 pu indicates sustained elevated loading within overload range; I0/I1 = 0.002 and I2/I1 = 0.002 remain near zero, supporting balanced load rather than faulted current."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "voltage",
-            "description": "b632 minimum phase voltage remains relatively high (minVa=0.9), indicating a modest sag rather than a deep fault-induced collapse."
+            "description": "At bus b632, minVa = 0.90 pu shows a modest voltage sag consistent with heavy feeder loading, not the deep sag expected for a short-circuit event."
           }
         ],
         "kb_citations": [
@@ -1631,13 +1584,19 @@
             "source_id": "SOP-OVLD-001",
             "title": "Feeder Overload and Thermal Protection",
             "section": "3.1 Overload Trip Criteria",
-            "snippet": "Overload conditions are distinguished from short-circuit fault events by sustained current rise with only limited voltage sag."
+            "snippet": "The definitive electrical signature of a feeder overload condition is... maxIa 0.90 - 1.30 pu, minVa_pu 0.85 - 0.97 pu, I0/I1 < 0.02, I2/I1 < 0.02."
+          },
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Operator Actions",
+            "snippet": "Review feeder loading on all downstream circuits and identify any new or shifted loads. Where possible, transfer non-critical load to alternate feeders."
           },
           {
             "source_id": "SOP-THFT-003",
             "title": "Suspected Theft-Related Overload on Distribution Feeders",
             "section": "5.4 Non-Technical Loss and Overload Investigation",
-            "snippet": "Investigate overload conditions that may be associated with unauthorized connections, energy theft, or other non-technical losses."
+            "snippet": "The electrical signature of a theft-related or non-technical-loss overload is identical to a general feeder overload... The key differentiator is demand-accounting mismatch."
           }
         ]
       }
@@ -1658,61 +1617,59 @@
       "context_recall": 1.0,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.375,
-      "total_claims": 8,
-      "grounded_claims": 3,
-      "ungrounded_examples": [
-        "The disturbance at bus b671 is characterized by elevated current with only a modest voltage sag and negligible zero- and negative-sequence content.",
-        "This pattern is most consistent with an overload or thermal stress condition rather than a short-circuit fault.",
-        "maxI0I1=0.001 and maxI2I1=0.001 are near zero",
-        "maxIa=0.98 remains relatively high with minVa=0.93",
-        "Per SOP-OVLD-001, overload conditions are identified by sustained current rise with limited voltage depression and without strong symmetrical-component imbalance",
-        "supporting a feeder overload / thermal protection concern.",
-        "SOP-THFT-003 also notes that overload-like conditions may be associated with non-technical loss or unauthorized connections",
-        "and should be investigated accordingly."
-      ],
+      "faithfulness_score": 1.0,
+      "total_claims": 10,
+      "grounded_claims": 10,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-ieee13-0001",
+        "ticket_id": "FT-IEEE13-20260918-001",
         "scenario": "ieee13",
         "bus_id": "b671",
-        "fault_type": "feeder overload / thermal stress",
+        "fault_type": "theft-related overload",
         "severity": "low",
         "status": "diagnosed",
-        "summary": "The disturbance at bus b671 is characterized by elevated current with only a modest voltage sag and negligible zero- and negative-sequence content. This pattern is most consistent with an overload or thermal stress condition rather than a short-circuit fault.",
-        "root_cause": "The electrical signature does not indicate a ground or unbalanced fault: maxI0I1=0.001 and maxI2I1=0.001 are near zero, while maxIa=0.98 remains relatively high with minVa=0.93. Per SOP-OVLD-001, overload conditions are identified by sustained current rise with limited voltage depression and without strong symmetrical-component imbalance, supporting a feeder overload / thermal protection concern. SOP-THFT-003 also notes that overload-like conditions may be associated with non-technical loss or unauthorized connections and should be investigated accordingly.",
+        "summary": "The disturbance at bus b671 is consistent with a sustained overload pattern rather than a short-circuit fault. Current is elevated only modestly and voltage sag is slight, while both zero-sequence and negative-sequence ratios remain near zero, indicating balanced loading with no clear ground or phase-unbalance involvement.",
+        "root_cause": "Most probable cause is a balanced feeder overload, with a theft-related or non-technical-loss scenario considered because the SOP notes that this electrical signature is identical to general overload and must be confirmed by demand-accounting mismatch. Per SOP-THFT-003 section 5.4, theft-related overloads present with maxIa in the 0.90-1.20+ pu range, minVa between 0.86-0.97 pu, and both I0/I1 and I2/I1 below 0.02, matching the observed pattern at b671.",
         "recommended_actions": [
-          "Inspect feeder loading and compare phase currents against normal operating profiles at and around bus b671.",
-          "Check for prolonged thermal stress on conductors, transformers, and protection equipment serving the b671 section.",
-          "Verify downstream customer connections for possible unauthorized taps or non-technical loss indicators.",
-          "Monitor the feeder for recurrence and confirm whether voltage remains within acceptable limits under peak demand.",
-          "If loading persists or worsens, consider load balancing, feeder reconfiguration, or temporary load shedding."
+          "Confirm the overload condition using SCADA trends and compare with historical loading.",
+          "Cross-check feeder loading with billing and metering data to identify discrepancies.",
+          "Notify the non-technical loss or revenue protection team to initiate a field investigation.",
+          "Where safe and permitted, reconfigure load or adjust switching to reduce stress on the affected feeder while investigations proceed.",
+          "Record all observations, including times, loading patterns, and any field reports of unauthorized connections.",
+          "After corrective actions in the field, monitor the feeder loading to confirm that overload conditions have been resolved."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "current",
-            "description": "Bus b671 shows sustained elevated current (maxIa=0.98) with no significant symmetrical-component imbalance."
+            "description": "b671 shows maxIa=0.98 pu, which is within the overload/theft-related overload range and indicates sustained elevated loading rather than an instantaneous fault surge."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "voltage",
-            "description": "Voltage sag is modest at bus b671 (minVa=0.93), which is more consistent with overload stress than a short-circuit fault."
+            "description": "b671 shows minVa=0.93 pu, a modest voltage sag consistent with heavy loading and not with a short-circuit fault."
+          },
+          {
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
+            "metric": "current",
+            "description": "b671 shows maxI0I1=0.001 and maxI2I1=0.001, both near zero, supporting balanced loading with no evidence of ground involvement or significant phase unbalance."
           }
         ],
         "kb_citations": [
           {
-            "source_id": "SOP-OVLD-001",
-            "title": "Feeder Overload and Thermal Protection",
-            "section": "3.1 Overload Trip Criteria",
-            "snippet": "identify and respond to overload conditions on distribution feeders where thermal protection has operated or is at risk of operating"
-          },
-          {
             "source_id": "SOP-THFT-003",
             "title": "Suspected Theft-Related Overload on Distribution Feeders",
             "section": "5.4 Non-Technical Loss and Overload Investigation",
-            "snippet": "investigate overload conditions that may be associated with unauthorized connections, energy theft, or other non-technical losses"
+            "snippet": "The electrical signature of a theft-related or non-technical-loss overload is identical to a general feeder overload... Peak phase current 0.90 - 1.20+ pu, minimum phase voltage 0.86 - 0.97 pu, I0/I1 < 0.02, I2/I1 < 0.02."
+          },
+          {
+            "source_id": "SOP-OVLD-001",
+            "title": "Feeder Overload and Thermal Protection",
+            "section": "3.1 Overload Trip Criteria",
+            "snippet": "The definitive electrical signature of a feeder overload condition is... maxIa 0.90 - 1.30 pu, minVa_pu 0.85 - 0.97, I0/I1 < 0.02, I2/I1 < 0.02."
           }
         ]
       }
@@ -1733,45 +1690,44 @@
       "context_recall": 1.0,
       "generation_method": "llm",
       "faithfulness_method": "llm_judge",
-      "faithfulness_score": 0.4286,
-      "total_claims": 7,
-      "grounded_claims": 3,
-      "ungrounded_examples": [
-        "The disturbance at bus b684 is characterized by sustained high current (maxIa=0.95) with only a modest voltage sag (minVa=0.94).",
-        "Zero- and negative-sequence ratios are near zero.",
-        "This does not match a ground or unbalanced short-circuit fault pattern.",
-        "Most likely feeder loading above normal operating level or a localized high-demand/unauthorized load condition rather than a short-circuit fault.",
-        "This interpretation is consistent with SOP-OVLD-001, which distinguishes overload conditions by elevated current with limited voltage depression.",
-        "SOP-THFT-003 notes that non-technical-loss or theft-related connections can present as sustained overload on distribution feeders."
-      ],
+      "faithfulness_score": 1.0,
+      "total_claims": 9,
+      "grounded_claims": 9,
+      "ungrounded_examples": [],
       "generated_ticket": {
-        "ticket_id": "FT-IEEE13-20260917-0001",
+        "ticket_id": "FT-IEE13-0001",
         "scenario": "ieee13",
         "bus_id": "b684",
-        "fault_type": "overload-type condition",
+        "fault_type": "feeder overload / theft-related non-technical loss suspected",
         "severity": "low",
         "status": "diagnosed",
-        "summary": "The disturbance at bus b684 is characterized by sustained high current (maxIa=0.95) with only a modest voltage sag (minVa=0.94). Zero- and negative-sequence ratios are near zero, which does not match a ground or unbalanced short-circuit fault pattern and instead aligns with an overload-type condition.",
-        "root_cause": "Most likely feeder loading above normal operating level or a localized high-demand/unauthorized load condition rather than a short-circuit fault. This interpretation is consistent with SOP-OVLD-001, which distinguishes overload conditions by elevated current with limited voltage depression, and SOP-THFT-003, which notes that non-technical-loss or theft-related connections can present as sustained overload on distribution feeders.",
+        "summary": "The disturbance is centered at bus b684 with elevated current and only a modest voltage sag. Sequence ratios are near zero, which is consistent with a balanced overload rather than a ground or short-circuit fault.",
+        "root_cause": "The electrical signature matches an overload condition: maxIa = 0.95 pu falls within the overload range, minVa = 0.94 pu indicates only a modest sag, and both I0/I1 and I2/I1 are ~0.001, which is below the ground/unbalance thresholds. Per SOP-OVLD-001, this aligns with feeder overload behavior; per SOP-THFT-003, the same profile can indicate theft-related or non-technical-loss overload when billing or metering does not explain the loading.",
         "recommended_actions": [
-          "Verify feeder and downstream load levels at and around bus b684 using SCADA/AMI data.",
-          "Inspect for abnormal customer demand, illegal tap, or unauthorized connection consistent with non-technical loss indicators.",
-          "Check feeder thermal loading, relay history, and transformer/cable temperature margins to confirm no protection pickup is imminent.",
-          "If loading remains elevated, redistribute load or apply temporary operating limits until the condition is resolved.",
-          "Schedule a field inspection if abnormal consumption or persistent overload is confirmed."
+          "Verify the loading trend in SCADA and confirm the event is sustained rather than an instantaneous fault.",
+          "Cross-check feeder demand against billing and metering records to determine whether the load increase is justified.",
+          "Notify revenue protection / non-technical loss personnel if billed demand does not explain the elevated loading.",
+          "If permitted and safe, transfer non-critical load or reconfigure switching to reduce stress on the feeder.",
+          "Monitor current and voltage after corrective action to confirm the overload condition clears and does not recur."
         ],
         "evidence": [
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "current",
-            "description": "b684 shows sustained high current (maxIa=0.95) with no meaningful negative/zero-sequence imbalance."
+            "description": "Bus b684 shows elevated phase current at maxIa = 0.95 pu, consistent with sustained overload behavior."
           },
           {
-            "start_timestamp": "2026-09-17T00:00:00Z",
-            "end_timestamp": "2026-09-17T00:15:00Z",
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
             "metric": "voltage",
-            "description": "b684 voltage remains relatively high (minVa=0.94), indicating only a modest sag rather than a deep fault-related collapse."
+            "description": "Bus b684 has minVa = 0.94 pu, indicating a modest voltage sag compatible with overload rather than a short-circuit fault."
+          },
+          {
+            "start_timestamp": "2026-09-18T00:00:00Z",
+            "end_timestamp": "2026-09-18T00:15:00Z",
+            "metric": "current",
+            "description": "Zero-sequence and negative-sequence ratios are both ~0.001, indicating near-balanced loading with no strong ground-fault or phase-unbalance signature."
           }
         ],
         "kb_citations": [
@@ -1779,13 +1735,13 @@
             "source_id": "SOP-OVLD-001",
             "title": "Feeder Overload and Thermal Protection",
             "section": "3.1 Overload Trip Criteria",
-            "snippet": "distinguish overload conditions from short-circuit fault events"
+            "snippet": "\"Peak phase current (maxIa) | 0.90 - 1.30 pu\" and \"Minimum phase voltage (minVa_pu) | 0.85 - 0.97 pu\" with \"I0/I1 < 0.02\" and \"I2/I1 < 0.02\""
           },
           {
             "source_id": "SOP-THFT-003",
             "title": "Suspected Theft-Related Overload on Distribution Feeders",
             "section": "5.4 Non-Technical Loss and Overload Investigation",
-            "snippet": "unauthorized connections, energy theft, or other non-technical losses on distribution feeders"
+            "snippet": "\"The electrical signature of a theft-related or non-technical-loss overload is identical to a general feeder overload\" and \"a value above 0.10 suggests a concurrent fault condition\""
           }
         ]
       }
