@@ -126,6 +126,7 @@ Small surface — most work flows through Kafka. Full details in `docs/API_Refer
 | `GET /health` · `GET /ready` | liveness · readiness (checks Postgres + Kafka) |
 | `POST /faults/diagnose` | run the Coordinator on a detection result → `FaultTicket` |
 | `GET /tickets` · `GET /tickets/{incident_id}` | fault-ticket history (Postgres) |
+| `GET /tickets/repeat-offenders` | buses repeating the same fault in a trailing window |
 | `GET /assignments` · `PATCH /assignments/{incident_id}` | ticket ownership + work state |
 | `GET /operators` | the operator roster (no accounts — see below) |
 | `GET /notifications` · `POST /notifications/read-all` | operator notifications |

@@ -18,6 +18,28 @@ Liveness check.
 
 ---
 
+## GET /ready
+Readiness — Postgres **and** Kafka are reachable. Each dependency is probed
+independently (`SELECT 1` on the engine; Kafka `list_topics` with a 5 s timeout)
+and reported by name, so a failing check says *which* one failed.
+
+**Response** `200` when every check passes, **`503`** when any one does not. The
+body has the same shape either way, so a load balancer can read the status code
+while an operator reads the detail.
+```json
+{"ready": true, "checks": {"database": "ok", "kafka": "ok"}}
+```
+A failed check carries its error message, truncated to 160 characters:
+```json
+{"ready": false, "checks": {"database": "ok", "kafka": "error: ..."}}
+```
+
+> Liveness vs. readiness: `/health` says the process is up, `/ready` says it can
+> do its job. The app deliberately **starts without Kafka** (the lifespan logs
+> and continues), so `/health` alone would report a pipeline that cannot run.
+
+---
+
 ## POST /faults/diagnose
 Run the coordinator (SOP retrieval + LLM, or the offline heuristic fallback) on a
 **detection result** and return a validated `FaultTicket`. Detection runs upstream
@@ -42,6 +64,54 @@ Run the coordinator (SOP retrieval + LLM, or the offline heuristic fallback) on 
 
 ---
 
+## GET /tickets
+Fault-ticket history from Postgres — what the persistence service wrote as
+tickets came off the `faulttickets` topic.
+
+**Query**: `limit` (1-500, default 50).
+
+**Response** `200` — `TicketListResponse` `{ "items": [...], "count": n }`. Each
+item is a `TicketSummary`: `incident_id`, `ticket_id`, `scenario`, `bus_id`,
+`fault_type`, `severity`, `status`, `summary`, `created_at`, plus
+`customers_affected` and `customers_share`.
+
+> `customers_affected` / `customers_share` are **derived from `bus_id` on read**
+> (`app/persistence/service.py::_with_impact`), not stored columns — so the list
+> can rank by impact without unpacking every ticket's `raw`, and a ticket
+> diagnosed before the customer table existed still reports one.
+
+---
+
+## GET /tickets/repeat-offenders
+Buses that have produced the **same fault code** more than once within a
+trailing window — the "this one keeps coming back" view that a flat history
+cannot show. Several SOPs turn on exactly this signal: repeated transient SLG at
+one location precedes a permanent failure (`SOP-SLG-005`), and repeated lockouts
+are an escalation trigger (`SOP-REC-012`).
+
+**Query**: `days` (1-365, default 30), `min_occurrences` (2-50, default 2).
+
+**Response** `200` — `RepeatOffenderResponse` `{ "items": [...], "count": n,
+"window_days": d, "min_occurrences": m }` — the window is echoed back so a client
+need not track what it asked for. Each item: `bus_id`, `fault_code`,
+`occurrences`, `first_seen`, `last_seen`, `worst_severity`,
+`customers_affected`, `mean_days_between`, `recent_incident_ids[]`.
+
+> Declared **before** `/{incident_id}` in `app/persistence/router.py`: FastAPI
+> matches in declaration order, so the path parameter would otherwise capture
+> `repeat-offenders` as an incident id and answer `404`.
+
+---
+
+## GET /tickets/{incident_id}
+One ticket, with the full coordinator output.
+
+**Response** `200` — `TicketDetail`: every `TicketSummary` field plus **`raw`**,
+the complete stored `FaultTicket` JSON (evidence windows and KB citations
+included) · `404` if the incident is unknown.
+
+---
+
 ## GET /notifications
 List recent operator notifications (Postgres).
 
@@ -53,6 +123,19 @@ Mark all notifications read. **Response** `204`.
 ## GET /notifications/stream
 **SSE** stream of incident alerts, broadcast to every connected dashboard (no auth,
 no per-user scoping). `text/event-stream`; heartbeat every ~15 s.
+
+---
+
+## GET /stream/buses
+Buses the streaming service currently holds readings for — what the UI's bus
+selector is populated from.
+
+**Response** `200` — `BusListResponse` `{ "items": ["b632", ...], "count": n }`.
+
+> The list is **whatever is in the in-memory rolling buffers**, not a roster: a
+> bus appears only once it has received at least one reading off `raw.signals`,
+> so this is **empty until a signal producer runs** and it resets when the app
+> restarts. An empty list means "no signals yet", not "no such bus".
 
 ---
 

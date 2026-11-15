@@ -120,9 +120,13 @@ frontend/  React operator console (Vite + React 19 + Tailwind v4 + shadcn/Radix,
            features/{incidents,map,overview,assignments}/ · shared/ · app/{routes,layouts,store}
            Map stack: MapLibre GL + react-map-gl + pmtiles, with a SELF-HOSTED offline
            Jamaica basemap in public/map/ (see frontend/README.md — do not delete those
-           assets, they are the basemap). Incidents is the index route. Overview is
-           its OWN page at /overview — it was briefly a bottom drawer on the
-           map, which stacked a thing you read on a thing you operate.
+           assets, they are the basemap). Overview is the LANDING page at
+           /overview, and `/` REDIRECTS to it rather than mounting Overview
+           twice — one canonical URL per page keeps the sidebar's active state
+           honest (nav-main matches on prefix). It was briefly a bottom drawer
+           on the map, which stacked a thing you read on a thing you operate.
+           Incidents is the map screen at /incidents, with
+           /incidents/:incidentId opening a pin's panel.
            features/assignments/ is the ticket-ownership page at /assignments —
            a filterable table + a route-driven detail sheet
            (/assignments/:incidentId). There was a dnd-kit kanban board beside

@@ -16,15 +16,17 @@ src/
 public/map/      the offline basemap assets — see below
 ```
 
-**Three routes.** `/incidents` is the index — map-first, with a collapsible
-incident list and a floating detail panel. `/overview` is its own page (stat
-tiles, live signal, fault types); it was briefly a bottom drawer on the map,
-which stacked a thing you read on a thing you operate. `/assignments` is the
-ticket-ownership page: a filterable table and a detail sheet. It had a dnd-kit
-kanban board beside the table, behind a Board/Table toggle; **the board is
-gone** — the table did the same writes, kept working at storm volume, and was
-the keyboard-accessible one, so the board was a second way to do one thing. The
-`@dnd-kit/core` dependency went with it.
+**Three pages.** `/overview` is the landing page — `/` redirects to it, because
+it answers "how is the grid right now", which is the question an operator
+arrives with (stat tiles, live signal, fault types). It was briefly a bottom
+drawer on the map, which stacked a thing you read on a thing you operate.
+`/incidents` is the map screen — map-first, with a collapsible incident list
+and a floating detail panel. `/assignments` is the ticket-ownership page: a
+filterable table and a detail sheet. It had a dnd-kit kanban board beside the
+table, behind a Board/Table toggle; **the board is gone** — the table did the
+same writes, kept working at storm volume, and was the keyboard-accessible
+one, so the board was a second way to do one thing. The `@dnd-kit/core`
+dependency went with it.
 
 **`AssignmentDetailPanel` is shared, and it is the only place a ticket's detail
 is defined.** The assignments sheet and the map's floating panel render the same
