@@ -9,7 +9,7 @@ and the **app** (FastAPI API + the 6 Kafka consumer groups).
 | Service | Port (host) | Notes |
 | ------- | ----------- | ----- |
 | `app` | `8000` | FastAPI + consumers; `/health`, `/ready`, `/docs` |
-| `db` | `5432` | Postgres 18 (`postgres` / `postgres`, db `mafd`) |
+| `db` | `5433` | Postgres 18 (`postgres` / `postgres`, db `mafd`); in-network clients use `db:5432` |
 | `kafka` | `29092` | EXTERNAL listener for host clients; in-network clients use `kafka:9092` |
 | `kafdrop` | `9000` | browse topics, partitions, and the `.dlq` dead-letter topics |
 
@@ -48,8 +48,14 @@ uvicorn app.api.main:app --reload                # host talks to kafka on localh
 ```
 
 > Don't run the host `uvicorn` **and** the container `app` at once — they share Kafka
-> `group.id`s and both bind port 8000. Also note a native host Postgres on `:5432`
-> can shadow the container's.
+> `group.id`s and both bind port 8000.
+>
+> The container DB is published on **`5433`**, not 5432, precisely so a native host
+> Postgres can't shadow it. Host clients (the app on the host, `alembic`, psql) use
+> `localhost:5433`; in-container clients use `db:5432`. If you point a host client at
+> 5432 you may silently reach a *different* database — and the real-DB integration
+> tests skip rather than fail when nothing is listening, so check for `skipped` in
+> the pytest summary.
 
 ## Configuration
 

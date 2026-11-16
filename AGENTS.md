@@ -201,7 +201,7 @@ uvicorn app.api.main:app --reload                      # API + 6 consumer groups
 .venv/Scripts/python.exe scripts/produce_events.py     # drives detection → coordinator → tickets
 ```
 Don't run the host `uvicorn` and the container `app` at once — same Kafka `group.id`s + a port-8000 clash.
-Gotcha: a native host Postgres on `:5432` can shadow the container's — the app-in-container uses the container DB (`db:5432`).
+Gotcha: the container DB is published on **`:5433`**, not `:5432`, so a native host Postgres can't shadow it. Host clients use `localhost:5433` (the `app/config.py` defaults and `.env.example` match); the app-in-container uses `db:5432`. A host client pointed at 5432 may silently reach a different database, and the real-DB tests skip rather than fail when nothing answers.
 
 ---
 

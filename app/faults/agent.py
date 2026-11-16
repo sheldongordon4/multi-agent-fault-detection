@@ -1,20 +1,23 @@
 """
-coordinator.py - the MAFD Coordinator agent graph.
+agent.py - the MAFD Coordinator agent graph.
 
-A LangGraph ReAct loop: an OpenAI-protocol chat model (Google AI Studio's Gemini
-by default — see app/faults/config.py) bound to the kb_retrieve tool (SOP RAG over
-the local vector DB). Detection runs upstream (the event IsolationForest) and
-arrives as a trigger, so the coordinator's only tool is SOP retrieval. The model
-retrieves SOPs, then emits a single FaultTicket JSON object (parsed + validated
-downstream in coordinator_service._coerce_to_ticket).
+A LangGraph ReAct loop: a chat model (Google AI Studio's Gemini by default — see
+app/faults/config.py) bound to the kb_retrieve tool (SOP RAG over the local
+vector DB). Detection runs upstream (the event IsolationForest) and arrives as a
+trigger, so the coordinator's only tool is SOP retrieval. The model retrieves
+SOPs, then emits a single FaultTicket JSON object (parsed + validated downstream
+in faults_service._coerce_to_ticket).
 
-The client is a plain ChatOpenAI pointed at a configurable base_url, never a
-provider-specific class, so changing provider is a change of endpoint/key/model
-and nothing else.
+The client comes from build_chat_model(): the native ChatGoogleGenerativeAI for
+Google, ChatOpenAI on a configurable base_url for everything else. Google needs
+its own class because Gemini 3.x requires a thought_signature echoed back with
+each tool result and the OpenAI chat-completions format has no field to carry it
+— see the note on build_chat_model below. For every OTHER provider, changing
+provider really is a change of endpoint/key/model and nothing else.
 
 The graph is built lazily via build_coordinator_graph() so importing this module
 never requires credentials; it is only constructed when an endpoint is configured
-(see coordinator_service.USE_LOCAL_FALLBACK).
+(see faults_service.USE_LOCAL_FALLBACK).
 
 """
 
