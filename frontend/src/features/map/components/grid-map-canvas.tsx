@@ -9,13 +9,12 @@ import {
 	type MapRef,
 } from 'react-map-gl/maplibre';
 import { useReducedMotion } from 'motion/react';
-import { AlertTriangle, Maximize2, Waypoints } from 'lucide-react';
+import { AlertTriangle, Maximize2 } from 'lucide-react';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Severity, TicketSummary } from '@shared/types';
+import { SEVERITY_RANK } from '@features/incidents/utils/helpers';
 import { useResolvedTheme } from '@shared/hooks/use-resolved-theme';
-import { cn } from '@shared/lib/utils';
 import { getBasemapStyle } from '../utils/basemap';
-import { FEEDER_EDGES, getBusLocation } from '../utils/bus-locations';
 import {
 	deriveBusStatuses,
 	deriveParishSeverity,
@@ -43,44 +42,32 @@ const JAMAICA_BOUNDS: [number, number, number, number] = [
 const MIN_ZOOM = 6.5;
 const MAX_ZOOM = 15;
 
-// Below this the bus labels collide (Kingston and Spanish Town are ~17km apart),
-// so they're hidden and only the dots remain.
+// Below this the bus labels collide, so they're hidden and only the dots remain.
+// Sized for the tightest pair on the map: Spanish Town and Ocho Rios, ~49km apart.
 const LABEL_MIN_ZOOM = 8.6;
+
+// Pins closer together than this ON SCREEN merge into one cluster.
+//
+// Screen distance, not geographic distance, is what makes clustering feel right:
+// two buses 17km apart overlap at island zoom and are comfortably separate at
+// town zoom, so the same threshold splits clusters apart as you zoom in without
+// any per-zoom tuning.
+//
+// 64px is a little wider than a pin, so it merges only pins that genuinely
+// overlap. Deliberately expressed in pixels and not kilometres: the ground
+// distance one pixel covers depends on the window size as well as the zoom, so a
+// km threshold would need re-tuning per viewport and this one does not.
+//
+// With the current five buses the tightest pair (Spanish Town and Ocho Rios,
+// ~49km) stays separate even with the whole island in frame, so nothing clusters
+// today. The threshold is here for the bus set growing — measure the closest
+// pair again if it does.
+const CLUSTER_RADIUS_PX = 64;
 
 const PARISHES_URL = '/map/jamaica-parishes.geojson';
 
-const FEEDER_LINE_LAYER = 'feeder-line';
-
-// Static dash pattern — the resting look, and what reduced-motion users keep.
-// Hoisted to module scope so its identity is stable: an inline array literal is a
-// new object every render, which would make react-map-gl re-apply the paint
-// property and fight the animation below.
-const FEEDER_DASH: [number, number] = [2, 1.5];
-
-// Phase-shifted dash patterns. MapLibre has no `line-dash-offset`, so "flow" is
-// produced by cycling the dash array itself — each entry shifts the gap along the
-// line, and stepping through them makes the dashes crawl. Same trick as the
-// classic marching-ants example.
-const FEEDER_DASH_FLOW: number[][] = [
-	[0, 4, 3],
-	[0.5, 4, 2.5],
-	[1, 4, 2],
-	[1.5, 4, 1.5],
-	[2, 4, 1],
-	[2.5, 4, 0.5],
-	[3, 4, 0],
-	[0, 0.5, 3, 3.5],
-	[0, 1, 3, 3],
-	[0, 1.5, 3, 2.5],
-	[0, 2, 3, 2],
-	[0, 2.5, 3, 1.5],
-	[0, 3, 3, 1],
-	[0, 3.5, 3, 0.5],
-];
-
 // ~14fps. Fast enough to read as flow, slow enough that the map isn't repainting
 // at 60fps all shift on a screen that's always up.
-const FLOW_FRAME_MS = 70;
 
 export interface GridMapCanvasProps {
 	incidents: TicketSummary[];
@@ -106,9 +93,10 @@ export function GridMapCanvas({
 	const reducedMotion = useReducedMotion();
 
 	const [zoom, setZoom] = useState(8);
-	// Layer toggle: the feeder topology is context, not always wanted. Local
-	// state — it's a view preference, not something the rest of the app reacts to.
-	const [showFeeders, setShowFeeders] = useState(true);
+	// Bumped on every camera move so the screen-space clustering below recomputes.
+	// Panning changes projected positions just as much as zooming does, so this
+	// cannot key off `zoom` alone.
+	const [viewTick, setViewTick] = useState(0);
 	const [failed, setFailed] = useState(false);
 	const [ready, setReady] = useState(false);
 
@@ -147,6 +135,74 @@ export function GridMapCanvas({
 		return () => window.clearTimeout(timer);
 	}, [statuses, reducedMotion]);
 
+	// --- clustering ---------------------------------------------------------
+	// Grouped by distance ON SCREEN rather than on the ground. The whole point of
+	// clustering here is overlap: two buses that land on the same pixel at island
+	// zoom must merge, and must not once you zoom into the town. A screen-space
+	// threshold expresses that directly, and clusters split apart on their own as
+	// you zoom in — no per-zoom rules to keep in sync.
+	//
+	// Deliberately not MapLibre's built-in GeoJSON clustering: that renders through
+	// circle layers, which would mean giving up the DOM pins and with them the
+	// arrival flash, the severity pulse and the hover/active states. With a handful
+	// of monitored buses the cost of doing it here is nil.
+	const clusters = useMemo(() => {
+		const map = mapRef.current?.getMap();
+
+		// Before the map is up there is nothing to project against, so every bus
+		// stands alone; the first camera move re-runs this with real geometry.
+		if (!map || !ready) {
+			return statuses.map((s) => ({
+				key: s.busId,
+				lat: s.lat,
+				lng: s.lng,
+				members: [s],
+			}));
+		}
+
+		const remaining = [...statuses];
+		const groups: {
+			key: string;
+			lat: number;
+			lng: number;
+			members: BusStatus[];
+		}[] = [];
+
+		while (remaining.length > 0) {
+			const seed = remaining.shift()!;
+			const members = [seed];
+			const seedPoint = map.project([seed.lng, seed.lat]);
+
+			// Walk backwards so splicing does not skip the next candidate.
+			for (let i = remaining.length - 1; i >= 0; i -= 1) {
+				const candidate = remaining[i];
+				const point = map.project([candidate.lng, candidate.lat]);
+				const distance = Math.hypot(
+					point.x - seedPoint.x,
+					point.y - seedPoint.y
+				);
+				if (distance <= CLUSTER_RADIUS_PX) {
+					members.push(candidate);
+					remaining.splice(i, 1);
+				}
+			}
+
+			groups.push({
+				// Sorted so the key is stable regardless of which member seeded the
+				// group — otherwise React would remount the marker on every pan.
+				key: members
+					.map((m) => m.busId)
+					.sort()
+					.join('+'),
+				lat: members.reduce((sum, m) => sum + m.lat, 0) / members.length,
+				lng: members.reduce((sum, m) => sum + m.lng, 0) / members.length,
+				members,
+			});
+		}
+
+		return groups;
+	}, [statuses, ready, zoom, viewTick]);
+
 	// --- parish tint + labels ----------------------------------------------
 	const parishFillColor = useMemo(() => {
 		const entries = Object.entries(parishSeverity);
@@ -168,29 +224,6 @@ export function GridMapCanvas({
 		() => Object.keys(parishSeverity),
 		[parishSeverity]
 	);
-
-	// --- feeder topology ----------------------------------------------------
-	const feederLines = useMemo(() => {
-		const features = FEEDER_EDGES.flatMap(([from, to]) => {
-			const a = getBusLocation(from);
-			const b = getBusLocation(to);
-			if (!a || !b) return [];
-			return [
-				{
-					type: 'Feature' as const,
-					properties: { from, to },
-					geometry: {
-						type: 'LineString' as const,
-						coordinates: [
-							[a.lng, a.lat],
-							[b.lng, b.lat],
-						],
-					},
-				},
-			];
-		});
-		return { type: 'FeatureCollection' as const, features };
-	}, []);
 
 	// --- camera -------------------------------------------------------------
 	const padKey = padding
@@ -244,64 +277,6 @@ export function GridMapCanvas({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [cameraTarget]);
 
-	// Energise the feeder lines: cycle the dash phase so current appears to flow
-	// from the source bus outward.
-	//
-	// Keyed on `ready` as well as the gates. The previous version depended only on
-	// [reducedMotion] and bailed at `if (!map) return` when the ref wasn't
-	// populated yet — and since reducedMotion never changes, the effect never ran
-	// again and no rAF loop was ever scheduled. (The padding effect survives the
-	// same guard only because padKey changes later and gives it a second chance.)
-	// `ready` is guaranteed to flip via onLoad/onIdle/onStyleData or the timeout,
-	// so this always gets its retry.
-	//
-	// Gated on reduced motion — a continuous loop is exactly what that preference
-	// exists to suppress, so those users keep the static dashed line. rAF also
-	// stops on its own in a hidden tab, so a backgrounded console isn't
-	// repainting for nothing.
-	useEffect(() => {
-		if (reducedMotion || !showFeeders) return;
-		const map = mapRef.current?.getMap();
-		if (!map) return;
-
-		let frame = 0;
-		let step = 0;
-		let last = 0;
-
-		const tick = (time: number) => {
-			frame = requestAnimationFrame(tick);
-			if (time - last < FLOW_FRAME_MS) return;
-			last = time;
-			// The layer only exists once the style and <Layer> have mounted, and it
-			// is rebuilt from scratch on a theme swap (setStyle recreates layers).
-			if (!map.getLayer(FEEDER_LINE_LAYER)) return;
-			step = (step + 1) % FEEDER_DASH_FLOW.length;
-			try {
-				map.setPaintProperty(
-					FEEDER_LINE_LAYER,
-					'line-dasharray',
-					FEEDER_DASH_FLOW[step]
-				);
-			} catch {
-				// Layer torn down between the check and the set — skip this frame.
-			}
-		};
-
-		frame = requestAnimationFrame(tick);
-		return () => {
-			cancelAnimationFrame(frame);
-			// Leave the line in its resting pattern rather than mid-phase.
-			const m = mapRef.current?.getMap();
-			if (m?.getLayer(FEEDER_LINE_LAYER)) {
-				try {
-					m.setPaintProperty(FEEDER_LINE_LAYER, 'line-dasharray', FEEDER_DASH);
-				} catch {
-					/* style already gone */
-				}
-			}
-		};
-	}, [reducedMotion, ready, showFeeders]);
-
 	// Safety net for the loading hint.
 	//
 	// None of MapLibre's "I'm ready" signals is dependable across every path here:
@@ -329,6 +304,19 @@ export function GridMapCanvas({
 		[activeBusId, onSelectBus]
 	);
 
+	// Clicking a cluster zooms far enough to break it apart rather than selecting
+	// an arbitrary member — the operator asked "what is under here", not "give me
+	// one of these".
+	const zoomToCluster = useCallback((lng: number, lat: number) => {
+		const map = mapRef.current?.getMap();
+		if (!map) return;
+		map.easeTo({
+			center: [lng, lat],
+			zoom: Math.min(map.getZoom() + 2, MAX_ZOOM),
+			duration: reducedMotion ? 200 : 500,
+		});
+	}, [reducedMotion]);
+
 	const showLabels = zoom >= LABEL_MIN_ZOOM;
 
 	return (
@@ -346,6 +334,7 @@ export function GridMapCanvas({
 				maxZoom={MAX_ZOOM}
 				style={{ width: '100%', height: '100%' }}
 				onZoom={(e) => setZoom(e.viewState.zoom)}
+				onMove={() => setViewTick((v) => v + 1)}
 				// Three signals, because no single one is reliable:
 				//   onLoad     — never fires for a pooled instance under `reuseMaps`
 				//   onIdle     — needs a completed render pass, which a backgrounded
@@ -410,43 +399,57 @@ export function GridMapCanvas({
 					/>
 				</Source>
 
-				{/* Feeder topology, drawn under the markers. */}
-				{showFeeders && (
-				<Source id="feeder" type="geojson" data={feederLines}>
-					<Layer
-						id="feeder-line"
-						type="line"
-						layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-						paint={{
-							'line-color': '#94a3b8',
-							'line-opacity': 0.55,
-							'line-width': 1.5,
-							'line-dasharray': FEEDER_DASH,
-						}}
-					/>
-				</Source>
-				)}
 
-				{statuses.map((status) => (
-					<Marker
-						key={status.busId}
-						longitude={status.lng}
-						latitude={status.lat}
-						anchor="center"
-						onClick={() => handleMarkerClick(status.busId)}
-					>
-						<SubstationPin
-							status={status}
-							active={status.busId === activeBusId}
-							emphasised={
-								status.busId === hoveredBusId || status.busId === focusedBusId
-							}
-							showLabel={showLabels}
-							flashing={flashing.has(status.busId)}
-							reducedMotion={!!reducedMotion}
-						/>
-					</Marker>
-				))}
+				{clusters.map((cluster) => {
+					const [only] = cluster.members;
+
+					// One member: the pin behaves exactly as it always has.
+					if (cluster.members.length === 1) {
+						return (
+							<Marker
+								key={cluster.key}
+								longitude={only.lng}
+								latitude={only.lat}
+								anchor="center"
+								onClick={() => handleMarkerClick(only.busId)}
+							>
+								<SubstationPin
+									status={only}
+									active={only.busId === activeBusId}
+									emphasised={
+										only.busId === hoveredBusId || only.busId === focusedBusId
+									}
+									showLabel={showLabels}
+									flashing={flashing.has(only.busId)}
+									reducedMotion={!!reducedMotion}
+								/>
+							</Marker>
+						);
+					}
+
+					return (
+						<Marker
+							key={cluster.key}
+							longitude={cluster.lng}
+							latitude={cluster.lat}
+							anchor="center"
+							onClick={() => zoomToCluster(cluster.lng, cluster.lat)}
+						>
+							<ClusterPin
+								members={cluster.members}
+								// A cluster containing the selected or hovered bus stays
+								// visually connected to the list, so selecting a ticket that
+								// happens to be merged does not appear to do nothing.
+								active={cluster.members.some((m) => m.busId === activeBusId)}
+								emphasised={cluster.members.some(
+									(m) => m.busId === hoveredBusId || m.busId === focusedBusId
+								)}
+								flashing={cluster.members.some((m) => flashing.has(m.busId))}
+								reducedMotion={!!reducedMotion}
+							/>
+						</Marker>
+					);
+				})}
 			</MapLibreMap>
 
 			{/* Map controls, right-edge rail — the same side and stacking as Zoom
@@ -455,20 +458,6 @@ export function GridMapCanvas({
 			    from the bottom, so 10rem clears it with a small gap and the whole
 			    right edge reads as one column of controls. */}
 			<div className="absolute right-2.5 bottom-40 z-10 flex flex-col gap-1.5">
-				<button
-					type="button"
-					onClick={() => setShowFeeders((v) => !v)}
-					aria-pressed={showFeeders}
-					title={showFeeders ? 'Hide feeder lines' : 'Show feeder lines'}
-					aria-label={showFeeders ? 'Hide feeder lines' : 'Show feeder lines'}
-					className={cn(
-						'border-border/60 bg-card/85 hover:bg-accent focus-visible:ring-ring grid size-[29px] place-items-center rounded border shadow backdrop-blur focus-visible:ring-2 focus-visible:outline-none',
-						showFeeders ? 'text-foreground' : 'text-muted-foreground/60'
-					)}
-				>
-					<Waypoints className="size-3.5" />
-				</button>
-
 				{/* Without this, zooming in has no way back to the island. */}
 				<button
 					type="button"
@@ -533,11 +522,77 @@ function MapLegend() {
 					</li>
 				))}
 			</ul>
-			<span className="bg-border h-3 w-px" aria-hidden />
-			<span className="text-muted-foreground/70 text-[10px] whitespace-nowrap">
-				Dashed = IEEE13 feeder
-			</span>
 		</div>
+	);
+}
+
+/**
+ * Several buses merged into one pin.
+ *
+ * Takes the WORST severity of its members, not an average: a cluster hiding one
+ * high-severity fault among four healthy buses has to read as high, or clustering
+ * would conceal exactly what the map exists to surface. The count is the number
+ * of buses merged, and the badge is the number of active incidents across them —
+ * two different questions an operator asks.
+ */
+function ClusterPin({
+	members,
+	active,
+	emphasised,
+	flashing,
+	reducedMotion,
+}: {
+	members: BusStatus[];
+	active: boolean;
+	emphasised: boolean;
+	flashing: boolean;
+	reducedMotion: boolean;
+}) {
+	const worst = members.reduce<Severity | null>((acc, m) => {
+		if (!m.severity) return acc;
+		if (!acc) return m.severity;
+		return SEVERITY_RANK[m.severity] > SEVERITY_RANK[acc] ? m.severity : acc;
+	}, null);
+
+	const color = statusColor(worst);
+	const activeCount = members.reduce((sum, m) => sum + m.activeCount, 0);
+	const size = active ? 32 : emphasised ? 30 : 26;
+
+	const names = members.map((m) => m.name).join(', ');
+
+	return (
+		<button
+			type="button"
+			title={`${members.length} sites · ${names}${
+				activeCount ? ` · ${activeCount} active` : ' · no active incidents'
+			}`}
+			aria-label={`Cluster of ${members.length} sites: ${names}. ${
+				activeCount ? `${activeCount} active incidents.` : 'No active incidents.'
+			} Zoom in to separate them.`}
+			className="focus-visible:ring-ring relative grid cursor-pointer place-items-center rounded-full focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
+			style={{ width: 40, height: 40 }}
+		>
+			{!reducedMotion && (worst === 'high' || flashing) && (
+				<span
+					className="absolute inline-flex size-9 animate-ping rounded-full opacity-40"
+					style={{ backgroundColor: color }}
+				/>
+			)}
+
+			<span
+				className="relative inline-flex items-center justify-center rounded-full border-2 border-white font-mono font-semibold text-white shadow transition-all"
+				style={{
+					backgroundColor: color,
+					width: size,
+					height: size,
+					fontSize: size >= 30 ? 12 : 11,
+					outline: active ? `2px solid ${color}` : undefined,
+					outlineOffset: 3,
+				}}
+			>
+				{members.length}
+			</span>
+		</button>
 	);
 }
 

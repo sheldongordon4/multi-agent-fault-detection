@@ -3,8 +3,11 @@ import {
 	BookText,
 	ClipboardList,
 	ExternalLink,
+	Gauge,
 	MousePointerClick,
 	RefreshCw,
+	ScanSearch,
+	Users,
 	Waves,
 } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
@@ -19,10 +22,17 @@ import { ScrollArea } from '@shared/components/ui/scroll-area';
 import { Separator } from '@shared/components/ui/separator';
 import { Skeleton } from '@shared/components/ui/skeleton';
 import type {
+	ClassifierAlternative,
 	EvidenceWindow,
+	FeatureAttribution,
 	KBCitation,
 	TicketDetail,
 } from '@shared/types';
+import {
+	AttributionList,
+	ClassifierConfidence,
+	CustomerImpact,
+} from './diagnosis-evidence';
 import { formatFaultType, formatTimestamp } from '../utils/helpers';
 import { SeverityBadge, StatusBadge } from './severity-badge';
 
@@ -132,6 +142,24 @@ export function IncidentDetail({ incident }: { incident: TicketDetail }) {
 		? (raw.kb_citations as KBCitation[])
 		: [];
 
+	// Deterministic enrichment (app/faults/service.py::_enrich_ticket). Absent on
+	// tickets diagnosed before it existed, so each is narrowed independently
+	// rather than gated on one flag.
+	const confidence =
+		typeof raw.fault_type_confidence === 'number' ? raw.fault_type_confidence : null;
+	const alternatives = Array.isArray(raw.fault_type_alternatives)
+		? (raw.fault_type_alternatives as ClassifierAlternative[])
+		: [];
+	const attribution = Array.isArray(raw.attribution)
+		? (raw.attribution as FeatureAttribution[])
+		: [];
+	// Read from the column, not from `raw`. The backend derives it from bus_id
+	// on every read, so it is right for tickets diagnosed before the customer
+	// table existed and right again if the counts are ever corrected; `raw`
+	// holds whatever was true the day the ticket was written.
+	const customers = incident.customers_affected ?? null;
+	const customersShare = incident.customers_share ?? null;
+
 	return (
 		<ScrollArea className="h-full">
 			<header className="border-border/60 border-b px-5 py-4">
@@ -153,6 +181,37 @@ export function IncidentDetail({ incident }: { incident: TicketDetail }) {
 					<Field label="Detected" value={formatTimestamp(incident.created_at)} />
 				</div>
 			</header>
+
+			{customers !== null && (
+				<>
+					<Section icon={Users} title="Customer impact">
+						<CustomerImpact customers={customers} share={customersShare} />
+					</Section>
+					<Separator />
+				</>
+			)}
+
+			{confidence !== null && (
+				<>
+					<Section icon={Gauge} title="Classifier confidence">
+						<ClassifierConfidence
+							faultType={incident.fault_type}
+							confidence={confidence}
+							alternatives={alternatives}
+						/>
+					</Section>
+					<Separator />
+				</>
+			)}
+
+			{attribution.length > 0 && (
+				<>
+					<Section icon={ScanSearch} title="Why it was flagged">
+						<AttributionList items={attribution} />
+					</Section>
+					<Separator />
+				</>
+			)}
 
 			{summary && (
 				<>

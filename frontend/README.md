@@ -6,17 +6,40 @@ state), MapLibre GL (map).
 
 ```
 src/
-  app/          routes, layouts, store (zustand slices)
+  app/           routes, layouts, store (zustand slices)
   features/
-    incidents/  the console screen: list sheet, detail panel, overview drawer
-    map/        basemap + grid overlay (own module — not owned by incidents)
-    overview/   stat tiles, live signal chart, fault-type chart (composed by the drawer)
-  shared/       ui primitives, hooks, lib
-public/map/     the offline basemap assets — see below
+    incidents/   the map screen: list sheet, incident detail renderer
+    map/         basemap + grid overlay (own module — not owned by incidents)
+    overview/    stat tiles, live signal chart, fault-type chart
+    assignments/ ticket ownership: table + shared detail panel
+  shared/        ui primitives, hooks, lib
+public/map/      the offline basemap assets — see below
 ```
 
-**Incidents is the index route.** There is no `/overview` page any more; the
-overview content lives in a bottom drawer on the incidents screen.
+**Three pages.** `/overview` is the landing page — `/` redirects to it, because
+it answers "how is the grid right now", which is the question an operator
+arrives with (stat tiles, live signal, fault types). It was briefly a bottom
+drawer on the map, which stacked a thing you read on a thing you operate.
+`/incidents` is the map screen — map-first, with a collapsible incident list
+and a floating detail panel. `/assignments` is the ticket-ownership page: a
+filterable table and a detail sheet. It had a dnd-kit kanban board beside the
+table, behind a Board/Table toggle; **the board is gone** — the table did the
+same writes, kept working at storm volume, and was the keyboard-accessible
+one, so the board was a second way to do one thing. The `@dnd-kit/core`
+dependency went with it.
+
+**`AssignmentDetailPanel` is shared, and it is the only place a ticket's detail
+is defined.** The assignments sheet and the map's floating panel render the same
+component, so a fault can be assigned without leaving the map. It fetches by
+incident id and takes its height from its parent — don't give it
+viewport-relative sizing or a second copy. Its `defaultTab` differs by page on
+purpose: `/assignments` opens on **Work** because it exists to move work along,
+the map opens on **Diagnosis** because the first question about a pin is what
+the coordinator made of it.
+
+**The bus selector belongs to the live signal chart**, not to the overview page
+header. From the header it read as a page-wide filter, which it never was — the
+stat tiles and fault-type chart cover every bus regardless.
 
 ---
 
@@ -37,6 +60,21 @@ the premises.
 
 `.pmtiles` is a single static file read by the browser over HTTP range requests
 (`pmtiles://` protocol), so any static host works — no tile server process.
+
+### Where the bus pins come from
+
+`features/map/utils/bus-locations.ts` is the **only** place bus geography lives.
+The town coordinates are real; the bus → town assignment is **invented**, because
+JPS grid topology isn't public and nothing here is an actual substation site.
+Replace `lat`/`lng`/`name`/`parish` when you have real values — `parish` must
+match a `parish` in `jamaica-parishes.geojson`, which is what drives the fault
+shading. `FEEDER_EDGES` in the same file is *not* invented: it's the published
+IEEE 13-node radial topology, so the lines are true while the geography is
+placeholder.
+
+Only IEEE13 ids (`b6xx`) can ever match an incident — the streaming path still
+uses `bus_1/2/3`, which is the unreconciled namespace split tracked in
+`docs/System_Architecture.md` §16.
 
 ### Regenerating the basemap
 

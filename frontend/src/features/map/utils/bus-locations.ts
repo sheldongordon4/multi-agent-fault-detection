@@ -30,10 +30,10 @@ export interface BusLocation {
 export const BUS_LOCATIONS: BusLocation[] = [
 	{
 		busId: 'b650',
-		name: 'Kingston',
-		parish: 'Kingston',
-		lat: 17.9714,
-		lng: -76.7931,
+		name: 'Port Antonio',
+		parish: 'Portland',
+		lat: 18.1745,
+		lng: -76.4494,
 	},
 	{
 		busId: 'b632',

@@ -19,16 +19,27 @@ import {
 } from '@shared/components/ui/select';
 import type { SignalMetric, SignalReading } from '@shared/types';
 import type { SignalConnectionStatus } from '../hooks/use-signal-stream';
+import {
+	formatSignalValue,
+	signalDecimals,
+	signalDomain,
+	type SignalUnit,
+} from '../utils/helpers';
 
 export const SIGNAL_METRICS: {
 	value: SignalMetric;
 	label: string;
-	unit: string;
+	unit: SignalUnit;
 }[] = [
-	{ value: 'voltage_kv', label: 'Voltage', unit: 'kV' },
-	{ value: 'current_a', label: 'Current', unit: 'A' },
-	{ value: 'frequency_hz', label: 'Frequency', unit: 'Hz' },
-	{ value: 'temperature_c', label: 'Temperature', unit: '°C' },
+	{ value: 'Va_rms', label: 'Va (RMS)', unit: 'pu' },
+	{ value: 'Vb_rms', label: 'Vb (RMS)', unit: 'pu' },
+	{ value: 'Vc_rms', label: 'Vc (RMS)', unit: 'pu' },
+	{ value: 'Ia_rms', label: 'Ia (RMS)', unit: 'A' },
+	{ value: 'Ib_rms', label: 'Ib (RMS)', unit: 'A' },
+	{ value: 'Ic_rms', label: 'Ic (RMS)', unit: 'A' },
+	// The trigger quantity itself: deepest phase voltage in per unit. A dip
+	// below 0.9 here is exactly what wakes the extraction worker.
+	{ value: 'v_pu', label: 'Sag (min V)', unit: 'pu' },
 ];
 
 function StatusPill({ status }: { status: SignalConnectionStatus }) {
@@ -78,6 +89,10 @@ interface LiveSignalChartProps {
 	metric: SignalMetric;
 	onMetricChange: (metric: SignalMetric) => void;
 	busId: string | null;
+	/** Buses currently publishing to `raw.signals` — discovered from live traffic. */
+	buses: string[];
+	onBusChange: (busId: string) => void;
+	busesPending?: boolean;
 }
 
 export function LiveSignalChart({
@@ -86,6 +101,9 @@ export function LiveSignalChart({
 	metric,
 	onMetricChange,
 	busId,
+	buses,
+	onBusChange,
+	busesPending = false,
 }: LiveSignalChartProps) {
 	const active = SIGNAL_METRICS.find((m) => m.value === metric) ?? SIGNAL_METRICS[0];
 
@@ -98,35 +116,64 @@ export function LiveSignalChart({
 		[readings, metric]
 	);
 
+	// Held still on a quiet bus, opened up by a fault — see signalDomain for why
+	// recharts' own auto-fit is the wrong tool for a live feed.
+	const domain = useMemo(
+		() => signalDomain(data.map((point) => point.value), active.unit),
+		[data, active.unit]
+	);
+	const decimals = domain ? signalDecimals(domain, active.unit) : undefined;
+
 	return (
 		<section className="border-border/60 bg-card rounded-lg border">
 			<header className="border-border/60 flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
 				<div className="flex items-center gap-2">
 					<Activity className="text-muted-foreground size-4" />
 					<h2 className="text-sm font-semibold">Live signal</h2>
-					{busId && (
-						<span className="text-muted-foreground font-mono text-xs">
-							{busId}
-						</span>
-					)}
 					{busId && <StatusPill status={status} />}
 				</div>
 
-				<Select
-					value={metric}
-					onValueChange={(value) => onMetricChange(value as SignalMetric)}
-				>
-					<SelectTrigger className="h-8 w-40 text-xs" aria-label="Signal metric">
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						{SIGNAL_METRICS.map((option) => (
-							<SelectItem key={option.value} value={option.value}>
-								{option.label} ({option.unit})
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+				{/* Which bus, then which quantity of it. Both selectors belong to the
+				    chart and to nothing else on the page, so they sit on it. */}
+				<div className="flex items-center gap-2">
+					<Select
+						value={busId ?? ''}
+						onValueChange={onBusChange}
+						disabled={buses.length === 0}
+					>
+						<SelectTrigger
+							className="h-8 w-36 font-mono text-xs"
+							aria-label="Select bus"
+						>
+							<SelectValue
+								placeholder={busesPending ? 'Loading buses…' : 'No buses live'}
+							/>
+						</SelectTrigger>
+						<SelectContent>
+							{buses.map((bus) => (
+								<SelectItem key={bus} value={bus} className="font-mono">
+									{bus}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+
+					<Select
+						value={metric}
+						onValueChange={(value) => onMetricChange(value as SignalMetric)}
+					>
+						<SelectTrigger className="h-8 w-40 text-xs" aria-label="Signal metric">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{SIGNAL_METRICS.map((option) => (
+								<SelectItem key={option.value} value={option.value}>
+									{option.label} ({option.unit})
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
 			</header>
 
 			<div className="h-72 p-4">
@@ -146,7 +193,7 @@ export function LiveSignalChart({
 							<p className="mt-1 text-xs">
 								Nothing is publishing to{' '}
 								<code className="font-mono">raw.signals</code> yet. Run{' '}
-								<code className="font-mono">scripts/produce_signals.py</code> to
+								<code className="font-mono">scripts/produce_waveforms.py</code> to
 								drive the feed.
 							</p>
 						</div>
@@ -155,7 +202,7 @@ export function LiveSignalChart({
 					<ResponsiveContainer width="100%" height="100%">
 						<LineChart
 							data={data}
-							margin={{ top: 4, right: 8, bottom: 0, left: -12 }}
+							margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
 						>
 							<CartesianGrid
 								strokeDasharray="3 3"
@@ -175,8 +222,9 @@ export function LiveSignalChart({
 								tick={{ fontSize: 11 }}
 								tickLine={false}
 								axisLine={false}
-								width={56}
-								domain={['auto', 'auto']}
+								width={64}
+								domain={domain ?? ['auto', 'auto']}
+								tickFormatter={(value) => formatSignalValue(value, active.unit, decimals)}
 							/>
 							<Tooltip
 								contentStyle={{
@@ -188,7 +236,7 @@ export function LiveSignalChart({
 								}}
 								labelStyle={{ color: 'var(--muted-foreground)' }}
 								formatter={(value) => [
-									`${Number(value ?? 0).toFixed(2)} ${active.unit}`,
+									`${formatSignalValue(value, active.unit, decimals)} ${active.unit}`,
 									active.label,
 								]}
 							/>

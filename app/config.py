@@ -27,9 +27,9 @@ class Config(CustomBaseSettings):
 
     # Async URL is what the app + Alembic actually use; sync is kept for tooling.
     DATABASE_ASYNC_URL: str = Field(
-        default="postgresql+asyncpg://postgres:postgres@localhost:5432/mafd"
+        default="postgresql+asyncpg://postgres:postgres@localhost:5433/mafd"
     )
-    DATABASE_URL: str = Field(default="postgresql+psycopg://postgres:postgres@localhost:5432/mafd")
+    DATABASE_URL: str = Field(default="postgresql+psycopg://postgres:postgres@localhost:5433/mafd")
     DATABASE_POOL_SIZE: int = 16
     DATABASE_POOL_TTL: int = 60 * 20  # 20 minutes
     DATABASE_POOL_PRE_PING: bool = True

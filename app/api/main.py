@@ -8,6 +8,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.assignments.router import operators_router
+from app.assignments.router import router as assignments_router
 from app.config import app_configs, settings
 from app.faults.router import router as faults_router
 from app.notification.router import router as notification_router
@@ -89,6 +91,8 @@ app.include_router(faults_router)
 app.include_router(notification_router)
 app.include_router(streaming_router)
 app.include_router(tickets_router)
+app.include_router(assignments_router)
+app.include_router(operators_router)
 
 
 @app.get("/health")

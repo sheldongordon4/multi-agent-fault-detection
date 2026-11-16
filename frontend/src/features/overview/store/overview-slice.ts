@@ -26,7 +26,7 @@ export const createOverviewSlice: StateCreator<
 	OverviewSlice
 > = (set) => ({
 	selectedBusId: null,
-	signalMetric: 'voltage_kv',
+	signalMetric: 'Va_rms',
 	setSelectedBusId: (busId) => set({ selectedBusId: busId }),
 	setSignalMetric: (metric) => set({ signalMetric: metric }),
 });

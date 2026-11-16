@@ -86,7 +86,7 @@ describe('deriveParishSeverity', () => {
 			ticket({ incident_id: 'a', bus_id: 'b650', severity: 'low' }),
 			ticket({ incident_id: 'b', bus_id: 'b650', severity: 'high' }),
 		]);
-		expect(deriveParishSeverity(statuses).Kingston).toBe('high');
+		expect(deriveParishSeverity(statuses).Portland).toBe('high');
 	});
 
 	it('omits parishes with nothing active, so only faulted ones get labelled', () => {

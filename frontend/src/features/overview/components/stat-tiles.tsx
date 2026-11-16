@@ -1,4 +1,4 @@
-import { Activity, ShieldAlert, TriangleAlert, Waves } from 'lucide-react';
+import { Activity, ShieldAlert, TriangleAlert, Users, Waves } from 'lucide-react';
 import { cn } from '@shared/lib/utils';
 import { Skeleton } from '@shared/components/ui/skeleton';
 
@@ -58,16 +58,19 @@ export function StatTiles({
 	high,
 	medium,
 	low,
+	customersAffected,
 	isPending,
 }: {
 	total: number;
 	high: number;
 	medium: number;
 	low: number;
+	/** Null when no open incident sits at a bus with a known customer count. */
+	customersAffected: number | null;
 	isPending: boolean;
 }) {
 	return (
-		<div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+		<div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
 			<StatTile
 				label="Total incidents"
 				value={total}
@@ -97,6 +100,23 @@ export function StatTiles({
 				icon={Activity}
 				tone="success"
 				hint="Informational"
+				isPending={isPending}
+			/>
+			<StatTile
+				label="Customers affected"
+				// Renders 0 rather than "None", so all five tiles read as one row of
+				// counts instead of four numbers and a word. The hint is what says
+				// WHICH empty this is — 0 on its own would claim a fault is out
+				// there affecting nobody, when the real meaning is that no
+				// unresolved incident sits at a bus with a known customer count.
+				value={(customersAffected ?? 0).toLocaleString()}
+				icon={Users}
+				tone={customersAffected ? 'high' : 'default'}
+				hint={
+					customersAffected
+						? 'Downstream of open faults'
+						: 'No open fault at a mapped bus'
+				}
 				isPending={isPending}
 			/>
 		</div>

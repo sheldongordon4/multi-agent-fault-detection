@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { TriangleAlert } from 'lucide-react';
+import { ClipboardList, LayoutDashboard, TriangleAlert } from 'lucide-react';
 
 import { type NavItem } from '../../types';
 import AppLogo from './app-logo';
@@ -17,7 +17,9 @@ import {
 } from '../ui/sidebar';
 
 const mainNavItems: NavItem[] = [
-	{ title: 'Incidents', href: '/', icon: TriangleAlert },
+	{ title: 'Overview', href: '/overview', icon: LayoutDashboard },
+	{ title: 'Incidents', href: '/incidents', icon: TriangleAlert },
+	{ title: 'Assignments', href: '/assignments', icon: ClipboardList },
 ];
 
 export function AppSidebar() {

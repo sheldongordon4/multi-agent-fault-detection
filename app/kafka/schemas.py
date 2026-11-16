@@ -12,7 +12,24 @@ class KafkaPayload(BaseModel):
 
 
 class RawSignal(KafkaPayload):
+    """
+    One cycle of 3-phase waveform for one bus (see app/ml/waveform.py).
+
+    Replaces the old single-magnitude SCADA reading: sequence ratios (I0/I1,
+    I2/I1) need all three phases, so a scalar `current_a` could never feed
+    detection (docs/System_Architecture.md Open Decision #6). Batched per cycle
+    rather than per sample to keep the topic at ~60 msg/s/bus instead of ~2k.
+    """
+
     bus_id: str
+    t0: float = Field(description="Epoch seconds of the first sample in the frame.")
+    fs: float = Field(gt=0, description="Sample rate in Hz.")
+    Va: list[float] = Field(default_factory=list)
+    Vb: list[float] = Field(default_factory=list)
+    Vc: list[float] = Field(default_factory=list)
+    Ia: list[float] = Field(default_factory=list)
+    Ib: list[float] = Field(default_factory=list)
+    Ic: list[float] = Field(default_factory=list)
 
 
 class FeederEvent(KafkaPayload):

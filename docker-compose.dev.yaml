@@ -8,7 +8,7 @@ services:
   db:
     image: postgres:18.1-alpine
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -76,7 +76,7 @@ services:
         condition: service_started
     ports:
       - "8000:8000"
-    # .env supplies secrets (e.g. AZURE_OPENAI_*); optional so the stack still
+    # .env supplies secrets (e.g. LLM_API_KEY); optional so the stack still
     # boots (local heuristic fallback) without one.
     env_file:
       - path: .env

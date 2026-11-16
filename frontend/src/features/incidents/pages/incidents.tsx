@@ -6,16 +6,11 @@ import { useStore } from '@app/store';
 import { useIsMobile } from '@shared/hooks/use-mobile';
 import { Button } from '@shared/components/ui/button';
 import { GridMapCanvas } from '@features/map/components/grid-map-canvas';
-import {
-	IncidentDetail,
-	IncidentDetailError,
-	IncidentDetailSkeleton,
-} from '../components/incident-detail';
+// The map and the assignments board open the SAME ticket panel — see its
+// docstring. Diagnosis is one of its tabs, so incident-detail is no longer
+// rendered here directly.
+import { AssignmentDetailPanel } from '@features/assignments/components/assignment-detail-panel';
 import { IncidentListSheet } from '../components/incident-list-sheet';
-import {
-	OverviewDrawer,
-	type DrawerDetent,
-} from '../components/overview-drawer';
 import { useFetchIncident } from '../hooks/use-fetch-incident';
 import { useFetchIncidents } from '../hooks/use-fetch-incidents';
 import { filterIncidents } from '../utils/helpers';
@@ -39,10 +34,6 @@ export default function Incidents() {
 
 	const [hoveredBusId, setHoveredBusId] = useState<string | null>(null);
 	const [listCollapsed, setListCollapsed] = useState(false);
-	const [drawerIndex, setDrawerIndex] = useState<DrawerDetent>(0);
-	// Reported at rest only, so siblings reflow once per detent rather than per
-	// drag frame.
-	const [drawerHeight, setDrawerHeight] = useState(0);
 	const isMobile = useIsMobile();
 	const reducedMotion = useReducedMotion();
 
@@ -60,12 +51,9 @@ export default function Incidents() {
 		refetch: refetchList,
 	} = useFetchIncidents();
 
-	const {
-		incident,
-		isPending: detailPending,
-		isError: detailError,
-		refetch: refetchDetail,
-	} = useFetchIncident(selectedIncidentId);
+	// Only for the camera: the panel fetches its own copy (and the request is
+	// deduped by react-query, so this costs nothing extra).
+	const { incident } = useFetchIncident(selectedIncidentId);
 
 	const visibleIncidents = useMemo(
 		() => filterIncidents(incidents, { search, severity, status, bus }),
@@ -96,12 +84,12 @@ export default function Incidents() {
 				? { top: 8, bottom: 32, left: 8, right: 8 }
 				: {
 						top: EDGE_GUTTER,
-						// Clear the drawer as well as the attribution control.
-						bottom: EDGE_GUTTER + 24 + drawerHeight,
+						// Clears MapLibre's attribution control.
+						bottom: EDGE_GUTTER + 24,
 						left: LIST_PANEL_WIDTH + EDGE_GUTTER,
 						right: detailOpen ? DETAIL_PANEL_WIDTH + EDGE_GUTTER : EDGE_GUTTER,
 					},
-		[detailOpen, isMobile, drawerHeight]
+		[detailOpen, isMobile]
 	);
 
 	const closeDetail = () => void navigate('/incidents');
@@ -123,12 +111,7 @@ export default function Incidents() {
 			{/* Layer 2 — the collapsible list sheet, anchored bottom-left. */}
 			<div
 				className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-full p-4 md:p-6"
-				// The drawer spans the full width, so without this the list's lower
-				// edge would sit underneath it.
-				style={{
-					maxWidth: LIST_PANEL_WIDTH + EDGE_GUTTER,
-					paddingBottom: drawerHeight + 16,
-				}}
+				style={{ maxWidth: LIST_PANEL_WIDTH + EDGE_GUTTER }}
 			>
 				<IncidentListSheet
 					incidents={visibleIncidents}
@@ -148,21 +131,8 @@ export default function Incidents() {
 				/>
 			</div>
 
-			{/* Layer 3 — the overview drawer: full width, rises over map and list. */}
-			{/* No horizontal padding: the drawer runs edge to edge so nothing shows
-			    through beside it when it's open. Its own sections carry the inner
-			    padding instead. */}
-			<div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 h-full">
-				<OverviewDrawer
-					incidents={incidents}
-					isPending={listPending}
-					index={drawerIndex}
-					onIndexChange={setDrawerIndex}
-					onHeightChange={setDrawerHeight}
-				/>
-			</div>
 
-			{/* Layer 4 — floating detail panel, only while a ticket is selected. */}
+			{/* Layer 3 — floating detail panel, only while a ticket is selected. */}
 			<AnimatePresence>
 				{detailOpen && (
 					<motion.div
@@ -193,16 +163,20 @@ export default function Incidents() {
 								</Button>
 							</div>
 
-							{/* `@container` so the detail's grids size against THIS panel
-							    rather than the viewport — a `sm:` breakpoint would fire off
-							    the window width and cram 4 columns into ~470px. */}
-							<div className="@container min-h-0 flex-1 overflow-y-auto">
-								{detailPending && <IncidentDetailSkeleton />}
-								{!detailPending && (detailError || !incident) && (
-									<IncidentDetailError onRetry={() => void refetchDetail()} />
-								)}
-								{!detailPending && !detailError && incident && (
-									<IncidentDetail incident={incident} />
+							{/* The same panel the assignments board opens: Work, Diagnosis
+							    and Activity. Sharing it means an operator can take ownership of
+							    a fault without leaving the map, and there is exactly one place
+							    where a ticket's detail is defined. It opens on Diagnosis here —
+							    clicking a pin asks what the fault is, not who owns it. */}
+							<div className="min-h-0 flex-1 overflow-hidden">
+								{selectedIncidentId && (
+									<AssignmentDetailPanel
+										incidentId={selectedIncidentId}
+										onClose={closeDetail}
+										showCloseButton={false}
+										showMapLink={false}
+										defaultTab="diagnosis"
+									/>
 								)}
 							</div>
 						</FloatingPanel>

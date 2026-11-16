@@ -2,14 +2,14 @@
 
 `docker-compose.dev.yaml` brings up the full local stack: **Postgres** (persistence),
 **Kafka** (event bus, KRaft mode — no ZooKeeper), **Kafdrop** (topic inspection UI),
-and the **app** (FastAPI API + the 5 Kafka consumer groups).
+and the **app** (FastAPI API + the 6 Kafka consumer groups).
 
 ## Services & ports
 
 | Service | Port (host) | Notes |
 | ------- | ----------- | ----- |
 | `app` | `8000` | FastAPI + consumers; `/health`, `/ready`, `/docs` |
-| `db` | `5432` | Postgres 18 (`postgres` / `postgres`, db `mafd`) |
+| `db` | `5433` | Postgres 18 (`postgres` / `postgres`, db `mafd`); in-network clients use `db:5432` |
 | `kafka` | `29092` | EXTERNAL listener for host clients; in-network clients use `kafka:9092` |
 | `kafdrop` | `9000` | browse topics, partitions, and the `.dlq` dead-letter topics |
 
@@ -21,7 +21,9 @@ starts uvicorn.
 
 ```bash
 docker compose -f docker-compose.dev.yaml up -d --build
-# drive the pipeline from the host (replays pre-reduced event rows onto feeder.events):
+# drive the whole chain from the host, starting at raw.signals:
+.venv/bin/python scripts/produce_waveforms.py --fault SLG
+# or skip extraction and replay pre-reduced rows onto feeder.events:
 .venv/bin/python scripts/produce_events.py
 ```
 
@@ -29,7 +31,7 @@ Check readiness and watch the pipeline:
 
 ```bash
 curl -fsS http://localhost:8000/ready     # {"ready": true, "checks": {...}}
-# open http://localhost:9000 (Kafdrop) to see feeder.events → anomalies.detected → faulttickets
+# open http://localhost:9000 (Kafdrop) to see raw.signals → feeder.events → anomalies.detected → faulttickets
 ```
 
 ## Infra in Docker, app on the host
@@ -42,12 +44,18 @@ docker compose -f docker-compose.dev.yaml up -d db kafka kafdrop
 alembic -c app/alembic.ini upgrade head          # Alembic owns the schema
 .venv/bin/python scripts/bootstrap.py            # topics + models + Chroma KB
 uvicorn app.api.main:app --reload                # host talks to kafka on localhost:29092
-.venv/bin/python scripts/produce_events.py
+.venv/bin/python scripts/produce_waveforms.py --fault SLG
 ```
 
 > Don't run the host `uvicorn` **and** the container `app` at once — they share Kafka
-> `group.id`s and both bind port 8000. Also note a native host Postgres on `:5432`
-> can shadow the container's.
+> `group.id`s and both bind port 8000.
+>
+> The container DB is published on **`5433`**, not 5432, precisely so a native host
+> Postgres can't shadow it. Host clients (the app on the host, `alembic`, psql) use
+> `localhost:5433`; in-container clients use `db:5432`. If you point a host client at
+> 5432 you may silently reach a *different* database — and the real-DB integration
+> tests skip rather than fail when nothing is listening, so check for `skipped` in
+> the pytest summary.
 
 ## Configuration
 

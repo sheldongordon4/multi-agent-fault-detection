@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { TicketSummary } from '@shared/types';
 import {
+	FAULT_TYPES,
+	SEVERITY_RANK,
+	faultTypeInfo,
 	filterIncidents,
 	formatFaultCode,
 	normalizeSeverity,
 	normalizeStatus,
-	SEVERITY_RANK,
 } from './helpers';
 
 function ticket(over: Partial<TicketSummary> = {}): TicketSummary {
@@ -122,5 +124,50 @@ describe('formatFaultCode', () => {
 
 	it('has a fallback for missing values', () => {
 		expect(formatFaultCode(null)).toBeTruthy();
+	});
+});
+
+describe('fault type taxonomy', () => {
+	// Every label the classifier can emit (app/ml/fault_classifier.py, trained on
+	// the `target_fault_type` column). If the model gains a class and this map
+	// does not, the UI silently shows "Unclassified" for a fault it understood.
+	const CLASSIFIER_LABELS = [
+		'SLG',
+		'LL',
+		'LLG',
+		'LLL',
+		'LLLG',
+		'OPEN_1PH',
+		'OPEN_2PH',
+		'OPEN_3PH',
+	];
+
+	it('describes every fault type the classifier can emit', () => {
+		const missing = CLASSIFIER_LABELS.filter((code) => !(code in FAULT_TYPES));
+		expect(missing).toEqual([]);
+	});
+
+	it('reads the code out of the prose the backend stores', () => {
+		// fault_type arrives as "SLG near b671 (~0.4 km)", not a bare code.
+		expect(faultTypeInfo('SLG near b671 (~0.4 km)').name).toBe(
+			'Single line-to-ground'
+		);
+		expect(faultTypeInfo('OPEN_1PH near b650').name).toContain('Open conductor');
+	});
+
+	it('falls back rather than throwing on anything unrecognised', () => {
+		for (const value of [null, undefined, '', 'NOT_A_FAULT']) {
+			expect(faultTypeInfo(value).name).toBe('Unclassified');
+		}
+	});
+
+	it('gives every entry a description and a signature', () => {
+		// The signature is the "why did it decide that" line — an entry without
+		// one silently degrades the tooltip to a name and a number.
+		for (const [code, info] of Object.entries(FAULT_TYPES)) {
+			expect(info.name, `${code} name`).toBeTruthy();
+			expect(info.description.length, `${code} description`).toBeGreaterThan(20);
+			expect(info.signature.length, `${code} signature`).toBeGreaterThan(10);
+		}
 	});
 });

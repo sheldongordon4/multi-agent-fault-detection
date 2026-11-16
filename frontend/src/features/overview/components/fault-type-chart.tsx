@@ -12,6 +12,7 @@ import {
 import { BarChart3 } from 'lucide-react';
 import type { TicketSummary } from '@shared/types';
 import {
+	faultTypeInfo,
 	formatFaultCode,
 	normalizeSeverity,
 } from '@features/incidents/utils/helpers';
@@ -20,6 +21,59 @@ const severityColor: Record<string, string> = {
 	high: 'var(--destructive)',
 	medium: 'var(--warning)',
 	low: 'var(--success)',
+};
+
+
+type Datum = { code: string; count: number; worst: string };
+
+/**
+ * What the bar actually means.
+ *
+ * `SLG` and `OPEN_2PH` are unreadable unless you already know them, so the
+ * tooltip leads with the full name, says what physically happened, and names the
+ * signature the classifier keyed on. The last part is the useful one: it answers
+ * "why did it decide that", which a bare count never does.
+ */
+function FaultTooltip({
+	active,
+	payload,
+}: {
+	active?: boolean;
+	payload?: { payload: Datum }[];
+}) {
+	if (!active || !payload?.length) return null;
+
+	const datum = payload[0].payload;
+	const info = faultTypeInfo(datum.code);
+
+	return (
+		<div className="border-border bg-popover text-popover-foreground max-w-[280px] rounded-md border p-3 shadow-md">
+			<div className="flex items-baseline gap-2">
+				<span className="font-mono text-xs font-semibold">{datum.code}</span>
+				<span className="text-muted-foreground text-[11px] tracking-wide uppercase">
+					{severityLabel[datum.worst] ?? datum.worst}
+				</span>
+				<span className="ml-auto font-mono text-sm font-semibold tabular-nums">
+					{datum.count}
+				</span>
+			</div>
+
+			<p className="mt-1 text-sm font-medium">{info.name}</p>
+			<p className="text-muted-foreground mt-1 text-xs leading-5">
+				{info.description}
+			</p>
+
+			<p className="border-border/60 text-muted-foreground mt-2 border-t pt-2 text-[11px] leading-4 italic">
+				{info.signature}
+			</p>
+		</div>
+	);
+}
+
+const severityLabel: Record<string, string> = {
+	high: 'worst: high',
+	medium: 'worst: medium',
+	low: 'worst: low',
 };
 
 /**
@@ -94,14 +148,11 @@ export function FaultTypeChart({ incidents }: { incidents: TicketSummary[] }) {
 							/>
 							<Tooltip
 								cursor={{ fill: 'var(--accent)', opacity: 0.4 }}
-								contentStyle={{
-									background: 'var(--popover)',
-									border: '1px solid var(--border)',
-									borderRadius: 'var(--radius)',
-									color: 'var(--popover-foreground)',
-									fontSize: 12,
-								}}
-								formatter={(value) => [Number(value ?? 0), 'Incidents']}
+								content={<FaultTooltip />}
+								// Codes are short and the descriptions are not, so the default
+								// hug-the-cursor placement would push the panel off the right
+								// edge on the last few bars.
+								wrapperStyle={{ outline: 'none' }}
 							/>
 							<Bar dataKey="count" radius={[3, 3, 0, 0]} isAnimationActive={false}>
 								{data.map((entry) => (

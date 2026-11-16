@@ -1,19 +1,27 @@
 """
-coordinator.py - the MAFD Coordinator agent graph.
+agent.py - the MAFD Coordinator agent graph.
 
-A LangGraph ReAct loop: an Azure OpenAI chat model (the gpt-5.4-mini deployment)
-bound to the kb_retrieve tool (SOP RAG over the local vector DB). Detection runs
-upstream (the event IsolationForest) and arrives as a trigger, so the coordinator's
-only tool is SOP retrieval. The model retrieves SOPs, then emits a single
-FaultTicket JSON object (parsed + validated downstream in
-coordinator_service._coerce_to_ticket).
+A LangGraph ReAct loop: a chat model (Google AI Studio's Gemini by default — see
+app/faults/config.py) bound to the kb_retrieve tool (SOP RAG over the local
+vector DB). Detection runs upstream (the event IsolationForest) and arrives as a
+trigger, so the coordinator's only tool is SOP retrieval. The model retrieves
+SOPs, then emits a single FaultTicket JSON object (parsed + validated downstream
+in faults_service._coerce_to_ticket).
+
+The client comes from build_chat_model(): the native ChatGoogleGenerativeAI for
+Google, ChatOpenAI on a configurable base_url for everything else. Google needs
+its own class because Gemini 3.x requires a thought_signature echoed back with
+each tool result and the OpenAI chat-completions format has no field to carry it
+— see the note on build_chat_model below. For every OTHER provider, changing
+provider really is a change of endpoint/key/model and nothing else.
 
 The graph is built lazily via build_coordinator_graph() so importing this module
-never requires Azure credentials; it is only constructed when Azure is configured
-(see coordinator_service.USE_LOCAL_FALLBACK).
+never requires credentials; it is only constructed when an endpoint is configured
+(see faults_service.USE_LOCAL_FALLBACK).
 
 """
 
+from langchain_core.language_models import BaseChatModel
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain_openai import ChatOpenAI
 from langgraph.graph import MessagesState, StateGraph
@@ -27,9 +35,10 @@ from .tools import kb_retrieve
 TOOLS = [kb_retrieve]
 
 # Process-wide client-side throttle: a token bucket that caps how often the
-# coordinator may call the LLM, so a burst of anomaly events can't blow the Azure
-# quota / student credit. requests_per_second is the steady refill rate;
-# max_bucket_size is the allowed burst. Tune to your deployment's RPM limit.
+# coordinator may call the LLM, so a burst of anomaly events can't blow the
+# provider's quota — which on a free tier is a per-minute request limit, not a
+# bill. requests_per_second is the steady refill rate; max_bucket_size is the
+# allowed burst. Tune to your endpoint's RPM limit.
 _RATE_LIMITER = InMemoryRateLimiter(
     requests_per_second=settings.LLM_REQUESTS_PER_SECOND,
     check_every_n_seconds=0.1,
@@ -37,19 +46,68 @@ _RATE_LIMITER = InMemoryRateLimiter(
 )
 
 
-def _make_llm() -> ChatOpenAI:
+def build_chat_model(
+    *,
+    max_retries: int,
+    max_tokens: int,
+    rate_limiter=_RATE_LIMITER,
+) -> BaseChatModel:
     """
-    Chat model for the coordinator (Azure deployment via config), rate-limited and
-    with bounded retries + a request timeout so a slow/failing call can't hang the
-    consumer or retry forever.
+    Chat model for the coordinator (endpoint/key/model from config), rate-limited
+    and with bounded retries + a request timeout so a slow/failing call can't hang
+    the consumer or retry forever.
+
+    TWO CLIENTS, ONE CONFIG
+    -----------------------
+    Google needs its own client; everyone else gets `ChatOpenAI` on a base_url.
+    That is not a preference, it is a protocol limit:
+
+    Gemini 3.x attaches an opaque `thought_signature` to every function call and
+    requires it echoed back when the tool result is returned, so the model can
+    resume its reasoning. The OpenAI chat-completions format has no field to
+    carry it - its tool calls are stateless (id, name, arguments). So a single
+    call over the compatibility layer SUCCEEDS and a tool LOOP fails on the
+    second request:
+
+        400 INVALID_ARGUMENT - Function call is missing a thought_signature in
+        functionCall parts ... position 2
+
+    This coordinator is a ReAct loop, so it is always multi-turn. Gemini 2.x
+    predates the requirement but is closed to new API projects, so there is no
+    older model to fall back to - the native client is the only route.
+
+    Everything else (Azure, OpenRouter, Groq, a self-hosted vLLM or Ollama)
+    keeps the OpenAI-compatible path, so `LLM_ENDPOINT` stays the whole story
+    for them.
     """
+    if settings.resolved_provider == "google":
+        # Imported lazily: the OpenAI path must not require this package.
+        from langchain_google_genai import ChatGoogleGenerativeAI
+
+        return ChatGoogleGenerativeAI(
+            model=settings.LLM_MODEL,
+            google_api_key=settings.LLM_API_KEY,
+            rate_limiter=rate_limiter,
+            max_retries=max_retries,
+            timeout=settings.LLM_TIMEOUT_SECONDS,
+            max_output_tokens=max_tokens,
+        )
+
     return ChatOpenAI(
-        base_url=settings.AZURE_OPENAI_ENDPOINT,
-        api_key=settings.AZURE_OPENAI_API_KEY,
-        model=settings.AZURE_OPENAI_DEPLOYMENT,
-        rate_limiter=_RATE_LIMITER,
-        max_retries=settings.LLM_MAX_RETRIES,
+        base_url=settings.LLM_ENDPOINT,
+        api_key=settings.LLM_API_KEY,
+        model=settings.LLM_MODEL,
+        rate_limiter=rate_limiter,
+        max_retries=max_retries,
         timeout=settings.LLM_TIMEOUT_SECONDS,
+        max_tokens=max_tokens,
+    )
+
+
+def _make_llm() -> BaseChatModel:
+    """The coordinator's own client, built from config."""
+    return build_chat_model(
+        max_retries=settings.LLM_MAX_RETRIES,
         max_tokens=settings.LLM_MAX_OUTPUT_TOKENS,
     )
 
