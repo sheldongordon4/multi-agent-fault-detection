@@ -1,10 +1,10 @@
 # API Reference — Multi-Agent Fault Detection (MAFD)
 
-FastAPI endpoints exposed by `app.api.main`. The authoritative system design is
+FastAPI endpoints exposed by `backend.api.main`. The authoritative system design is
 `docs/System_Architecture.md`; most work flows through Kafka, not HTTP, so this
 surface is intentionally small.
 
-Base app: `uvicorn app.api.main:app`. Interactive docs at `/docs`.
+Base app: `uvicorn backend.api.main:app`. Interactive docs at `/docs`.
 
 ---
 
@@ -76,7 +76,7 @@ item is a `TicketSummary`: `incident_id`, `ticket_id`, `scenario`, `bus_id`,
 `customers_affected` and `customers_share`.
 
 > `customers_affected` / `customers_share` are **derived from `bus_id` on read**
-> (`app/persistence/service.py::_with_impact`), not stored columns — so the list
+> (`backend/persistence/service.py::_with_impact`), not stored columns — so the list
 > can rank by impact without unpacking every ticket's `raw`, and a ticket
 > diagnosed before the customer table existed still reports one.
 
@@ -97,7 +97,7 @@ need not track what it asked for. Each item: `bus_id`, `fault_code`,
 `occurrences`, `first_seen`, `last_seen`, `worst_severity`,
 `customers_affected`, `mean_days_between`, `recent_incident_ids[]`.
 
-> Declared **before** `/{incident_id}` in `app/persistence/router.py`: FastAPI
+> Declared **before** `/{incident_id}` in `backend/persistence/router.py`: FastAPI
 > matches in declaration order, so the path parameter would otherwise capture
 > `repeat-offenders` as an incident id and answer `404`.
 
@@ -222,5 +222,5 @@ one chronological list. **Response** `200` — `AssignmentEventListResponse`.
   terminal can act as anyone. That is the right size for a shared control-room
   terminal and is *not* an audit trail; real identity would be SSO against the
   utility's directory.
-- Tables are owned by Alembic: `alembic -c app/alembic.ini upgrade head`.
+- Tables are owned by Alembic: `alembic -c backend/alembic.ini upgrade head`.
 - The Kafka consumer workers start with the app lifespan when `KAFKA_ENABLED=true`.

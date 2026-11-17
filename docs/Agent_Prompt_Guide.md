@@ -1,8 +1,8 @@
 # Agent Prompt Guide — MAFD
 
 How the Coordinator agent is prompted. Authoritative design:
-`docs/System_Architecture.md`; agent internals: `docs/Agent_Architecture.md`. The
-live system prompt is `app/faults/constants.py` (`SYSTEM_PROMPT`) — treat that file
+`docs/System_Architecture.md`; agent internals: `AGENT_ARCHITECTURE.md`. The
+live system prompt is `backend/faults/constants.py` (`SYSTEM_PROMPT`) — treat that file
 as the source of truth; this guide explains it.
 
 ## Coordinator role (detection-as-trigger)
@@ -37,7 +37,7 @@ When detection attaches a supervised `classification` (`fault_type` /
 
 ## Output schema
 
-See `FaultTicket` in `app/faults/schemas.py`: `ticket_id`, `scenario`, `bus_id`,
+See `FaultTicket` in `backend/faults/schemas.py`: `ticket_id`, `scenario`, `bus_id`,
 `fault_type`, `severity` (`low|medium|high`), `status`, `summary`, `root_cause`,
 `recommended_actions[]`, `evidence[]`, `kb_citations[]`, `created_at`. Severity and
 status are coerced tolerantly (synonyms mapped; unknown values fall back to a safe

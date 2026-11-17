@@ -48,7 +48,7 @@ from scripts.load_testbed import feature_columns  # noqa: E402
 # Check if Azure is configured for LLM latency measurement
 MEASURE_LLM_LATENCY = False
 try:
-    from app.faults.config import FaultsConfig
+    from backend.faults.config import FaultsConfig
     faults_config = FaultsConfig()
     MEASURE_LLM_LATENCY = faults_config.azure_configured
 except Exception:
@@ -92,7 +92,7 @@ def _load_data() -> tuple[np.ndarray, pd.DataFrame, np.ndarray, list[str]]:
 
 
 def _build_local_ticket(detection: dict) -> dict:
-    """Heuristic fallback ticket (replicates app/faults/service.py path)."""
+    """Heuristic fallback ticket (replicates backend/faults/service.py path)."""
     verdict    = detection.get("verdict", {})
     feeder     = detection.get("feeder", "unknown")
     severity   = verdict.get("severity", "medium")
@@ -133,7 +133,7 @@ def _measure_llm_path(detections: list[dict]) -> LatencySummary | None:
     
     print("[step4] Measuring LLM path latency...")
     try:
-        from app.faults.service import run_fault_diagnosis
+        from backend.faults.service import run_fault_diagnosis
     except ImportError as e:
         print(f"[step4] WARNING: Could not import run_fault_diagnosis: {e}", file=sys.stderr)
         return None

@@ -23,7 +23,7 @@ SCRIPT_DIR = REPO_ROOT / "scripts"
 # Check if Azure is configured for LLM latency measurement
 MEASURE_LLM_LATENCY = False
 try:
-    from app.faults.config import FaultsConfig
+    from backend.faults.config import FaultsConfig
     faults_config = FaultsConfig()
     MEASURE_LLM_LATENCY = faults_config.azure_configured
 except Exception:
@@ -77,7 +77,7 @@ def _measure_llm_latency() -> None:
         import numpy as np
         import pandas as pd
         from sklearn.ensemble import IsolationForest, RandomForestClassifier
-        from app.faults.service import run_fault_diagnosis
+        from backend.faults.service import run_fault_diagnosis
         from scripts.load_testbed import feature_columns, load_testbed
         
         # Load data (same as step 4)

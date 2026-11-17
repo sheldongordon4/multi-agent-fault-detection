@@ -34,8 +34,8 @@ import sys
 
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
-from app.faults.config import settings
-from app.utils import message_text
+from backend.faults.config import settings
+from backend.utils import message_text
 
 # ---- hard cap on billable calls -------------------------------------------------
 MAX_ENDPOINT_CALLS = 3
@@ -93,7 +93,7 @@ def _make_llm():
     """
     The coordinator's own client factory, with the cost knobs turned down.
 
-    It calls app.faults.agent.build_chat_model rather than constructing a client
+    It calls backend.faults.agent.build_chat_model rather than constructing a client
     here. That is the point: this script previously built its OWN ChatOpenAI,
     so when the coordinator moved to the native Google client the smoke test
     silently kept testing the old path and reported on a client the app no
@@ -102,7 +102,7 @@ def _make_llm():
     max_retries=0 matters for the call cap - retries happen INSIDE one invoke(),
     so they would bypass the counter in _guarded_invoke.
     """
-    from app.faults.agent import build_chat_model
+    from backend.faults.agent import build_chat_model
 
     return build_chat_model(max_retries=0, max_tokens=MAX_TOKENS, rate_limiter=None)
 
@@ -142,11 +142,11 @@ def test_2_tool_round_trip(llm) -> bool:
     back; the OpenAI-compat format has nowhere to put it. A one-turn test never
     reaches that, so it reported PASS while the coordinator was unusable.
 
-    This is the shape of the ReAct loop in app/faults/agent.py, minus LangGraph:
+    This is the shape of the ReAct loop in backend/faults/agent.py, minus LangGraph:
     ask -> tool_calls -> run the tool locally -> hand the result back -> answer.
     """
     print("[test 2] tool ROUND TRIP (two turns - this is the one that matters)")
-    from app.faults.tools import kb_retrieve
+    from backend.faults.tools import kb_retrieve
 
     llm_with_tools = llm.bind_tools([kb_retrieve])
     messages = [

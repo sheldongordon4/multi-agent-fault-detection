@@ -14,7 +14,7 @@ if str(ROOT) not in sys.path:
 # Load environment variables from .env (including OPENAI_API_KEY)
 load_dotenv(ROOT / ".env")
 
-from app.rag.vector_store import build_vectordb  # noqa: E402
+from backend.rag.vector_store import build_vectordb  # noqa: E402
 
 
 def main() -> None:

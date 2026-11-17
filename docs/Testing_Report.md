@@ -15,15 +15,15 @@ monkeypatched services for external I/O.
 
 | File | Tests | Covers |
 | ---- | ----- | ------ |
-| `tests/test_api.py` | `test_health`, `test_diagnose_returns_fault_ticket`, `test_notifications_list_with_dependency_override` | `/health`; `POST /faults/diagnose` returns a `FaultTicket` (diagnosis monkeypatched); `GET /notifications` with a DB dependency override |
-| `tests/test_feature_extractor.py` | `test_dft_phasor_recovers_amplitude_and_phase`, `test_phasors_on_balanced_window`, `test_reduced_features_are_finite` | the DSP: single-bin DFT recovers a known amplitude/phase; per-cycle phasors on a balanced 3-phase window; reduced features are always finite (the §11 de-energized-bus guard) |
-| `tests/test_waveform_pipeline.py` | 11 tests | **The live bridge.** The `raw.signals` wire format (expand / RMS / sag gate); the extraction worker with the producer faked; and the CHAIN TEST — waveform samples driven through the real extractor, detector, classifier and coordinator, asserting a valid `FaultTicket` emerges. That last one is the first test to prove a signal can become a ticket |
-| `tests/test_live_chain.py` | 10 tests | **The right diagnosis, not just a diagnosis.** Drives synthetic waveforms through the real extractor gate, DSP, IsolationForest and supervised classifier — no Kafka, no containers — and asserts per fault type that what went in is what comes out, plus that a healthy feeder does not trigger and every fault type reduces to a finite feature row. Every assertion in it corresponds to a bug that was live and *silent*: the pipeline ran, published and ticketed, with the wrong answer |
-| `tests/test_kafka_schemas.py` | 2 tests | `validate_payload` accepts each topic's contract and rejects a malformed payload |
-| `tests/test_kb_retrieval.py` | 16 tests | **SOP retrieval.** One SOP per fault type against the built vector store, the query-expansion contract, provenance survival, and citation re-verification. Skips when `artifacts/kb` is absent |
-| `tests/test_assignments.py` | 18 tests | **Assignments.** Unit: severity → priority/SLA defaults (synonyms included), and the LEFT JOIN projection that makes a missing assignment row read as `unassigned`. Routes: list with a dependency override, `409` on a stale `expected_version`, `404` on an unknown incident, `422` on an unknown field. **Integration against a real Postgres** (skipped when the dev DB isn't listening): the redelivery invariant, implied state transitions, unassignment, explicit-state precedence, no-op patches not bumping the version, open-count excluding terminal work, and comments not silently claiming a ticket. Three of these are review regressions: the priority filter must match the *derived* priority of tickets with no assignment row, an operator override must beat that default, and two concurrent first-writes must not both win |
-| `tests/test_fault_ticket_schema.py` | `test_fault_ticket_instantiation` | `FaultTicket` / `EvidenceWindow` / `KBCitation` validation |
-| `tests/test_health.py` | `test_health_endpoint` | `/health` via `TestClient` |
+| `backend/tests/test_api.py` | `test_health`, `test_diagnose_returns_fault_ticket`, `test_notifications_list_with_dependency_override` | `/health`; `POST /faults/diagnose` returns a `FaultTicket` (diagnosis monkeypatched); `GET /notifications` with a DB dependency override |
+| `backend/tests/test_feature_extractor.py` | `test_dft_phasor_recovers_amplitude_and_phase`, `test_phasors_on_balanced_window`, `test_reduced_features_are_finite` | the DSP: single-bin DFT recovers a known amplitude/phase; per-cycle phasors on a balanced 3-phase window; reduced features are always finite (the §11 de-energized-bus guard) |
+| `backend/tests/test_waveform_pipeline.py` | 11 tests | **The live bridge.** The `raw.signals` wire format (expand / RMS / sag gate); the extraction worker with the producer faked; and the CHAIN TEST — waveform samples driven through the real extractor, detector, classifier and coordinator, asserting a valid `FaultTicket` emerges. That last one is the first test to prove a signal can become a ticket |
+| `backend/tests/test_live_chain.py` | 10 tests | **The right diagnosis, not just a diagnosis.** Drives synthetic waveforms through the real extractor gate, DSP, IsolationForest and supervised classifier — no Kafka, no containers — and asserts per fault type that what went in is what comes out, plus that a healthy feeder does not trigger and every fault type reduces to a finite feature row. Every assertion in it corresponds to a bug that was live and *silent*: the pipeline ran, published and ticketed, with the wrong answer |
+| `backend/tests/test_kafka_schemas.py` | 2 tests | `validate_payload` accepts each topic's contract and rejects a malformed payload |
+| `backend/tests/test_kb_retrieval.py` | 16 tests | **SOP retrieval.** One SOP per fault type against the built vector store, the query-expansion contract, provenance survival, and citation re-verification. Skips when `artifacts/kb` is absent |
+| `backend/tests/test_assignments.py` | 18 tests | **Assignments.** Unit: severity → priority/SLA defaults (synonyms included), and the LEFT JOIN projection that makes a missing assignment row read as `unassigned`. Routes: list with a dependency override, `409` on a stale `expected_version`, `404` on an unknown incident, `422` on an unknown field. **Integration against a real Postgres** (skipped when the dev DB isn't listening): the redelivery invariant, implied state transitions, unassignment, explicit-state precedence, no-op patches not bumping the version, open-count excluding terminal work, and comments not silently claiming a ticket. Three of these are review regressions: the priority filter must match the *derived* priority of tickets with no assignment row, an operator override must beat that default, and two concurrent first-writes must not both win |
+| `backend/tests/test_fault_ticket_schema.py` | `test_fault_ticket_instantiation` | `FaultTicket` / `EvidenceWindow` / `KBCitation` validation |
+| `backend/tests/test_health.py` | `test_health_endpoint` | `/health` via `TestClient` |
 
 The one to keep: **`test_assignment_survives_ticket_redelivery`**. It assigns a
 ticket, re-runs `upsert_ticket` for the same incident (what Kafka's at-least-once
@@ -49,9 +49,9 @@ at the cost that a green run doesn't prove the integration tests ran. Check for
   not on its own terms.
 - **Detector / classifier scoring** — no test calls `detect_event` /
   `classify_event` directly (including the non-finite input guard).
-  `tests/test_live_chain.py` now covers them end-to-end, but through the DSP
+  `backend/tests/test_live_chain.py` now covers them end-to-end, but through the DSP
   rather than on their own terms.
-- **RAG retrieval** — now covered by `tests/test_kb_retrieval.py` (16 tests): one
+- **RAG retrieval** — now covered by `backend/tests/test_kb_retrieval.py` (16 tests): one
   SOP asserted per fault type, operational SOPs not displaced, provenance present,
   and LLM-written citations replaced with authoritative KB text. The graceful
   degradation `[]` path is still unverified.

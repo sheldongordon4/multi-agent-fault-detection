@@ -3,7 +3,7 @@ One-command prep for a local end-to-end run.
 
 Run AFTER the infra is up and the schema is migrated:
     docker compose -f docker-compose.dev.yaml up -d
-    alembic -c app/alembic.ini upgrade head
+    alembic -c backend/alembic.ini upgrade head
     .venv/Scripts/python.exe scripts/bootstrap.py
 
 Creates Kafka topics, trains the ML models if missing, and (re)builds the SOP
@@ -20,12 +20,12 @@ if str(ROOT) not in sys.path:
 
 def main() -> None:
     print("[bootstrap] ensuring Kafka topics...")
-    from app.kafka.admin import ensure_topics
+    from backend.kafka.admin import ensure_topics
 
     ensure_topics()
 
     print("[bootstrap] event detector (train if missing)...")
-    from app.ml.fault_detector import load_testbed_model, train_isoforest_on_testbed
+    from ml.fault_detector import load_testbed_model, train_isoforest_on_testbed
 
     try:
         load_testbed_model()
@@ -34,7 +34,7 @@ def main() -> None:
         train_isoforest_on_testbed("data/generated/normal_train_013.csv")
 
     print("[bootstrap] fault classifier (train if missing)...")
-    from app.ml.fault_classifier import load_classifier, train_classifier
+    from ml.fault_classifier import load_classifier, train_classifier
 
     try:
         load_classifier()
@@ -43,7 +43,7 @@ def main() -> None:
         train_classifier()
 
     print("[bootstrap] building SOP knowledge base (Chroma + bge-small)...")
-    from app.rag.vector_store import get_vectordb
+    from backend.rag.vector_store import get_vectordb
 
     get_vectordb(force_rebuild=True)
 

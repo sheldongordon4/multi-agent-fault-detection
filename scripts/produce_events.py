@@ -3,7 +3,7 @@ Event producer (docs/System_Architecture.md §4.1, event path).
 
 Replays pre-reduced per-bus event rows (the testbed feature schema) onto the
 feeder.events topic, one feeder snapshot at a time. This is the proof-of-concept
-stand-in for the live feature-extraction bridge (app/ml/feature_extractor): its DSP
+stand-in for the live feature-extraction bridge (ml/feature_extractor): its DSP
 is implemented, but the streaming worker that would consume raw.signals and publish
 reduced rows to feeder.events isn't wired to Kafka yet (docs/System_Architecture.md
 §16). So instead of reducing raw 3-phase samples live, we replay rows that are
@@ -31,7 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.kafka import producer, topics  # noqa: E402
+from backend.kafka import producer, topics  # noqa: E402
 
 
 def _row_features(row: dict) -> dict:

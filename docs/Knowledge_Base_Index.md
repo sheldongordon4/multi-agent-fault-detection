@@ -9,7 +9,7 @@ file documents what's in it and how it's built. Authoritative system design:
 Each SOP is a `.md` file with a plain `KEY: value` header (parsed until the first
 blank line) followed by the body. Required header keys are **`ID`** and **`TITLE`**;
 `SECTION` and `URL` are optional. Files missing `ID`/`TITLE` or with an empty body
-are skipped (see `app/rag/kb_loader.py`).
+are skipped (see `backend/rag/kb_loader.py`).
 
 **Operational anomalies** (Family 2 — slow, load-related):
 
@@ -65,7 +65,7 @@ The header keys map onto the citation metadata the Coordinator returns
 ## Vector store
 
 - **Embeddings:** local `BAAI/bge-small-en-v1.5` (384-dim), CPU, offline — no API
-  key, no per-call cost (`app/rag/config.py`, `app/rag/vector_store.py`).
+  key, no per-call cost (`backend/rag/config.py`, `backend/rag/vector_store.py`).
 - **Store:** Chroma, persisted to `artifacts/kb/` (collection `mafd_sop_kb`).
 - **Build/refresh:** `scripts/refresh_kb.py`, or `get_vectordb(force_rebuild=True)`.
   The Docker entrypoint builds it once at container start; the running app then
@@ -89,7 +89,7 @@ rather than a hand-written one:
 - A bare two-letter code carries almost no semantic signal, so the surrounding
   boilerplate dominated: `"LL near b684 protection ieee13"` retrieved the RELAY
   MISCOORDINATION procedure, because "protection" and "feeder" outweighed "LL".
-  `FAULT_QUERY_TERMS` in `app/faults/constants.py` expands each code into its
+  `FAULT_QUERY_TERMS` in `backend/faults/constants.py` expands each code into its
   physical description before querying.
 - The single word **"distribution"** in the query suffix was enough on its own to
   send an `LL` fault to the open-conductor procedure. The suffix is now just
@@ -100,7 +100,7 @@ path" is the correct physics, but an embedding model reads the words present, no
 the ones denied — "ground path" pulled the query toward the ground-fault
 documents while "no" contributed nothing.
 
-`tests/test_kb_retrieval.py` pins one SOP per fault type so neither failure can
+`backend/tests/test_kb_retrieval.py` pins one SOP per fault type so neither failure can
 return silently.
 
 ### Citations are re-verified against the KB
@@ -109,6 +109,6 @@ When the LLM agent path runs, the model composes `kb_citations` itself, so its
 `snippet` is model output — it paraphrased past the SYNTHETIC REFERENCE notice,
 dropping the provenance from the one place an operator would see it, and a
 model-written snippet is a fabricated quotation of a real document.
-`_restore_citation_snippets` in `app/faults/service.py` therefore replaces every
+`_restore_citation_snippets` in `backend/faults/service.py` therefore replaces every
 snippet and title with the authoritative KB text by `source_id`, and drops any
 citation whose id is not in the store.

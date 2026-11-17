@@ -9,9 +9,10 @@ This is what makes the pipeline live end to end:
         -> [detection] -> anomalies.detected -> [coordinator] -> faulttickets
         -> [notification] + [persistence]
 
-It replaces scripts/produce_signals.py for driving detection. That script emits
-single-magnitude SCADA readings (`voltage_kv`, `current_a`), which can never feed
-the DSP: I0/I1 and I2/I1 need all three phases (Open Decision #6).
+This is the ONLY driver for detection. It replaced scripts/produce_signals.py,
+now deleted, which emitted single-magnitude SCADA readings (`voltage_kv`,
+`current_a`) that could never feed the DSP: I0/I1 and I2/I1 need all three
+phases (Open Decision #6).
 
 FAULT SIGNATURES
 ----------------
@@ -64,9 +65,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.kafka import producer, topics  # noqa: E402
-from app.ml.fault_detector import load_testbed_model  # noqa: E402
-from app.ml.feature_extractor import _buses_from_cols  # noqa: E402
+from backend.kafka import producer, topics  # noqa: E402
+from ml.fault_detector import load_testbed_model  # noqa: E402
+from ml.feature_extractor import _buses_from_cols  # noqa: E402
 
 NOMINAL_HZ = 60.0
 FS = 1920.0  # 32 samples/cycle
@@ -546,7 +547,7 @@ async def main() -> None:
     except KeyboardInterrupt:
         print("  stopped.")
 
-    # NOTE: app/kafka/producer.produce() flushes on every call, so a large run
+    # NOTE: backend/kafka/producer.produce() flushes on every call, so a large run
     # here is dominated by that round trip rather than by generation. Fine for a
     # dev driver; a real SCADA tap would want a batched producer.
     print(f"Done. {episode} episode(s), {sent} frames to '{topics.RAW_SIGNALS}'.")

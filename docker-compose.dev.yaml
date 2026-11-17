@@ -1,8 +1,8 @@
 # MAFD local infrastructure: Postgres (persistence) + Kafka (event bus) + Kafdrop (UI).
 # Run the API + producer on the host against these:
 #   docker compose -f docker-compose.dev.yaml up -d
-#   uvicorn app.api.main:app --reload
-#   python scripts/produce_signals.py --scenario overload_trip
+#   uvicorn backend.api.main:app --reload
+#   python scripts/produce_waveforms.py --fault SLG
 
 services:
   db:
@@ -65,10 +65,10 @@ services:
 
   app:
     # Build from the repo ROOT — the app imports scripts/ and reads data/, which
-    # live outside app/, so the context cannot be ./app.
+    # live outside backend/, so the context cannot be ./backend.
     build:
       context: .
-      dockerfile: app/docker/Dockerfile
+      dockerfile: backend/docker/Dockerfile
     depends_on:
       db:
         condition: service_healthy
@@ -104,8 +104,12 @@ services:
             - .venv/
             - .git/
             - data/testbed/
+        # Dependencies now live in pyproject.toml, pinned by uv.lock; a change
+        # to either has to rebuild the image rather than sync into it.
         - action: rebuild
-          path: requirements.txt
+          path: pyproject.toml
+        - action: rebuild
+          path: uv.lock
 
 
   client:

@@ -2,7 +2,6 @@
 .venv/
 .git/
 **/__pycache__/
-*.pyc
 *.pyo
 
 # Secrets never go in the image (injected via env_file at runtime).
@@ -15,8 +14,14 @@ data/testbed/
 artifacts/
 scratchpad/
 
+# Dev-only tooling; the runtime image is built from the repo root.
+.devcontainer/
+
 # Docs / UI / tests aren't needed in the runtime image.
+# NOTE: backend/tests/, not tests/ — a .dockerignore pattern is matched against
+# the path from the context root, so `tests/` would no longer match now that the
+# suite lives inside the backend package, and it would ship in the image.
 docs/
 ui/
-tests/
+backend/tests/
 *.md

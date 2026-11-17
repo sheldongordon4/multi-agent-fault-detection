@@ -73,7 +73,7 @@ AZURE_ENDPOINT   = os.getenv("AZURE_OPENAI_ENDPOINT", "")
 AZURE_API_KEY    = os.getenv("AZURE_OPENAI_API_KEY", "")
 AZURE_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "")
 
-# Same knobs the coordinator uses (app/faults/agent.py), minus the rate limiter.
+# Same knobs the coordinator uses (backend/faults/agent.py), minus the rate limiter.
 LLM_MAX_RETRIES     = int(os.getenv("LLM_MAX_RETRIES", "2"))
 LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "60"))
 
