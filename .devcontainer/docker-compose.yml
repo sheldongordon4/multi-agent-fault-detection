@@ -1,0 +1,63 @@
+# Dev Containers overlay on docker-compose.dev.yaml.
+#
+# It adds ONE service, `devcontainer`, that you work inside. db / kafka /
+# kafdrop come from the base file unchanged, so the dev container talks to the
+# same infrastructure the app service would.
+#
+# PATHS HERE ARE RELATIVE TO THE REPOSITORY ROOT, NOT TO .devcontainer/.
+# Compose resolves every relative path in a multi-file merge against the
+# directory of the FIRST -f file, and devcontainer.json lists
+# ../docker-compose.dev.yaml first (it has to: later files override earlier
+# ones). So `context: .` is the repo root and `.devcontainer/Dockerfile` is the
+# path from there. Writing `..` here would resolve outside the repository.
+
+services:
+  devcontainer:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    # Keep the container alive; VS Code attaches and you run uvicorn, pytest and
+    # pnpm yourself. The app service's entrypoint (migrate → build KB → uvicorn)
+    # is deliberately NOT used here — see devcontainer.json's runServices.
+    command: sleep infinity
+    init: true
+    volumes:
+      - .:/workspaces/multi-agent-fault-detection:cached
+      # Mask the host's Windows .venv — its Scripts/python.exe cannot run on
+      # Linux, and leaving it visible invites tools to auto-select it. The
+      # container's interpreter is /opt/venv/bin/python.
+      - devcontainer_venv:/workspaces/multi-agent-fault-detection/.venv
+      # node_modules holds platform-specific binaries, so it must not be shared
+      # with the host install. Same reason the client service uses a volume.
+      - devcontainer_node_modules:/workspaces/multi-agent-fault-detection/frontend/node_modules
+      # Survive rebuilds without re-downloading the embedding weights.
+      - devcontainer_hf:/opt/hf
+    # Same contract as the app service: .env supplies secrets, and its absence is
+    # fine — the coordinator falls back to the offline heuristic ticket.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # In-network addressing. Note the database port is 5432, NOT the 5433 the
+      # host uses: 5433 is only the published port that keeps a native host
+      # Postgres from shadowing the container. Inside the network it is db:5432.
+      KAFKA_HOST: kafka
+      KAFKA_PORT: 9092
+      DATABASE_ASYNC_URL: postgresql+asyncpg://postgres:postgres@db:5432/mafd
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/mafd
+      # The frontend runs in here too, and the browser reaches the API through
+      # the forwarded port on the host.
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+      VITE_MAP_MODE: ${VITE_MAP_MODE:-offline}
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - mafd-network
+
+volumes:
+  devcontainer_venv:
+  devcontainer_node_modules:
+  devcontainer_hf:

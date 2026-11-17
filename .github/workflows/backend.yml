@@ -1,0 +1,184 @@
+# Backend CI — ruff, then the pytest suite against a real Postgres.
+#
+# The suite SKIPS rather than fails when its dependencies are missing: the
+# assignment and repeat-offender tests skip when no database is listening, and
+# the SOP retrieval tests skip when artifacts/kb is absent. On a bare checkout
+# that is 32 skips out of 101 tests and a green run, which is exactly the
+# "green by skipping" trap docs/Testing_Report.md warns about. So this workflow
+# provides the database and builds the KB, and then ASSERTS the skip count — see
+# the last step. Without that assertion, a broken service container would look
+# like a pass.
+
+name: Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'ml/**'
+      - 'scripts/**'
+      - 'data/sop/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'ml/**'
+      - 'scripts/**'
+      - 'data/sop/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/backend.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  UV_VERSION: '0.13.9'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  lint:
+    name: ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      # Scoped to backend/ and ml/ on purpose (backend/ contains the suite too).
+      # `ruff check .` currently reports 9
+      # errors, all of them in scripts/ (reproduce_steps_1_4.py,
+      # reproduce_step7_faithfulness.py, run_detection_demo.py), and
+      # `ruff format --check` would reformat 21 files. Gating on either today
+      # means every run is red for reasons unrelated to the change. Widen this
+      # once those are cleaned up — `ruff check backend ml` passes now, so it is
+      # a gate that can actually hold.
+      - name: Lint
+        run: uv run --only-dev ruff check backend ml
+
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # Matches docker-compose.dev.yaml.
+        image: postgres:18.1-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mafd
+        ports:
+          - 5432:5432
+        # The DB skip guards are evaluated at import time, so Postgres has to be
+        # accepting connections before pytest starts, not merely created.
+        options: >-
+          --health-cmd "pg_isready -U postgres -d mafd"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Service containers are reached on localhost from the runner. Note 5432,
+      # not the 5433 the compose stack publishes — that mapping exists only to
+      # dodge a developer's native Postgres.
+      DATABASE_ASYNC_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/mafd
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/mafd
+      # No LLM endpoint: run_fault_diagnosis falls back to the local heuristic
+      # ticket, which is the path these tests exercise anyway.
+      KAFKA_ENABLED: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install Python ${{ env.PYTHON_VERSION }}
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      # --frozen: the lock is authoritative; fail rather than silently resolving
+      # something different from what the images install.
+      - name: Install dependencies
+        run: uv sync --frozen --python ${{ env.PYTHON_VERSION }}
+
+      # bge-small is ~130 MB and the KB build needs it. Keyed on the model name
+      # since nothing else in the repo changes it.
+      - name: Cache embedding model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-bge-small-en-v1.5
+
+      - name: Migrate
+        run: uv run alembic -c backend/alembic.ini upgrade head
+
+      # Unlocks the 13 SOP retrieval tests. Local embeddings, no API key.
+      - name: Build the SOP knowledge base
+        run: uv run python scripts/refresh_kb.py
+
+      - name: Test
+        run: uv run pytest -q --timeout=300 --junitxml=junit.xml
+
+      # The point of the whole job. A bare checkout skips 32; with the database
+      # and the KB in place only one should remain — test_attribution's
+      # end-to-end case, which needs data/generated/normal_train_013.csv from
+      # step 1 and is not committed.
+      - name: Fail if tests skipped unexpectedly
+        if: always()
+        run: |
+          uv run --only-dev python - <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          ALLOWED = 1
+
+          root = ET.parse("junit.xml").getroot()
+          suites = root.iter("testsuite") if root.tag == "testsuites" else [root]
+          skipped = []
+          for suite in suites:
+              for case in suite.iter("testcase"):
+                  for sk in case.findall("skipped"):
+                      skipped.append(
+                          f"{case.get('classname')}.{case.get('name')}: "
+                          f"{sk.get('message', '').strip()}"
+                      )
+
+          print(f"{len(skipped)} skipped, {ALLOWED} allowed")
+          for line in skipped:
+              print("  -", line)
+
+          if len(skipped) > ALLOWED:
+              print(
+                  "\nMore tests skipped than expected. A skip here usually means a "
+                  "dependency did not come up: Postgres (the assignment and "
+                  "repeat-offender tests) or artifacts/kb (the SOP retrieval tests). "
+                  "That is a broken job, not a pass.",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+          PY
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-junit
+          path: junit.xml
+          retention-days: 7

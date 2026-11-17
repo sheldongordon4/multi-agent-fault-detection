@@ -1,0 +1,85 @@
+# Frontend CI — runs the vitest suite and a production build.
+#
+# Scoped to frontend/ on purpose: the Python side has its own suite that needs
+# Postgres and Kafka, which is a different job with different services.
+
+name: Frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
+
+# A newer push to the same ref makes an in-flight run obsolete.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    name: test + build
+    runs-on: ubuntu-latest
+
+    # Applies to `run` steps only — `uses` steps still take paths from the
+    # workspace root, which is why the paths below are prefixed with frontend/.
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      # pnpm must come BEFORE setup-node: setup-node's `cache: pnpm` shells out
+      # to pnpm to find the store path, so it has to be on PATH already.
+      #
+      # No `version` input on purpose — action-setup reads the packageManager
+      # pin from frontend/package.json, so the version is declared once.
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          # Matches the ARG in frontend/docker/Dockerfile so CI builds on the
+          # same major/minor the container ships.
+          node-version: 22.17.1
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # vitest, node environment, src/**/*.test.ts — pure domain logic
+      # (severity folding, filtering, recency, the activity feed's prose).
+      - name: Test
+        run: pnpm test
+
+      # `tsc -b && vite build`. The typecheck is the reason this is the gate
+      # rather than a separate lint step: `pnpm lint` currently FAILS outright
+      # with "typescript-eslint does not support TS 7.0", so running it here
+      # would paint every run red for a reason unrelated to the change. See the
+      # gotcha in frontend/README.md. `tsc -b` is the working check and it runs
+      # as the first half of this command.
+      - name: Build
+        run: pnpm build
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          # Workspace-relative: `defaults.run.working-directory` does not apply
+          # to `uses` steps.
+          path: frontend/dist
+          retention-days: 7

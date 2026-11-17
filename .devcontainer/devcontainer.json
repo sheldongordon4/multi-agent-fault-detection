@@ -1,0 +1,70 @@
+{
+	"name": "MAFD — API, consumers, console",
+
+	// Base stack first, overlay second: later files override earlier ones, and
+	// this ordering is also what makes the overlay's relative paths resolve
+	// against the repository root (see the note in docker-compose.yml).
+	"dockerComposeFile": ["../docker-compose.dev.yaml", "docker-compose.yml"],
+	"service": "devcontainer",
+	"workspaceFolder": "/workspaces/multi-agent-fault-detection",
+
+	// Infrastructure only. `app` and `client` are deliberately left out: you run
+	// uvicorn and pnpm dev inside this container, and starting the app service
+	// too would mean two processes sharing the same Kafka group.ids and both
+	// binding port 8000 — the clash AGENTS.md warns about.
+	"runServices": ["db", "kafka", "kafdrop"],
+	"shutdownAction": "stopCompose",
+
+	"features": {
+		// Node for the React console. 22 matches frontend/docker/Dockerfile;
+		// pnpm comes from corepack, which honours the packageManager pin in
+		// frontend/package.json rather than a second version to keep in sync.
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "22"
+		}
+	},
+
+	// db (5433), kafka (29092) and kafdrop (9000) already publish to the host
+	// from the base compose file. Only what runs *inside* here needs forwarding.
+	"forwardPorts": [8000, 5173],
+	"portsAttributes": {
+		"8000": { "label": "API (uvicorn)", "onAutoForward": "notify" },
+		"5173": { "label": "Operator console (vite)", "onAutoForward": "notify" }
+	},
+
+	"postCreateCommand": "bash .devcontainer/post-create.sh",
+	"remoteUser": "vscode",
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"charliermarsh.ruff",
+				"ms-azuretools.vscode-docker",
+				"dbaeumer.vscode-eslint",
+				"bradlc.vscode-tailwindcss",
+				"redhat.vscode-yaml"
+			],
+			"settings": {
+				// Point at the image's venv explicitly. The workspace .venv is
+				// masked by an empty volume precisely so it cannot be chosen.
+				"python.defaultInterpreterPath": "/opt/venv/bin/python",
+				"python.testing.pytestEnabled": true,
+				"python.testing.unittestEnabled": false,
+				"python.testing.pytestArgs": ["tests"],
+				"[python]": {
+					"editor.defaultFormatter": "charliermarsh.ruff",
+					"editor.formatOnSave": true,
+					"editor.codeActionsOnSave": {
+						"source.organizeImports.ruff": "explicit"
+					}
+				},
+				"files.exclude": {
+					"**/__pycache__": true,
+					"**/.pytest_cache": true
+				}
+			}
+		}
+	}
+}
