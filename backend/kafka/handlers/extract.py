@@ -10,7 +10,7 @@ per-feeder `FeatureExtractor`, and a reduced event row is published to
 WHAT THIS HANDLER DELIBERATELY DOES NOT DO
 ------------------------------------------
 It does not score. `FeatureExtractor.emit_event()` would — it calls
-`publish_event()`, which runs the IsolationForest inline — but detection is a
+`build_event_payload()`, which runs the IsolationForest inline — but detection is a
 separate consumer group by design (detection-as-trigger, §4.2). Scoring here as
 well would run the model twice per event and put ML work on the ingest path. So
 we take the row from `reduce_to_row()` and publish it unscored; `detect.handle`

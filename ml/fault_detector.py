@@ -187,7 +187,7 @@ def _severity(is_fault: bool, anomaly_score: float) -> str:
     return "high"
 
 
-def publish_event(
+def build_event_payload(
     features,
     *,
     feeder=None,

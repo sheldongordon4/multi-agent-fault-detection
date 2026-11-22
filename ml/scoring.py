@@ -18,8 +18,8 @@ from typing import Any
 
 from ml.fault_classifier import classify_event, load_classifier
 from ml.fault_detector import (
+    build_event_payload,
     load_testbed_model,
-    publish_event,
     train_isoforest_on_testbed,
 )
 
@@ -68,7 +68,7 @@ def score_event_task(
 ) -> dict:
     """Score one per-bus feature row. Returns the anomalies.detected payload."""
     model, feature_cols = get_model()
-    return publish_event(
+    return build_event_payload(
         features,
         feeder=feeder,
         timestamp=timestamp,

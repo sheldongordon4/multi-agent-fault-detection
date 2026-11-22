@@ -14,7 +14,7 @@ Pipeline (see the project notes / docs):
      _sequence       Fortescue I0/I1/I2           (implemented)
      _reduce_bus     collapse window to 6 features/bus + low-current guard
     metadata        feeder (config) + window times (sample clock) + event id
-     emit_event      hand the row + metadata to publish_event()
+     emit_event      hand the row + metadata to build_event_payload()
 
 IMPLEMENTATION STATUS
     All stages are implemented end to end: sequence components, pu reduction,
@@ -50,8 +50,8 @@ if str(ROOT_DIR) not in sys.path:
 
 from ml.fault_detector import (  # noqa: E402
     FEATURE_FAMILIES,
+    build_event_payload,
     load_testbed_model,
-    publish_event,
 )
 
 # Phase rotation operator a = 1∠120° for the symmetrical-component transform.
@@ -461,7 +461,7 @@ class FeatureExtractor:
     def emit_event(self, window, t_start, t_end) -> dict:
         """Reduce the window to a row, attach metadata, and score+publish it."""
         row = self.reduce_to_row(window)
-        return publish_event(
+        return build_event_payload(
             row,
             feeder=self.feeder,
             timestamp=_iso(t_end),

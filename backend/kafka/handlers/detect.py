@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 async def handle(event: dict) -> None:
     # The event carries the per-bus feature row (under "features"); plain rows are
-    # accepted too. publish_event ignores any non-feature columns.
+    # accepted too. build_event_payload ignores any non-feature columns.
     features = event.get("features", event)
 
     # Runs in a separate PROCESS: sklearn scoring is CPU-bound Python, so on a
