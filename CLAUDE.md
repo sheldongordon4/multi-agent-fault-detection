@@ -1,4 +1,4 @@
-# AGENTS.md — Multi-Agent Fault Detection (MAFD)
+# CLAUDE.md — Multi-Agent Fault Detection (MAFD)
 
 Guidance for AI agents (and humans) working in this repository. Read this before making changes.
 
