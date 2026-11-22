@@ -13,6 +13,10 @@ data/generated/
 # scripts/refresh_kb.py / scripts/bootstrap.py, never committed.
 artifacts/
 
+# Test reports. CI writes this with --junitxml and the skip/empty-run gate
+# parses it; running the same pytest command locally leaves one behind.
+junit.xml
+
 srccopy
 
 scripts/REPRODUCE.md

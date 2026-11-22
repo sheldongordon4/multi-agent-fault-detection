@@ -98,3 +98,10 @@ known-first-party = ["backend", "ml", "scripts"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["backend/tests"]
+
+# Bare `pytest` does NOT put the rootdir on sys.path, and [tool.uv] package =
+# false means backend/ and ml/ are never installed into the venv. Together that
+# made `uv run pytest` (what CI runs) fail to import them while
+# `python -m pytest` succeeded: 26 tests collected with 10 collection errors
+# instead of 101. This puts the rootdir on the path for every invocation.
+pythonpath = ["."]

@@ -136,11 +136,18 @@ jobs:
       - name: Test
         run: uv run pytest -q --timeout=300 --junitxml=junit.xml
 
-      # The point of the whole job. A bare checkout skips 32; with the database
-      # and the KB in place only one should remain — test_attribution's
-      # end-to-end case, which needs data/generated/normal_train_013.csv from
-      # step 1 and is not committed.
-      - name: Fail if tests skipped unexpectedly
+      # The point of the whole job. There are two ways a run can look green
+      # while having tested nothing, and this asserts against both.
+      #
+      # 1. SKIPPING. A bare checkout skips 32; with the database and the KB in
+      #    place only one should remain — test_attribution's end-to-end case,
+      #    which needs data/generated/normal_train_013.csv from step 1 and is
+      #    not committed.
+      # 2. NOT COLLECTING. Run 44120465716 could not import `backend` in 10 of
+      #    11 modules, so nothing executed, so nothing skipped — and this gate
+      #    PASSED. Zero skips out of zero tests is not a pass, which is why the
+      #    total and the error count are checked first.
+      - name: Fail if tests skipped or never ran
         if: always()
         run: |
           uv run --only-dev python - <<'PY'
@@ -148,9 +155,15 @@ jobs:
           import xml.etree.ElementTree as ET
 
           ALLOWED = 1
+          # A floor, not an exact count: adding a test must not turn CI red.
+          MIN_TESTS = 95
 
           root = ET.parse("junit.xml").getroot()
-          suites = root.iter("testsuite") if root.tag == "testsuites" else [root]
+          # Materialised because it is traversed three times below; a generator
+          # would be exhausted by the totals and leave `skipped` empty.
+          suites = list(root.iter("testsuite") if root.tag == "testsuites" else [root])
+          total = sum(int(s.get("tests", 0)) for s in suites)
+          errors = sum(int(s.get("errors", 0)) for s in suites)
           skipped = []
           for suite in suites:
               for case in suite.iter("testcase"):
@@ -160,9 +173,21 @@ jobs:
                           f"{sk.get('message', '').strip()}"
                       )
 
-          print(f"{len(skipped)} skipped, {ALLOWED} allowed")
+          print(
+              f"{total} tests, {errors} errors, "
+              f"{len(skipped)} skipped ({ALLOWED} allowed)"
+          )
           for line in skipped:
               print("  -", line)
+
+          if errors or total < MIN_TESTS:
+              print(
+                  f"\nExpected at least {MIN_TESTS} tests and no collection "
+                  f"errors; got {total} tests and {errors} errors. The suite did "
+                  "not run. That is an import or collection failure, not a pass.",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
 
           if len(skipped) > ALLOWED:
               print(
