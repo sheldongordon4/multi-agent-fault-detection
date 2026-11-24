@@ -46,7 +46,7 @@ MODEL_DIR = Path(__file__).resolve().parent / "models"  # ml/models
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 # Named for the testbed path specifically; it used to share this directory with
 # the legacy baseline_isolation_forest.pkl, now deleted.
-TESTBED_MODEL_PATH = MODEL_DIR / "testbed_isolation_forest.pkl"
+TESTBED_MODEL_PATH = MODEL_DIR / "fault_detector.pkl"
 
 # Per-bus feature families (used to read a row back per bus for the publish payload).
 FEATURE_FAMILIES = [

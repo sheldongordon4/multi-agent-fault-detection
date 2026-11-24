@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 MODEL_DIR = Path(__file__).resolve().parent / "models"  # ml/models
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
-CLASSIFIER_PATH = MODEL_DIR / "testbed_classifier.pkl"
+CLASSIFIER_PATH = MODEL_DIR / "fault_classifier.pkl"
 
 # The CLEAN 13-bus export (labeled; see scripts/analyze_testbed.py).
 DEFAULT_TRAIN_CSV = "data/testbed/013 Bus Fault Analysis Batch (mod).csv"
